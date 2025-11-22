@@ -1,11 +1,29 @@
 # Vercel serverless function dependencies
-# Include all backend dependencies here
+# This file must be in api/ directory for Vercel to detect it
 
-# Core Framework
-fastapi
+# Core Framework (REQUIRED)
+fastapi==0.115.4
 uvicorn[standard]
-pydantic
-pydantic-settings
+pydantic==2.9.2
+pydantic-settings==2.6.0
+
+# Security & Rate Limiting (REQUIRED - fixes the error)
+slowapi==0.1.9
+python-jose[cryptography]
+cryptography
+passlib[bcrypt]
+
+# Database (REQUIRED)
+psycopg2-binary
+supabase
+sqlalchemy
+aiosqlite
+
+# Utilities (REQUIRED)
+python-dotenv
+httpx
+aiohttp
+pyjwt
 
 # AI/LLM SDKs
 openai
@@ -32,20 +50,6 @@ pypdf2
 pdfplumber
 python-docx
 python-multipart
-
-# Database
-psycopg2-binary
-supabase
-
-# Utilities
-python-dotenv
-slowapi
-cryptography
-pyjwt
-
-# HTTP Client
-httpx
-aiohttp
 
 # Other
 python-dateutil
