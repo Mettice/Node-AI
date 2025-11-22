@@ -1,0 +1,23 @@
+{
+  "id": "82f59431-c406-429f-862d-cf2ad658f6b6",
+  "name": "Untitled Workflow",
+  "description": null,
+  "nodes": [
+    {
+      "id": "webhook_input-1763325127165",
+      "type": "webhook_input",
+      "position": {
+        "x": 351.26394177467785,
+        "y": 177.82294283201924
+      },
+      "data": {}
+    }
+  ],
+  "edges": [],
+  "created_at": "2025-11-17T12:39:06.526768",
+  "updated_at": "2025-11-17T12:39:06.526768",
+  "tags": [],
+  "is_template": false,
+  "is_deployed": false,
+  "deployed_at": null
+}

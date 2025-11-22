@@ -1,0 +1,95 @@
+{
+  "id": "crewai-tools-template",
+  "name": "CrewAI with Tools Workflow",
+  "description": "CrewAI agents using Calculator and Web Search tools to solve complex problems",
+  "is_template": true,
+  "tags": ["crewai", "agent", "tools", "calculator", "web-search"],
+  "nodes": [
+    {
+      "id": "text-input-1",
+      "type": "text_input",
+      "position": { "x": 100, "y": 200 },
+      "data": {
+        "label": "Task Input",
+        "config": {
+          "text": "Calculate the ROI for a $50,000 investment with 15% annual return over 5 years, then search for best practices for investment portfolio management"
+        }
+      }
+    },
+    {
+      "id": "tool-calculator-1",
+      "type": "tool",
+      "position": { "x": 100, "y": 350 },
+      "data": {
+        "label": "Calculator Tool",
+        "config": {
+          "tool_type": "calculator"
+        }
+      }
+    },
+    {
+      "id": "tool-search-1",
+      "type": "tool",
+      "position": { "x": 100, "y": 500 },
+      "data": {
+        "label": "Web Search Tool",
+        "config": {
+          "tool_type": "web_search",
+          "web_search_provider": "duckduckgo",
+          "web_search_max_results": 5
+        }
+      }
+    },
+    {
+      "id": "crewai-agent-1",
+      "type": "crewai_agent",
+      "position": { "x": 500, "y": 350 },
+      "data": {
+        "label": "CrewAI Agent",
+        "config": {
+          "provider": "openai",
+          "openai_model": "gpt-4",
+          "temperature": 0.7,
+          "max_iterations": 5,
+          "process": "sequential",
+          "task": "Calculate the ROI for a $50,000 investment with 15% annual return over 5 years, then search for best practices for investment portfolio management",
+          "agents": [
+            {
+              "role": "Financial Analyst",
+              "goal": "Perform financial calculations and analyze investment strategies",
+              "backstory": "You are a certified financial analyst with expertise in ROI calculations, investment analysis, and portfolio management. You use tools to perform accurate calculations and research."
+            }
+          ],
+          "tasks": [
+            {
+              "description": "Calculate the ROI for a $50,000 investment with 15% annual return over 5 years using the calculator tool",
+              "agent": "Financial Analyst"
+            },
+            {
+              "description": "Search for best practices for investment portfolio management and provide recommendations",
+              "agent": "Financial Analyst"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "text-input-1",
+      "target": "crewai-agent-1"
+    },
+    {
+      "id": "edge-2",
+      "source": "tool-calculator-1",
+      "target": "crewai-agent-1"
+    },
+    {
+      "id": "edge-3",
+      "source": "tool-search-1",
+      "target": "crewai-agent-1"
+    }
+  ]
+}
+

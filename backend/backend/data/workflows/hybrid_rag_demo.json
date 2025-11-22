@@ -1,0 +1,205 @@
+{
+  "id": "hybrid-rag-demo",
+  "name": "Hybrid RAG Demo - Research Papers",
+  "description": "Demonstration of Hybrid RAG combining vector search with knowledge graph relationships",
+  "is_template": true,
+  "tags": ["hybrid-rag", "knowledge-graph", "demo", "template"],
+  "nodes": [
+    {
+      "id": "text_input_1",
+      "type": "text_input",
+      "position": { "x": 100, "y": 100 },
+      "data": {
+        "label": "Research Query",
+        "config": {
+          "text": "What are the main applications of transformer models in NLP?"
+        }
+      }
+    },
+    {
+      "id": "knowledge_graph_1",
+      "type": "knowledge_graph",
+      "position": { "x": 400, "y": 50 },
+      "data": {
+        "label": "Import Sample Graph",
+        "config": {
+          "operation": "import",
+          "neo4j_uri": "bolt://localhost:7687",
+          "neo4j_user": "neo4j",
+          "neo4j_password": "password",
+          "graph_data": {
+            "nodes": [
+              {
+                "labels": ["Paper"],
+                "properties": {
+                  "id": 1,
+                  "title": "Attention Is All You Need",
+                  "year": 2017,
+                  "citations": 50000,
+                  "content": "The transformer architecture revolutionized NLP by using self-attention mechanisms."
+                }
+              },
+              {
+                "labels": ["Paper"],
+                "properties": {
+                  "id": 2,
+                  "title": "BERT: Pre-training of Deep Bidirectional Transformers",
+                  "year": 2018,
+                  "citations": 40000,
+                  "content": "BERT introduced bidirectional training of transformers for better language understanding."
+                }
+              },
+              {
+                "labels": ["Paper"],
+                "properties": {
+                  "id": 3,
+                  "title": "GPT-3: Language Models are Few-Shot Learners",
+                  "year": 2020,
+                  "citations": 15000,
+                  "content": "GPT-3 demonstrated that large language models can perform tasks with minimal examples."
+                }
+              },
+              {
+                "labels": ["Author"],
+                "properties": {
+                  "id": 4,
+                  "name": "Ashish Vaswani"
+                }
+              },
+              {
+                "labels": ["Author"],
+                "properties": {
+                  "id": 5,
+                  "name": "Jacob Devlin"
+                }
+              }
+            ],
+            "relationships": [
+              {
+                "from_id": 4,
+                "to_id": 1,
+                "type": "AUTHORED"
+              },
+              {
+                "from_id": 5,
+                "to_id": 2,
+                "type": "AUTHORED"
+              },
+              {
+                "from_id": 2,
+                "to_id": 1,
+                "type": "CITES",
+                "properties": { "importance": "high" }
+              },
+              {
+                "from_id": 3,
+                "to_id": 1,
+                "type": "CITES",
+                "properties": { "importance": "high" }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "kg_query_1",
+      "type": "knowledge_graph",
+      "position": { "x": 400, "y": 250 },
+      "data": {
+        "label": "Find Related Papers",
+        "config": {
+          "operation": "query",
+          "neo4j_uri": "bolt://localhost:7687",
+          "neo4j_user": "neo4j",
+          "neo4j_password": "password",
+          "cypher_query": "MATCH (p:Paper)-[r:CITES]->(cited:Paper) WHERE cited.title CONTAINS 'Attention' RETURN p.title as paper, p.content as content, p.citations as citations, type(r) as relationship ORDER BY p.citations DESC LIMIT 5"
+        }
+      }
+    },
+    {
+      "id": "vector_search_1",
+      "type": "vector_search",
+      "position": { "x": 400, "y": 450 },
+      "data": {
+        "label": "Semantic Search",
+        "config": {
+          "index_name": "papers",
+          "top_k": 5,
+          "search_type": "similarity"
+        }
+      }
+    },
+    {
+      "id": "hybrid_retrieval_1",
+      "type": "hybrid_retrieval",
+      "position": { "x": 700, "y": 300 },
+      "data": {
+        "label": "Hybrid Fusion",
+        "config": {
+          "fusion_method": "reciprocal_rank",
+          "top_k": 5
+        }
+      }
+    },
+    {
+      "id": "chat_1",
+      "type": "chat",
+      "position": { "x": 1000, "y": 300 },
+      "data": {
+        "label": "Answer with Context",
+        "config": {
+          "provider": "openai",
+          "model": "gpt-4o-mini",
+          "system_prompt": "You are a research assistant. Use the provided papers and their relationships to answer questions about NLP research.",
+          "max_tokens": 500
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "text_input_1",
+      "target": "kg_query_1",
+      "sourceHandle": "output",
+      "targetHandle": "query"
+    },
+    {
+      "id": "e2",
+      "source": "text_input_1",
+      "target": "vector_search_1",
+      "sourceHandle": "output",
+      "targetHandle": "query"
+    },
+    {
+      "id": "e3",
+      "source": "kg_query_1",
+      "target": "hybrid_retrieval_1",
+      "sourceHandle": "output",
+      "targetHandle": "graph_results"
+    },
+    {
+      "id": "e4",
+      "source": "vector_search_1",
+      "target": "hybrid_retrieval_1",
+      "sourceHandle": "output",
+      "targetHandle": "vector_results"
+    },
+    {
+      "id": "e5",
+      "source": "hybrid_retrieval_1",
+      "target": "chat_1",
+      "sourceHandle": "output",
+      "targetHandle": "context"
+    },
+    {
+      "id": "e6",
+      "source": "text_input_1",
+      "target": "chat_1",
+      "sourceHandle": "output",
+      "targetHandle": "query"
+    }
+  ]
+}
+

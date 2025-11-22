@@ -1,0 +1,18 @@
+{
+  "execution_id": "f30d7efb-b2e8-40f9-9892-21124dfab755",
+  "workflow_id": "unknown",
+  "workflow_version": null,
+  "status": "completed",
+  "started_at": "2025-11-14T17:15:54.557023",
+  "completed_at": "2025-11-14T17:16:03.108178",
+  "duration_ms": 8551,
+  "total_cost": 0.027794000000000003,
+  "cost_breakdown": {
+    "other": 0.0,
+    "embedding": 7.4e-05,
+    "vector_search": 0.0,
+    "llm": 0.02772
+  },
+  "error": null,
+  "metadata": {}
+}

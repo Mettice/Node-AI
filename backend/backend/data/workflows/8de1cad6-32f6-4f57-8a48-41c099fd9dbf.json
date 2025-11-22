@@ -1,0 +1,141 @@
+{
+  "id": "8de1cad6-32f6-4f57-8a48-41c099fd9dbf",
+  "name": "Untitled Workflow",
+  "description": null,
+  "nodes": [
+    {
+      "id": "file_loader-1763145151538",
+      "type": "file_loader",
+      "position": {
+        "x": 35.10313286936139,
+        "y": 33.816534620974025
+      },
+      "data": {
+        "file_id": "996db844-07bf-46f9-9376-8dfe433fe83f",
+        "include_base64": false
+      }
+    },
+    {
+      "id": "chunk-1763145154452",
+      "type": "chunk",
+      "position": {
+        "x": 320.53341631940145,
+        "y": -41.63370732518399
+      },
+      "data": {
+        "strategy": "recursive",
+        "chunk_size": 512,
+        "chunk_overlap": 50,
+        "separators": [],
+        "min_chunk_size": 100,
+        "max_chunk_size": 1024,
+        "overlap_sentences": 1
+      }
+    },
+    {
+      "id": "embed-1763145158508",
+      "type": "embed",
+      "position": {
+        "x": 403.62426826391413,
+        "y": 331.4103249539221
+      },
+      "data": {
+        "provider": "openai",
+        "use_finetuned_model": false,
+        "openai_model": "text-embedding-3-small",
+        "batch_size": 100
+      }
+    },
+    {
+      "id": "vector_search-1763145166839",
+      "type": "vector_search",
+      "position": {
+        "x": 715.3113389605257,
+        "y": 42.676953262099744
+      },
+      "data": {
+        "provider": "faiss",
+        "query": "What is Ai?",
+        "top_k": 5,
+        "score_threshold": 0,
+        "filter_metadata": {}
+      }
+    },
+    {
+      "id": "chat-1763145175215",
+      "type": "chat",
+      "position": {
+        "x": 906.1894675266675,
+        "y": -26.1841437522679
+      },
+      "data": {
+        "provider": "openai",
+        "temperature": 0.7,
+        "max_tokens": 500,
+        "user_prompt_template": "Context: {context}\n\nQuestion: {query}\n\nAnswer:",
+        "use_memory": false,
+        "session_id": "default",
+        "memory_limit": 10,
+        "use_finetuned_model": false,
+        "openai_model": "gpt-4o-mini"
+      }
+    },
+    {
+      "id": "vector_store-1763145306885",
+      "type": "vector_store",
+      "position": {
+        "x": 525.6412998156885,
+        "y": 182.81532613344444
+      },
+      "data": {
+        "provider": "faiss",
+        "faiss_index_type": "flat",
+        "faiss_persist": false,
+        "faiss_file_path": "./data/vectors/index.faiss"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "efile_loader-1763145151538-chunk-1763145154452",
+      "source": "file_loader-1763145151538",
+      "target": "chunk-1763145154452",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "echunk-1763145154452-embed-1763145158508",
+      "source": "chunk-1763145154452",
+      "target": "embed-1763145158508",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "eembed-1763145158508-vector_store-1763145306885",
+      "source": "embed-1763145158508",
+      "target": "vector_store-1763145306885",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "evector_store-1763145306885-vector_search-1763145166839",
+      "source": "vector_store-1763145306885",
+      "target": "vector_search-1763145166839",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "evector_search-1763145166839-chat-1763145175215",
+      "source": "vector_search-1763145166839",
+      "target": "chat-1763145175215",
+      "sourceHandle": null,
+      "targetHandle": null
+    }
+  ],
+  "created_at": "2025-11-14T19:35:56.309363",
+  "updated_at": "2025-11-17T15:27:40.015973",
+  "tags": [],
+  "is_template": false,
+  "is_deployed": false,
+  "deployed_at": "2025-11-14T19:35:59.460221"
+}

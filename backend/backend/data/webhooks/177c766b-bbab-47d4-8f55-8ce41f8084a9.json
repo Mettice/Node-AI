@@ -1,0 +1,17 @@
+{
+  "id": "177c766b-bbab-47d4-8f55-8ce41f8084a9",
+  "workflow_id": "82f59431-c406-429f-862d-cf2ad658f6b6",
+  "name": "Webhook for ",
+  "webhook_id": "wh_3b3d8ba8719745fd",
+  "secret": "6043c67d1a8c47e0ae270c6081d5e9c9",
+  "enabled": true,
+  "created_at": "2025-11-17T12:39:07.876927",
+  "updated_at": "2025-11-17T12:39:42.142426",
+  "method": "POST",
+  "headers_required": {},
+  "payload_mapping": {},
+  "total_calls": 0,
+  "successful_calls": 0,
+  "failed_calls": 0,
+  "last_called_at": null
+}

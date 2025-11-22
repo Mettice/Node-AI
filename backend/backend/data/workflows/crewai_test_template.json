@@ -1,0 +1,66 @@
+{
+  "id": "crewai-test-template",
+  "name": "CrewAI Research & Write Workflow",
+  "description": "A test workflow demonstrating CrewAI agents working together to research a topic and write a report",
+  "is_template": true,
+  "tags": ["crewai", "agent", "test", "research"],
+  "nodes": [
+    {
+      "id": "text-input-1",
+      "type": "text_input",
+      "position": { "x": 100, "y": 200 },
+      "data": {
+        "label": "Task Input",
+        "config": {
+          "text": "Research the latest AI trends in 2025 and write a comprehensive report"
+        }
+      }
+    },
+    {
+      "id": "crewai-agent-1",
+      "type": "crewai_agent",
+      "position": { "x": 400, "y": 200 },
+      "data": {
+        "label": "CrewAI Agent",
+        "config": {
+          "provider": "openai",
+          "openai_model": "gpt-4",
+          "temperature": 0.7,
+          "max_iterations": 3,
+          "process": "sequential",
+          "task": "Research the latest AI trends in 2025 and write a comprehensive report",
+          "agents": [
+            {
+              "role": "Researcher",
+              "goal": "Research the topic thoroughly and gather comprehensive information",
+              "backstory": "You are an expert researcher with 10 years of experience in technology and AI. You excel at finding accurate, up-to-date information and synthesizing complex topics."
+            },
+            {
+              "role": "Writer",
+              "goal": "Write a clear, comprehensive, and well-structured report based on research findings",
+              "backstory": "You are a skilled technical writer who creates engaging, informative content. You excel at organizing information logically and presenting it in an accessible way."
+            }
+          ],
+          "tasks": [
+            {
+              "description": "Research the latest AI trends in 2025, including key developments, breakthroughs, and industry impacts",
+              "agent": "Researcher"
+            },
+            {
+              "description": "Write a comprehensive report based on the research findings, including an executive summary, key trends, and future outlook",
+              "agent": "Writer"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "text-input-1",
+      "target": "crewai-agent-1"
+    }
+  ]
+}
+

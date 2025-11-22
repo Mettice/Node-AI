@@ -1,0 +1,78 @@
+{
+  "id": "872d92ae-7301-414f-9d25-b0e121824549",
+  "name": "Untitled Workflow",
+  "description": null,
+  "nodes": [
+    {
+      "id": "text_input-1763142678913",
+      "type": "text_input",
+      "position": {
+        "x": 77.76939582678722,
+        "y": 457.07998158454313
+      },
+      "data": {}
+    },
+    {
+      "id": "file_loader-1763142680400",
+      "type": "file_loader",
+      "position": {
+        "x": 549.856112858512,
+        "y": 289.53346891278903
+      },
+      "data": {}
+    },
+    {
+      "id": "crewai_agent-1763142818123",
+      "type": "crewai_agent",
+      "position": {
+        "x": 51.656636902105106,
+        "y": 327.2289960373018
+      },
+      "data": {
+        "provider": "openai",
+        "temperature": 0.7,
+        "max_iterations": 3,
+        "process": "sequential",
+        "openai_model": "gpt-4o-mini"
+      }
+    },
+    {
+      "id": "memory-1763142970934",
+      "type": "memory",
+      "position": {
+        "x": 770.8777046460067,
+        "y": 393.8930897837992
+      },
+      "data": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "ecrewai_agent-1763142818123-text_input-1763142678913",
+      "source": "crewai_agent-1763142818123",
+      "target": "text_input-1763142678913",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "etext_input-1763142678913-file_loader-1763142680400",
+      "source": "text_input-1763142678913",
+      "target": "file_loader-1763142680400",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "efile_loader-1763142680400-memory-1763142970934",
+      "source": "file_loader-1763142680400",
+      "target": "memory-1763142970934",
+      "sourceHandle": null,
+      "targetHandle": null
+    }
+  ],
+  "created_at": "2025-11-14T19:30:00.121383",
+  "updated_at": "2025-11-18T18:31:33.420066",
+  "tags": [],
+  "is_template": false,
+  "is_deployed": false,
+  "deployed_at": "2025-11-14T19:30:01.236365"
+}

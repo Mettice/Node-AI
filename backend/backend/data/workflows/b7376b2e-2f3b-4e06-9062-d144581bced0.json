@@ -1,0 +1,28 @@
+{
+  "id": "b7376b2e-2f3b-4e06-9062-d144581bced0",
+  "name": "Test Workflow",
+  "description": "A test workflow",
+  "nodes": [
+    {
+      "id": "input-1",
+      "type": "text_input",
+      "position": {
+        "x": 100.0,
+        "y": 100.0
+      },
+      "data": {
+        "text": "Hello",
+        "config": {}
+      }
+    }
+  ],
+  "edges": [],
+  "created_at": "2025-11-17T15:45:17.084571",
+  "updated_at": "2025-11-17T15:45:17.084571",
+  "tags": [
+    "test"
+  ],
+  "is_template": false,
+  "is_deployed": false,
+  "deployed_at": null
+}

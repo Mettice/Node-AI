@@ -1,0 +1,54 @@
+# Backend .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Data directories
+data/executions/*
+data/uploads/*
+data/vectors/*
+!data/executions/.gitkeep
+!data/uploads/.gitkeep
+!data/vectors/.gitkeep
+!data/workflows/
+
+# Uploads
+uploads/*
+!uploads/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Database
+*.db
+*.sqlite
+
+# Secrets
+secrets.json
+

@@ -1,0 +1,213 @@
+# ⏱️ Rate Limiting Implementation
+
+**Date**: November 22, 2024  
+**Status**: ✅ **IMPLEMENTED**  
+**Priority**: 🟡 HIGH
+
+---
+
+## 📋 OVERVIEW
+
+Implemented per-endpoint rate limiting to prevent API abuse, DDoS attacks, and resource exhaustion.
+
+---
+
+## ✅ IMPLEMENTED RATE LIMITS
+
+### **Critical Endpoints**
+
+| Endpoint | Limit | Reason |
+|----------|-------|--------|
+| **POST /api/v1/workflows/execute** | 10/minute | Prevent expensive workflow spam |
+| **POST /api/v1/workflows** | 20/minute | Prevent workflow creation spam |
+| **PUT /api/v1/workflows/{id}** | 30/minute | Allow frequent edits |
+| **DELETE /api/v1/workflows/{id}** | 10/minute | Prevent accidental mass deletions |
+| **POST /api/v1/files/upload** | 100/minute | Allow multiple file uploads |
+
+---
+
+## 🔧 TECHNICAL DETAILS
+
+### **Library**: SlowAPI
+- IP-based rate limiting
+- Automatic 429 responses
+- Redis-compatible (future enhancement)
+- Memory-based storage (current)
+
+### **Implementation**
+
+```python
+from backend.core.security import limiter
+
+@router.post("/workflows/execute")
+@limiter.limit("10/minute")
+async def execute_workflow(request: ExecutionRequest, http_request: Request):
+    # ...
+```
+
+### **Headers Exposed**
+- `X-RateLimit-Limit` - Max requests allowed
+- `X-RateLimit-Remaining` - Requests remaining
+- `X-RateLimit-Reset` - Time until reset
+
+---
+
+## 🚨 ERROR RESPONSE
+
+When rate limit exceeded:
+
+```json
+{
+  "error": "Rate limit exceeded",
+  "message": "Too many requests. Please try again later.",
+  "retry_after": 60
+}
+```
+
+**Status Code**: `429 Too Many Requests`
+
+---
+
+## 📊 RATE LIMIT BREAKDOWN
+
+### **Workflow Execution** (10/min)
+- Most expensive operation
+- Prevents resource exhaustion
+- Allows ~144 executions/day per user
+
+### **Workflow Create** (20/min)
+- Prevents spam workflows
+- Allows reasonable workflow creation
+- ~28,800 workflows/day per user (more than enough)
+
+### **Workflow Update** (30/min)
+- Higher limit for frequent edits
+- Users actively building workflows
+- ~43,200 updates/day per user
+
+### **Workflow Delete** (10/min)
+- Lower limit to prevent accidental mass deletion
+- Requires intentional action
+- ~14,400 deletions/day per user
+
+### **File Upload** (100/min)
+- High limit for batch uploads
+- RAG/document workflows need multiple files
+- ~144,000 uploads/day per user
+
+---
+
+## 🔄 FUTURE ENHANCEMENTS
+
+### **Phase 2: Advanced Rate Limiting** (Optional)
+
+1. **User-Based Limits** (instead of IP)
+   ```python
+   def get_user_id(request: Request):
+       return request.state.user_id or get_remote_address(request)
+   
+   limiter = Limiter(key_func=get_user_id)
+   ```
+
+2. **Tiered Limits by Plan**
+   ```python
+   def get_rate_limit(request: Request):
+       user = get_user(request)
+       if user.plan == "pro":
+           return "50/minute"
+       return "10/minute"
+   
+   @limiter.limit(get_rate_limit)
+   ```
+
+3. **Redis Backend** (for distributed systems)
+   ```python
+   from slowapi.middleware import SlowAPIMiddleware
+   
+   app.add_middleware(
+       SlowAPIMiddleware,
+       storage_uri="redis://localhost:6379"
+   )
+   ```
+
+4. **Custom Retry-After Logic**
+   ```python
+   @limiter.limit("10/minute", error_message="Custom message")
+   ```
+
+---
+
+## 📝 FILES MODIFIED
+
+1. **`backend/api/workflows.py`**
+   - Added `@limiter.limit()` to create, update, delete endpoints
+
+2. **`backend/api/execution.py`**
+   - Added `@limiter.limit()` to execute endpoint
+   - Added `Request` parameter for rate limiting
+
+3. **`backend/api/files.py`**
+   - Added `@limiter.limit()` to upload endpoint
+   - Added `Request` parameter for rate limiting
+
+---
+
+## 🧪 TESTING
+
+### **Test Rate Limiting**
+
+```bash
+# Test workflow execution limit (10/min)
+for i in {1..15}; do
+  curl -X POST http://localhost:8000/api/v1/workflows/execute \
+    -H "Content-Type: application/json" \
+    -d '{"workflow": {...}}'
+  echo "Request $i"
+done
+# Expected: First 10 succeed, next 5 return 429
+
+# Test file upload limit (100/min)
+for i in {1..110}; do
+  curl -X POST http://localhost:8000/api/v1/files/upload \
+    -F "file=@test.pdf"
+  echo "Request $i"
+done
+# Expected: First 100 succeed, next 10 return 429
+```
+
+---
+
+## 🚀 DEPLOYMENT NOTES
+
+### **Current Configuration**
+- Memory-based storage (ephemeral)
+- Resets on server restart
+- Per-instance limits (not shared across load balancer)
+
+### **Production Recommendations**
+1. **Redis Backend** for distributed rate limiting
+2. **User-based limits** instead of IP (more accurate)
+3. **Tiered limits** for different user plans
+4. **Monitoring** for rate limit hits
+
+---
+
+## ✅ COMPLETION STATUS
+
+**All requirements met**:
+- ✅ Workflow execution rate limited
+- ✅ Workflow operations rate limited
+- ✅ File upload rate limited
+- ✅ Appropriate limits for each endpoint
+- ✅ Clear error responses
+- ✅ Headers exposed
+- ✅ Zero linter errors
+
+**Ready for deployment!** 🚀
+
+---
+
+**Generated by**: NodeAI Security Team  
+**Version**: 1.0  
+**Last Updated**: 2024-11-22
+

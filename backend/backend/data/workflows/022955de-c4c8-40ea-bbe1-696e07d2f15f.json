@@ -1,0 +1,150 @@
+{
+  "id": "022955de-c4c8-40ea-bbe1-696e07d2f15f",
+  "name": "Untitled Workflow (Copy)",
+  "description": null,
+  "nodes": [
+    {
+      "id": "file_loader-1763136136977",
+      "type": "file_loader",
+      "position": {
+        "x": 137.17847019228668,
+        "y": -77.548189694729
+      },
+      "data": {
+        "file_id": "996db844-07bf-46f9-9376-8dfe433fe83f",
+        "include_base64": false
+      }
+    },
+    {
+      "id": "chunk-1763136281649",
+      "type": "chunk",
+      "position": {
+        "x": 632.157497936273,
+        "y": -32.23533954940244
+      },
+      "data": {
+        "strategy": "recursive",
+        "chunk_size": 512,
+        "chunk_overlap": 50,
+        "separators": [],
+        "min_chunk_size": 100,
+        "max_chunk_size": 1000,
+        "overlap_sentences": 1
+      }
+    },
+    {
+      "id": "embed-1763136285432",
+      "type": "embed",
+      "position": {
+        "x": 694.6837477592584,
+        "y": 186.91093193636252
+      },
+      "data": {
+        "provider": "openai",
+        "use_finetuned_model": false,
+        "openai_model": "text-embedding-3-small",
+        "batch_size": 100
+      }
+    },
+    {
+      "id": "vector_store-1763136289543",
+      "type": "vector_store",
+      "position": {
+        "x": 286.16783499507767,
+        "y": 143.22552866901793
+      },
+      "data": {
+        "provider": "faiss",
+        "faiss_index_type": "flat",
+        "faiss_persist": false,
+        "faiss_file_path": "./data/vectors/index.faiss"
+      }
+    },
+    {
+      "id": "vector_search-1763136293885",
+      "type": "vector_search",
+      "position": {
+        "x": 373.1502733290158,
+        "y": 378.4278436209492
+      },
+      "data": {
+        "provider": "faiss",
+        "query": "what is Nodai?",
+        "top_k": 5,
+        "score_threshold": 0,
+        "filter_metadata": {}
+      }
+    },
+    {
+      "id": "chat-1763136884461",
+      "type": "chat",
+      "position": {
+        "x": 783.6632287499531,
+        "y": 445.1168753699585
+      },
+      "data": {
+        "provider": "openai",
+        "temperature": 0.7,
+        "max_tokens": 500,
+        "user_prompt_template": "Context: {context}\n\nQuestion: {query}\n\nAnswer:",
+        "use_memory": false,
+        "session_id": "default",
+        "memory_limit": 10,
+        "use_finetuned_model": false,
+        "openai_model": "gpt-4"
+      }
+    },
+    {
+      "id": "finetune-1763137694627",
+      "type": "finetune",
+      "position": {
+        "x": 398.5026570375195,
+        "y": 8.13227526038925
+      },
+      "data": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "efile_loader-1763136136977-chunk-1763136281649",
+      "source": "file_loader-1763136136977",
+      "target": "chunk-1763136281649",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "echunk-1763136281649-embed-1763136285432",
+      "source": "chunk-1763136281649",
+      "target": "embed-1763136285432",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "eembed-1763136285432-vector_store-1763136289543",
+      "source": "embed-1763136285432",
+      "target": "vector_store-1763136289543",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "evector_store-1763136289543-vector_search-1763136293885",
+      "source": "vector_store-1763136289543",
+      "target": "vector_search-1763136293885",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "evector_search-1763136293885-chat-1763136884461",
+      "source": "vector_search-1763136293885",
+      "target": "chat-1763136884461",
+      "sourceHandle": null,
+      "targetHandle": null
+    }
+  ],
+  "created_at": "2025-11-15T12:30:58.270523",
+  "updated_at": "2025-11-15T13:02:50.529800",
+  "tags": [],
+  "is_template": false,
+  "is_deployed": false,
+  "deployed_at": "2025-11-15T12:31:07.256667"
+}

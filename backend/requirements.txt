@@ -1,0 +1,132 @@
+# NodeAI - NodeFlow Backend Dependencies
+# Python 3.11+ required
+# Most versions unpinned to let pip resolve compatible versions
+
+# ============================================
+# Core Framework
+# ============================================
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+
+# ============================================
+# AI/LLM SDKs
+# ============================================
+openai
+anthropic
+tiktoken
+google-genai
+
+# ============================================
+# Vector Search & Storage
+# ============================================
+faiss-cpu
+# faiss-gpu  # Uncomment if you have CUDA GPU
+pinecone-client
+neo4j  # Neo4j driver for knowledge graph integration
+
+# ============================================
+# LangChain (for text splitting, document loaders, and agents)
+# ============================================
+# Let crewai determine compatible versions
+langchain
+langchain-community
+langchain-openai
+langchain-anthropic
+
+# ============================================
+# CrewAI (for multi-agent coordination)
+# ============================================
+# Install crewai - it will pull compatible langchain versions
+crewai
+
+# ============================================
+# Document Processing
+# ============================================
+pypdf2
+pdfplumber
+python-docx
+python-multipart
+
+# ============================================
+# Image Processing
+# ============================================
+Pillow
+pytesseract  # For OCR (requires Tesseract binary installed)
+
+# ============================================
+# Audio/Video Processing
+# ============================================
+openai-whisper  # For local audio transcription
+opencv-python  # For video frame extraction
+
+# ============================================
+# Structured Data Processing
+# ============================================
+pandas  # For CSV/Excel/Parquet processing
+openpyxl  # For Excel file support
+pyarrow  # For Parquet file support
+
+# ============================================
+# Database
+# ============================================
+sqlalchemy
+aiosqlite
+psycopg2-binary  # PostgreSQL driver for Supabase
+supabase  # Supabase Python client
+
+# ============================================
+# Utilities
+# ============================================
+python-dotenv
+httpx
+
+# ============================================
+# Development & Testing
+# ============================================
+pytest
+pytest-asyncio
+pytest-cov
+pytest-mock
+black
+ruff
+
+# ============================================
+# Security
+# ============================================
+slowapi  # Rate limiting
+python-jose[cryptography]  # JWT tokens
+cryptography  # For secrets vault encryption
+passlib[bcrypt]  # Password hashing
+
+# ============================================
+# Monitoring & Observability
+# ============================================
+sentry-sdk[fastapi]  # Error tracking and performance monitoring
+
+# ============================================
+# Text Processing
+# ============================================
+nltk  # For semantic chunking
+
+# ============================================
+# Optional: Additional Features
+# ============================================
+cohere  # For reranking (Cohere API)
+sentence-transformers  # For HuggingFace embeddings (also used for Cross-Encoder reranking)
+duckduckgo-search  # For web search tool (optional)
+beautifulsoup4  # For web scraping (HTML parsing)
+lxml  # Faster HTML parser (optional but recommended)
+feedparser  # For RSS/Atom feed parsing
+boto3  # For AWS S3 integration
+
+# ============================================
+# Azure Integrations
+# ============================================
+azure-search-documents  # Azure Cognitive Search
+azure-storage-blob  # Azure Blob Storage
+azure-identity  # Azure authentication
+azure-keyvault-secrets  # Azure Key Vault (optional)
+azure-ai-textanalytics  # Azure Text Analytics (for NLP tasks)
+azure-ai-translation-text  # Azure Translator
