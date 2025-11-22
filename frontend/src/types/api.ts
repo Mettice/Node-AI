@@ -27,6 +27,12 @@ export interface ExecutionStep {
   node_id: string;
   timestamp: string;
   action: string;  // "completed", "error", "started"
+  status?: 'pending' | 'running' | 'completed' | 'failed';
+  output?: any;
+  error?: string;
+  duration_ms?: number;
+  started_at?: string;
+  completed_at?: string;
   data?: {
     status?: string;
     error?: string;
