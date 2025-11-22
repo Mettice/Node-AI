@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
 import { HomePage } from '@/pages/HomePage';
+import { API_BASE_URL } from '@/constants';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -65,9 +66,15 @@ function App() {
           <p className="text-gray-600 text-sm mb-4">
             Make sure the backend server is running on{' '}
             <code className="bg-gray-100 px-2 py-1 rounded">
-              http://localhost:8000
+              {API_BASE_URL}
             </code>
           </p>
+          {!import.meta.env.VITE_API_URL && (
+            <p className="text-yellow-600 text-xs mt-2">
+              ⚠️ VITE_API_URL environment variable is not set. 
+              Set it in Vercel Dashboard → Settings → Environment Variables
+            </p>
+          )}
           <button
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark"

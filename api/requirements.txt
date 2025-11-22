@@ -1,0 +1,12 @@
+# Vercel serverless function dependencies
+# This is a minimal set - Vercel will install from backend/requirements.txt
+
+# Core FastAPI dependencies
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+
+# Note: Vercel will install all dependencies from backend/requirements.txt
+# This file is just for Vercel to detect Python runtime
+
