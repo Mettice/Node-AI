@@ -31,13 +31,13 @@ Write-Host "1. Deploy FRONTEND to Vercel:" -ForegroundColor Cyan
 Write-Host "   → Go to: https://vercel.com/new" -ForegroundColor White
 Write-Host "   → Import: Mettice/Node-AI" -ForegroundColor White
 Write-Host "   → Root: frontend/" -ForegroundColor White
-Write-Host "   → Deploy ✅" -ForegroundColor White
+Write-Host "   -> Deploy OK" -ForegroundColor White
 Write-Host ""
 Write-Host "2. Deploy BACKEND to Railway:" -ForegroundColor Cyan
 Write-Host "   → Go to: https://railway.app/new" -ForegroundColor White
 Write-Host "   → Import: Mettice/Node-AI" -ForegroundColor White
 Write-Host "   → Add env vars (see SIMPLE_DEPLOYMENT.md)" -ForegroundColor White
-Write-Host "   → Deploy ✅" -ForegroundColor White
+Write-Host "   -> Deploy OK" -ForegroundColor White
 Write-Host ""
 Write-Host "📖 Full guide: SIMPLE_DEPLOYMENT.md" -ForegroundColor Magenta
 Write-Host ""
