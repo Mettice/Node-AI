@@ -1,0 +1,7 @@
+# Root requirements.txt for Railway detection
+# Railway uses this to detect Python projects
+# Actual dependencies are in backend/requirements.txt
+
+# This file exists so Railway knows it's a Python project
+# Railway will install from backend/requirements.txt via nixpacks.toml
+
