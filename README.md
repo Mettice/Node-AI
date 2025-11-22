@@ -208,15 +208,17 @@ Frontend runs at: `http://localhost:5173`
 
 ## 📦 Deployment
 
-### **Recommended Stack**
+### **Recommended: Separate Deployments**
 
-- **Frontend**: Vercel (automatic from GitHub)
-- **Backend**: Railway or Render
+- **Frontend**: Vercel (React/Vite) → [Deploy Guide](SIMPLE_DEPLOYMENT.md)
+- **Backend**: Railway (FastAPI) → [Deploy Guide](SIMPLE_DEPLOYMENT.md)
 - **Database**: Supabase (PostgreSQL + Auth)
 - **Monitoring**: Sentry
-- **File Storage**: Local or S3-compatible
 
-See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed instructions.
+**Deploy Time**: ~10 minutes  
+**Cost**: $0-5/month for beta testing
+
+See [SIMPLE_DEPLOYMENT.md](SIMPLE_DEPLOYMENT.md) for complete step-by-step instructions.
 
 ---
 
