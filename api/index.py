@@ -15,7 +15,7 @@ sys.path.insert(0, str(_project_root))
 # Import the FastAPI app
 from backend.main import app
 
-# Vercel expects a handler function
-# For FastAPI, we use the ASGI app directly
+# Vercel Python runtime expects handler to be the ASGI app
+# The @vercel/python builder will wrap this correctly
 handler = app
 

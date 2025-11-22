@@ -1,12 +1,52 @@
 # Vercel serverless function dependencies
-# This is a minimal set - Vercel will install from backend/requirements.txt
+# Include all backend dependencies here
 
-# Core FastAPI dependencies
+# Core Framework
 fastapi
 uvicorn[standard]
 pydantic
 pydantic-settings
 
-# Note: Vercel will install all dependencies from backend/requirements.txt
-# This file is just for Vercel to detect Python runtime
+# AI/LLM SDKs
+openai
+anthropic
+tiktoken
+google-genai
 
+# Vector Search & Storage
+faiss-cpu
+pinecone-client
+neo4j
+
+# LangChain
+langchain
+langchain-community
+langchain-openai
+langchain-anthropic
+
+# CrewAI
+crewai
+
+# Document Processing
+pypdf2
+pdfplumber
+python-docx
+python-multipart
+
+# Database
+psycopg2-binary
+supabase
+
+# Utilities
+python-dotenv
+slowapi
+cryptography
+pyjwt
+
+# HTTP Client
+httpx
+aiohttp
+
+# Other
+python-dateutil
+pytz
