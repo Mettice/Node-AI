@@ -10,6 +10,7 @@ To run this application:
 """
 
 import sys
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Dict
@@ -87,9 +88,16 @@ async def lifespan(app: FastAPI):
     logger.info(f"Log level: {settings.log_level}")
     logger.info("=" * 60)
 
-    # Ensure all required directories exist
-    settings.ensure_directories_exist()
-    logger.info("Data directories created/verified")
+    # Ensure all required directories exist (skip in serverless environments)
+    is_serverless = os.environ.get("VERCEL") == "1" or os.environ.get("DISABLE_DIR_CREATION") == "1"
+    if not is_serverless:
+        try:
+            settings.ensure_directories_exist()
+            logger.info("Data directories created/verified")
+        except Exception as e:
+            logger.warning(f"Failed to create directories: {e}. Continuing...")
+    else:
+        logger.info("Skipping directory creation (serverless environment)")
 
     # Initialize database connection (if configured)
     try:
