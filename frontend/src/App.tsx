@@ -28,7 +28,7 @@ const queryClient = new QueryClient({
 function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, isAuthenticated } = useAuth();
 
   useEffect(() => {
     // Check API health on mount
@@ -44,6 +44,7 @@ function App() {
       });
   }, []);
 
+  // Wait for auth to finish loading before rendering routes
   if (isChecking || authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">

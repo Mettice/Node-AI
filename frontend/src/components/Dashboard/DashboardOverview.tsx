@@ -32,10 +32,11 @@ export function DashboardOverview({ onSelectWorkflow }: DashboardOverviewProps) 
     try {
       // Load all workflows
       const workflowsResponse = await listWorkflows({ limit: 100 });
-      setWorkflows(workflowsResponse.workflows);
+      const safeWorkflows = workflowsResponse?.workflows || [];
+      setWorkflows(safeWorkflows);
       
       // Filter active (deployed) workflows
-      const deployed = workflowsResponse.workflows.filter(w => w.is_deployed);
+      const deployed = safeWorkflows.filter(w => w.is_deployed);
       setActiveWorkflows(deployed);
 
       // Calculate total queries from all deployed workflows
@@ -65,8 +66,10 @@ export function DashboardOverview({ onSelectWorkflow }: DashboardOverviewProps) 
     );
   }
 
-  const totalWorkflows = workflows.length;
-  const deployedCount = activeWorkflows.length;
+  const safeWorkflows = workflows || [];
+  const safeActiveWorkflows = activeWorkflows || [];
+  const totalWorkflows = safeWorkflows.length;
+  const deployedCount = safeActiveWorkflows.length;
   const draftCount = totalWorkflows - deployedCount;
 
   return (
@@ -108,7 +111,7 @@ export function DashboardOverview({ onSelectWorkflow }: DashboardOverviewProps) 
             <Clock className="w-4 h-4 text-slate-400" />
           </div>
           <div className="text-2xl font-bold text-white">
-            {workflows.filter(w => {
+            {safeWorkflows.filter(w => {
               const updated = new Date(w.updated_at);
               const hoursAgo = (Date.now() - updated.getTime()) / (1000 * 60 * 60);
               return hoursAgo < 24;
@@ -133,9 +136,9 @@ export function DashboardOverview({ onSelectWorkflow }: DashboardOverviewProps) 
               View All <ArrowRight className="w-3 h-3" />
             </button>
           </div>
-          {activeWorkflows.length > 0 ? (
+          {safeActiveWorkflows.length > 0 ? (
             <div className="space-y-3">
-              {activeWorkflows.slice(0, 5).map((workflow) => (
+              {safeActiveWorkflows.slice(0, 5).map((workflow) => (
                 <button
                   key={workflow.id}
                   onClick={() => onSelectWorkflow(workflow.id)}
@@ -170,9 +173,9 @@ export function DashboardOverview({ onSelectWorkflow }: DashboardOverviewProps) 
         {/* Recent Activity */}
         <div className="bg-white/5 border border-white/10 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
-          {workflows.length > 0 ? (
+          {safeWorkflows.length > 0 ? (
             <div className="space-y-3">
-              {workflows
+              {safeWorkflows
                 .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
                 .slice(0, 5)
                 .map((workflow) => {

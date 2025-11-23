@@ -109,7 +109,9 @@ export function DashboardWorkflows({ selectedWorkflowId, onSelectWorkflow }: Das
       const workflow = await getWorkflow(workflowId);
       
       // Convert to frontend format
-      const nodes = workflow.nodes.map((node: any) => ({
+      const safeNodes = workflow?.nodes || [];
+      const safeEdges = workflow?.edges || [];
+      const nodes = safeNodes.map((node: any) => ({
         id: node.id,
         type: node.type,
         position: node.position,
@@ -119,7 +121,7 @@ export function DashboardWorkflows({ selectedWorkflowId, onSelectWorkflow }: Das
         },
       }));
 
-      const edges = workflow.edges.map((edge: any) => ({
+      const edges = safeEdges.map((edge: any) => ({
         id: edge.id,
         source: edge.source,
         target: edge.target,
@@ -148,7 +150,8 @@ export function DashboardWorkflows({ selectedWorkflowId, onSelectWorkflow }: Das
     window.dispatchEvent(new CustomEvent('dashboard:switch-tab', { detail: 'metrics' }));
   };
 
-  const filteredWorkflows = workflows.filter((workflow) => {
+  const safeWorkflows = workflows || [];
+  const filteredWorkflows = safeWorkflows.filter((workflow) => {
     // Search filter
     const matchesSearch = workflow.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       workflow.description?.toLowerCase().includes(searchQuery.toLowerCase());

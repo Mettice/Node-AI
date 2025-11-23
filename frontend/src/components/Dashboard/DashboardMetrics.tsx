@@ -28,7 +28,8 @@ export function DashboardMetrics({ workflowId, onWorkflowChange }: DashboardMetr
     try {
       const { listWorkflows } = await import('@/services/workflowManagement');
       const response = await listWorkflows({ limit: 100 });
-      setWorkflows(response.workflows.filter(w => w.is_deployed));
+      const safeWorkflows = response?.workflows || [];
+      setWorkflows(safeWorkflows.filter(w => w.is_deployed));
     } catch (error) {
       console.error('Error loading workflows:', error);
     } finally {

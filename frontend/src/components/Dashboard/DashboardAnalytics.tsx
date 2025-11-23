@@ -465,6 +465,7 @@ function QualityTrendsView({ workflowId }: { workflowId: string | null }) {
 }
 
 function CrossWorkflowView({ workflows }: { workflows: any[] }) {
+  const safeWorkflows = Array.isArray(workflows) ? workflows : [];
   return (
     <div className="space-y-6">
       <div className="glass rounded-lg p-6 border border-white/10">
@@ -472,9 +473,9 @@ function CrossWorkflowView({ workflows }: { workflows: any[] }) {
         <p className="text-slate-400 text-sm mb-4">
           Compare performance across all workflows
         </p>
-        {workflows.length > 0 ? (
+        {safeWorkflows.length > 0 ? (
           <div className="space-y-3">
-            {workflows.map((workflow) => (
+            {safeWorkflows.map((workflow) => (
               <div
                 key={workflow.id}
                 className="p-4 bg-white/5 rounded border border-white/10"

@@ -140,10 +140,11 @@ export function KnowledgeBaseManager() {
     if (showLoading) setLoading(true);
     try {
       const response = await listKnowledgeBases();
-      setKnowledgeBases(response.knowledge_bases);
+      const safeKnowledgeBases = response?.knowledge_bases || [];
+      setKnowledgeBases(safeKnowledgeBases);
       
       // Fetch statuses for all knowledge bases
-      const statusPromises = response.knowledge_bases.map(async (kb) => {
+      const statusPromises = safeKnowledgeBases.map(async (kb) => {
         try {
           const fullKB = await getKnowledgeBase(kb.id);
           const currentVersion = fullKB.versions.find((v) => v.version_number === fullKB.current_version);
