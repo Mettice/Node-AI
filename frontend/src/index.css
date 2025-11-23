@@ -1,9 +1,9 @@
+/* Import mobile canvas optimizations */
+@import './styles/mobile-canvas.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Import mobile canvas optimizations */
-@import './styles/mobile-canvas.css';
 
 /* ============================================ */
 /* DARK GLASSMORPHIC THEME */
