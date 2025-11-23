@@ -24,7 +24,7 @@ export function DashboardQuery() {
     queryFn: () => listWorkflows({ limit: 100 }),
   });
 
-  const deployedWorkflows = workflowsData?.workflows.filter(w => w.is_deployed) || [];
+  const deployedWorkflows = (workflowsData?.workflows || []).filter(w => w.is_deployed);
 
   // Auto-select first deployed workflow if available
   useEffect(() => {
@@ -265,11 +265,11 @@ export function DashboardQuery() {
               <div className="flex items-center gap-4 text-sm text-slate-400">
                 <div className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
-                  <span>{lastResult.duration_ms}ms</span>
+                  <span>{lastResult.duration_ms || 0}ms</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <DollarSign className="w-4 h-4" />
-                  <span>${lastResult.total_cost.toFixed(6)}</span>
+                  <span>${(lastResult.total_cost || 0).toFixed(6)}</span>
                 </div>
               </div>
             </div>
@@ -304,13 +304,13 @@ export function DashboardQuery() {
                         <div className="text-sm text-slate-200 whitespace-pre-wrap">
                           {response}
                         </div>
-                        {typeof chatResult === 'object' && chatResult !== null && 'citations' in chatResult && (
+                        {typeof chatResult === 'object' && chatResult !== null && 'citations' in chatResult && Array.isArray(chatResult.citations) && (
                           <div className="mt-3 pt-3 border-t border-white/10">
                             <p className="text-xs text-slate-400 mb-2">Citations:</p>
                             <div className="space-y-1">
-                              {(chatResult.citations as any[])?.map((citation, idx) => (
+                              {chatResult.citations.map((citation: any, idx: number) => (
                                 <div key={idx} className="text-xs text-slate-400">
-                                  {citation.file_name || citation.uri || `Citation ${idx + 1}`}
+                                  {citation?.file_name || citation?.uri || `Citation ${idx + 1}`}
                                 </div>
                               ))}
                             </div>
@@ -319,7 +319,7 @@ export function DashboardQuery() {
                       </div>
                       
                       {/* Show other node results in collapsible section */}
-                      {Object.keys(lastResult.results).length > 1 && (
+                      {lastResult.results && typeof lastResult.results === 'object' && Object.keys(lastResult.results).length > 1 && (
                         <details className="bg-white/5 border border-white/10 rounded p-3">
                           <summary className="cursor-pointer text-xs font-semibold text-slate-400 hover:text-slate-300 mb-2">
                             Show all node results ({Object.keys(lastResult.results).length - 1} more)
@@ -354,7 +354,8 @@ export function DashboardQuery() {
                 }
                 
                 // Fallback: show all results if no chat node found
-                return Object.entries(lastResult.results).map(([nodeId, result]) => (
+                return lastResult.results && typeof lastResult.results === 'object' 
+                  ? Object.entries(lastResult.results).map(([nodeId, result]) => (
                   <div key={nodeId} className="bg-white/5 border border-white/10 rounded p-3">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-semibold text-purple-300 uppercase">{nodeId}</span>
@@ -372,7 +373,8 @@ export function DashboardQuery() {
                       )}
                     </div>
                   </div>
-                ));
+                ))
+                  : <div className="text-slate-400 text-sm">No results available</div>;
               })()}
             </div>
 

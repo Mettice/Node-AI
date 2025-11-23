@@ -32,6 +32,7 @@ export function DashboardMetrics({ workflowId, onWorkflowChange }: DashboardMetr
       setWorkflows(safeWorkflows.filter(w => w.is_deployed));
     } catch (error) {
       console.error('Error loading workflows:', error);
+      setWorkflows([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -48,7 +49,7 @@ export function DashboardMetrics({ workflowId, onWorkflowChange }: DashboardMetr
 
           {loading ? (
             <div className="text-center py-12 text-slate-400">Loading workflows...</div>
-          ) : workflows.length === 0 ? (
+          ) : !Array.isArray(workflows) || workflows.length === 0 ? (
             <div className="text-center py-12 text-slate-400">
               <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>No deployed workflows</p>

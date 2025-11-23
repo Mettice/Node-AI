@@ -54,10 +54,11 @@ export function DashboardWorkflows({ selectedWorkflowId, onSelectWorkflow }: Das
     setLoading(true);
     try {
       const response = await listWorkflows({ limit: 100 });
-      setWorkflows(response.workflows);
+      setWorkflows(response?.workflows || []);
     } catch (error: any) {
       console.error('Error loading workflows:', error);
       toast.error('Failed to load workflows');
+      setWorkflows([]); // Set empty array on error
     } finally {
       setLoading(false);
     }

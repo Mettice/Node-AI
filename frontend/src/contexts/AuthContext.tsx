@@ -36,6 +36,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!supabase) {
       console.warn('Supabase not configured. Authentication disabled.');
+      // When Supabase is not configured, treat as not authenticated
+      setUser(null);
+      setSession(null);
       setLoading(false);
       return;
     }
@@ -44,6 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      setLoading(false);
+    }).catch((error) => {
+      console.error('Error getting session:', error);
+      setUser(null);
+      setSession(null);
       setLoading(false);
     });
 

@@ -40,9 +40,9 @@ function DeploymentTab({
     queryFn: () => import('@/services/workflowManagement').then(m => m.listWorkflows({ limit: 100 })),
   });
 
-  const workflows = workflowsData?.workflows || [];
+  const workflows = (workflowsData?.workflows || []);
 
-  if (!selectedWorkflowId && workflows.length > 0) {
+  if (!selectedWorkflowId && Array.isArray(workflows) && workflows.length > 0) {
     return (
       <div className="p-6">
         <div className="mb-6">
@@ -91,7 +91,7 @@ function DeploymentTab({
           <h2 className="text-2xl font-bold text-white mb-2">{workflow?.name || 'Deployment Management'}</h2>
           <p className="text-slate-400">Manage deployment versions, health, and rollback</p>
         </div>
-        {workflows.length > 1 && (
+        {Array.isArray(workflows) && workflows.length > 1 && (
           <select
             value={selectedWorkflowId}
             onChange={(e) => onWorkflowChange(e.target.value)}

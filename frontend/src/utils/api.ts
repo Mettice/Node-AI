@@ -57,7 +57,11 @@ apiClient.interceptors.response.use(
           console.error('Bad Request:', data);
           break;
         case 401:
-          console.error('Unauthorized');
+          console.error('Unauthorized - redirecting to login');
+          // Redirect to login on 401
+          if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+            window.location.href = '/login';
+          }
           break;
         case 404:
           console.error('Not Found');

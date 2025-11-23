@@ -140,14 +140,15 @@ export function KnowledgeBaseManager() {
     if (showLoading) setLoading(true);
     try {
       const response = await listKnowledgeBases();
-      const safeKnowledgeBases = response?.knowledge_bases || [];
+      const safeKnowledgeBases = (response?.knowledge_bases || []);
       setKnowledgeBases(safeKnowledgeBases);
       
       // Fetch statuses for all knowledge bases
       const statusPromises = safeKnowledgeBases.map(async (kb) => {
         try {
           const fullKB = await getKnowledgeBase(kb.id);
-          const currentVersion = fullKB.versions.find((v) => v.version_number === fullKB.current_version);
+          const versions = fullKB?.versions || [];
+          const currentVersion = versions.find((v) => v.version_number === fullKB?.current_version);
           return { id: kb.id, status: currentVersion?.status || null };
         } catch {
           return { id: kb.id, status: null };
@@ -162,6 +163,7 @@ export function KnowledgeBaseManager() {
       setKbStatuses(statusMap);
     } catch (error: any) {
       console.error('Error loading knowledge bases:', error);
+      setKnowledgeBases([]); // Set empty array on error
       if (showLoading) {
         toast.error('Failed to load knowledge bases');
       }

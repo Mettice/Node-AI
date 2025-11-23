@@ -44,7 +44,7 @@ export function DashboardOverview({ onSelectWorkflow }: DashboardOverviewProps) 
       for (const workflow of deployed) {
         try {
           const metrics = await getWorkflowMetrics(workflow.id, 24);
-          total += metrics.total_queries;
+          total += metrics?.total_queries || 0;
         } catch (err) {
           // Ignore errors for individual workflows
         }

@@ -48,6 +48,7 @@ export function DashboardAnalytics({ selectedWorkflowId }: DashboardAnalyticsPro
   const { data: workflowsData } = useQuery({
     queryKey: ['workflows'],
     queryFn: () => listWorkflows(),
+    retry: false,
   });
 
   return (
@@ -130,7 +131,7 @@ export function DashboardAnalytics({ selectedWorkflowId }: DashboardAnalyticsPro
           <QualityTrendsView workflowId={selectedWorkflow} />
         )}
         {view === 'cross-workflow' && (
-          <CrossWorkflowView workflows={Array.isArray(workflowsData) ? workflowsData : workflowsData?.workflows || []} />
+          <CrossWorkflowView workflows={Array.isArray(workflowsData) ? workflowsData : (workflowsData?.workflows || [])} />
         )}
       </div>
     </div>
@@ -246,8 +247,8 @@ function VersionComparisonView({
     );
   }
 
-  const formatChange = (value: number | undefined, isPercent: boolean = false) => {
-    if (value === undefined || value === null) return null;
+  const formatChange = (value: number | undefined | null, isPercent: boolean = false) => {
+    if (value === undefined || value === null || isNaN(value)) return null;
     const absValue = Math.abs(value);
     const sign = value > 0 ? '+' : value < 0 ? '-' : '';
     const formatted = isPercent ? `${absValue.toFixed(1)}%` : absValue.toFixed(2);
@@ -295,19 +296,19 @@ function VersionComparisonView({
             <div className="space-y-4">
               <MetricCard
                 label="Avg Response Time"
-                value={`${(comparison.current_metrics.avg_response_time_ms ?? 0).toFixed(0)}ms`}
+                value={`${((comparison.current_metrics?.avg_response_time_ms ?? 0) || 0).toFixed(0)}ms`}
               />
               <MetricCard
                 label="Cost per Query"
-                value={`$${(comparison.current_metrics.cost_per_query ?? 0).toFixed(4)}`}
+                value={`$${((comparison.current_metrics?.cost_per_query ?? 0) || 0).toFixed(4)}`}
               />
               <MetricCard
                 label="Success Rate"
-                value={`${(comparison.current_metrics.success_rate ?? 0).toFixed(1)}%`}
+                value={`${((comparison.current_metrics?.success_rate ?? 0) || 0).toFixed(1)}%`}
               />
               <MetricCard
                 label="Total Queries"
-                value={(comparison.current_metrics.total_queries ?? 0).toString()}
+                value={((comparison.current_metrics?.total_queries ?? 0) || 0).toString()}
               />
             </div>
           ) : (
@@ -324,19 +325,19 @@ function VersionComparisonView({
             <div className="space-y-4">
               <MetricCard
                 label="Avg Response Time"
-                value={`${(comparison.previous_metrics.avg_response_time_ms ?? 0).toFixed(0)}ms`}
+                value={`${((comparison.previous_metrics?.avg_response_time_ms ?? 0) || 0).toFixed(0)}ms`}
               />
               <MetricCard
                 label="Cost per Query"
-                value={`$${(comparison.previous_metrics.cost_per_query ?? 0).toFixed(4)}`}
+                value={`$${((comparison.previous_metrics?.cost_per_query ?? 0) || 0).toFixed(4)}`}
               />
               <MetricCard
                 label="Success Rate"
-                value={`${(comparison.previous_metrics.success_rate ?? 0).toFixed(1)}%`}
+                value={`${((comparison.previous_metrics?.success_rate ?? 0) || 0).toFixed(1)}%`}
               />
               <MetricCard
                 label="Total Queries"
-                value={(comparison.previous_metrics.total_queries ?? 0).toString()}
+                value={((comparison.previous_metrics?.total_queries ?? 0) || 0).toString()}
               />
             </div>
           ) : (
@@ -422,34 +423,34 @@ function QualityTrendsView({ workflowId }: { workflowId: string | null }) {
       </div>
 
       {/* Trends Display */}
-      {trends && trends.trends.length > 0 ? (
+      {trends && trends.trends && Array.isArray(trends.trends) && trends.trends.length > 0 ? (
         <div className="space-y-4">
           {trends.trends.map((trend, idx) => (
             <div key={idx} className="glass rounded-lg p-4 border border-white/10">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-white">{trend.date}</span>
-                <span className="text-xs text-slate-400">{trend.evaluation_count} evaluations</span>
+                <span className="text-sm font-medium text-white">{trend.date || 'N/A'}</span>
+                <span className="text-xs text-slate-400">{trend.evaluation_count || 0} evaluations</span>
               </div>
               <div className="grid grid-cols-4 gap-4 text-sm">
                 <div>
                   <div className="text-slate-400 mb-1">Accuracy</div>
-                  <div className="text-white font-semibold">{(trend.avg_accuracy * 100).toFixed(1)}%</div>
+                  <div className="text-white font-semibold">{((trend.avg_accuracy || 0) * 100).toFixed(1)}%</div>
                 </div>
                 <div>
                   <div className="text-slate-400 mb-1">Relevance</div>
-                  <div className="text-white font-semibold">{(trend.avg_relevance * 100).toFixed(1)}%</div>
+                  <div className="text-white font-semibold">{((trend.avg_relevance || 0) * 100).toFixed(1)}%</div>
                 </div>
                 <div>
                   <div className="text-slate-400 mb-1">Latency</div>
                   <div className="text-white font-semibold">
-                    {trend.avg_latency_ms > 1000
-                      ? `${(trend.avg_latency_ms / 1000).toFixed(1)}s`
-                      : `${trend.avg_latency_ms.toFixed(0)}ms`}
+                    {(trend.avg_latency_ms || 0) > 1000
+                      ? `${((trend.avg_latency_ms || 0) / 1000).toFixed(1)}s`
+                      : `${(trend.avg_latency_ms || 0).toFixed(0)}ms`}
                   </div>
                 </div>
                 <div>
                   <div className="text-slate-400 mb-1">Cost/Query</div>
-                  <div className="text-white font-semibold">${trend.avg_cost_per_query.toFixed(4)}</div>
+                  <div className="text-white font-semibold">${(trend.avg_cost_per_query || 0).toFixed(4)}</div>
                 </div>
               </div>
             </div>
