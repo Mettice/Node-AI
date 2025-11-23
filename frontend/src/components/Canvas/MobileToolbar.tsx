@@ -12,7 +12,9 @@ import {
   Settings,
   Undo2,
   Redo2,
-  Save
+  Save,
+  Link,
+  Edit3
 } from 'lucide-react';
 import { useWorkflowStore } from '@/store/workflowStore';
 import { useExecutionStore } from '@/store/executionStore';
@@ -25,10 +27,12 @@ interface MobileToolbarProps {
   onRun: () => void;
   onUndo: () => void;
   onRedo: () => void;
+  onConnectionMode: () => void;
   canUndo: boolean;
   canRedo: boolean;
   isSaving?: boolean;
   isRunning?: boolean;
+  isConnectionMode?: boolean;
 }
 
 export function MobileToolbar({
@@ -37,10 +41,12 @@ export function MobileToolbar({
   onRun,
   onUndo,
   onRedo,
+  onConnectionMode,
   canUndo,
   canRedo,
   isSaving = false,
   isRunning = false,
+  isConnectionMode = false,
 }: MobileToolbarProps) {
   const { nodes } = useWorkflowStore();
   const { setActiveUtility } = useUIStore();
@@ -79,13 +85,6 @@ export function MobileToolbar({
 
   const toolbarButtons = [
     {
-      id: 'home',
-      icon: Home,
-      label: 'Home',
-      onClick: () => setActiveUtility('dashboard'),
-      disabled: false,
-    },
-    {
       id: 'undo',
       icon: Undo2,
       label: 'Undo',
@@ -98,7 +97,16 @@ export function MobileToolbar({
       label: 'Add',
       onClick: onAddNode,
       disabled: false,
-      primary: true,
+      primary: !isConnectionMode,
+    },
+    {
+      id: 'connect',
+      icon: Link,
+      label: 'Connect',
+      onClick: onConnectionMode,
+      disabled: nodes.length < 2,
+      primary: isConnectionMode,
+      variant: isConnectionMode ? 'primary' : undefined,
     },
     {
       id: 'redo',

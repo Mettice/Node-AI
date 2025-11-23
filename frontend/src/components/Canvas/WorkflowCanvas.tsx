@@ -29,6 +29,10 @@ import { ExecutionControls } from '@/components/Execution/ExecutionControls';
 import { ExecutionStatusBar } from '@/components/Execution/ExecutionStatusBar';
 import { AddNodeButton } from './AddNodeButton';
 import { MobileToolbar } from './MobileToolbar';
+import { NodePalettePopup } from './NodePalettePopup';
+import { MobileNodeEditor } from './MobileNodeEditor';
+import { MobileConnectionMode } from './MobileConnectionMode';
+import { useMobileGestures } from '@/hooks/useMobileGestures';
 import { MessageSquare } from 'lucide-react';
 
 // Define node and edge types as constants outside component
@@ -82,6 +86,8 @@ export function WorkflowCanvas() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [addNodeOpen, setAddNodeOpen] = useState(false);
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [connectionMode, setConnectionMode] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   
   const { toggleChatInterface } = useUIStore();
@@ -93,6 +99,24 @@ export function WorkflowCanvas() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Mobile gestures (only enabled on mobile)
+  const mobileGestures = useMobileGestures(
+    isMobile ? {
+      onDoubleTap: (x, y) => {
+        if (reactFlowInstance) {
+          const position = reactFlowInstance.project({ x, y });
+          console.log('Double tap at:', position);
+        }
+      },
+      onLongPress: (x, y) => {
+        if (reactFlowInstance) {
+          const position = reactFlowInstance.project({ x, y });
+          console.log('Long press at:', position);
+        }
+      },
+    } : {}
+  );
   
   // Memoize node and edge types to ensure stable references
   // Even though they're constants, ReactFlow needs stable references
@@ -288,6 +312,34 @@ export function WorkflowCanvas() {
     console.log('Mobile run triggered');
   }, []);
 
+  const handleMobileConnection = useCallback(() => {
+    setConnectionMode(!connectionMode);
+  }, [connectionMode]);
+
+  const handleNodeEdit = useCallback((node: Node) => {
+    setSelectedNode(node);
+  }, []);
+
+  const handleNodeSave = useCallback((nodeData: any) => {
+    if (selectedNode) {
+      const updatedNode = { ...selectedNode, data: nodeData };
+      setNodes(nodes => nodes.map(n => n.id === selectedNode.id ? updatedNode : n));
+      setSelectedNode(null);
+    }
+  }, [selectedNode, setNodes]);
+
+  const handleNodeDelete = useCallback(() => {
+    if (selectedNode) {
+      removeNode(selectedNode.id);
+      setSelectedNode(null);
+    }
+  }, [selectedNode, removeNode]);
+
+  const handleConnectionCreated = useCallback((sourceId: string, targetId: string) => {
+    console.log('Connection created:', sourceId, '->', targetId);
+    setConnectionMode(false);
+  }, []);
+
   return (
     <div 
       className="w-full h-full canvas-dark flex flex-col" 
@@ -354,11 +406,58 @@ export function WorkflowCanvas() {
       </ReactFlow>
       </div>
       
-      {/* Floating Add Node Button */}
-      <AddNodeButton />
+      {/* Floating Add Node Button - Hidden on mobile */}
+      {!isMobile && <AddNodeButton />}
       
       {/* Execution Status Bar - Fixed at bottom */}
       <ExecutionStatusBar />
+      
+      {/* Mobile Toolbar - Only on mobile */}
+      {isMobile && (
+        <MobileToolbar
+          onAddNode={handleMobileAddNode}
+          onSave={handleMobileSave}
+          onRun={handleMobileRun}
+          onUndo={() => canUndo() && undo()}
+          onRedo={() => canRedo() && redo()}
+          onConnectionMode={handleMobileConnection}
+          canUndo={canUndo()}
+          canRedo={canRedo()}
+          isSaving={false}
+          isRunning={false}
+          isConnectionMode={connectionMode}
+        />
+      )}
+
+      {/* Mobile Node Palette - Bottom drawer */}
+      {isMobile && addNodeOpen && (
+        <NodePalettePopup
+          isOpen={addNodeOpen}
+          onClose={() => setAddNodeOpen(false)}
+          position={{ x: 0, y: 0 }} // Not used for mobile
+          isMobile={true}
+        />
+      )}
+
+      {/* Mobile Node Editor */}
+      {isMobile && selectedNode && (
+        <MobileNodeEditor
+          node={selectedNode}
+          isOpen={!!selectedNode}
+          onClose={() => setSelectedNode(null)}
+          onSave={handleNodeSave}
+          onDelete={handleNodeDelete}
+        />
+      )}
+
+      {/* Mobile Connection Mode */}
+      {isMobile && (
+        <MobileConnectionMode
+          isActive={connectionMode}
+          onToggle={() => setConnectionMode(false)}
+          onConnectionCreated={handleConnectionCreated}
+        />
+      )}
     </div>
   );
 }
