@@ -1,10 +1,57 @@
-# Root requirements.txt for Railway auto-detection
-# Railway uses this to detect Python projects
-# Actual dependencies are installed from backend/requirements.txt
+# Root requirements.txt for Railway
+# Railway installs from this file, so we include all backend dependencies
 
-# This file exists so Railway knows it's a Python project
-# The build will install from backend/requirements.txt
-
+# Core Framework
 fastapi
-uvicorn
+uvicorn[standard]
+pydantic
+pydantic-settings
+
+# Security & Rate Limiting
+slowapi
+python-jose[cryptography]
+cryptography
+passlib[bcrypt]
+
+# Database
+psycopg2-binary
+supabase
+sqlalchemy
+aiosqlite
+
+# Utilities
+python-dotenv
+httpx
+aiohttp
+pyjwt
+
+# AI/LLM SDKs
+openai
+anthropic
+tiktoken
+google-genai
+
+# Vector Search & Storage
+faiss-cpu
+pinecone-client
+neo4j
+
+# LangChain
+langchain
+langchain-community
+langchain-openai
+langchain-anthropic
+
+# CrewAI
+crewai
+
+# Document Processing
+pypdf2
+pdfplumber
+python-docx
+python-multipart
+
+# Other
+python-dateutil
+pytz
 
