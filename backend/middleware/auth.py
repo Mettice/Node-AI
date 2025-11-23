@@ -25,7 +25,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
     
     async def dispatch(self, request: Request, call_next):
         # Skip auth for health check and public endpoints
-        if request.url.path in ["/health", "/docs", "/redoc", "/openapi.json"]:
+        if request.url.path in ["/health", "/api/v1/health", "/docs", "/redoc", "/openapi.json"]:
             return await call_next(request)
         
         # Get user context (will be None if not authenticated)
