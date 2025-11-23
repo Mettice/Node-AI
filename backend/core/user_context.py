@@ -40,8 +40,19 @@ async def get_user_context(request: Request) -> Optional[dict]:
     # Set user_id in request state for easy access
     set_user_id(request, user_id)
     
-    # Get or create profile
-    profile = get_profile(user_id)
+    # Get or create profile (handle database connection failures)
+    profile = None
+    try:
+        profile = get_profile(user_id)
+    except Exception as e:
+        logger.warning(f"Failed to get profile for user {user_id}: {e}. Using basic user context.")
+        # Return basic user info without profile when database is unavailable
+        return {
+            "id": user_id,
+            "email": user.get("email"),
+            "role": "user",
+            "profile": None,
+        }
     
     if not profile:
         # Create profile if it doesn't exist
