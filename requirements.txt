@@ -1,0 +1,10 @@
+# Root requirements.txt for Railway auto-detection
+# Railway uses this to detect Python projects
+# Actual dependencies are installed from backend/requirements.txt
+
+# This file exists so Railway knows it's a Python project
+# The build will install from backend/requirements.txt
+
+fastapi
+uvicorn
+
