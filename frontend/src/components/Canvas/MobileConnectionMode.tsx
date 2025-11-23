@@ -86,7 +86,7 @@ export function MobileConnectionMode({
   useEffect(() => {
     if (!isActive) return;
 
-    const handleNodeClick = (e: Event) => {
+    const handleClickEvent = (e: Event) => {
       const nodeElement = (e.target as HTMLElement).closest('.react-flow__node');
       if (nodeElement) {
         const nodeId = nodeElement.getAttribute('data-id');
@@ -97,10 +97,10 @@ export function MobileConnectionMode({
     };
 
     const canvas = document.querySelector('.react-flow__pane');
-    canvas?.addEventListener('click', handleNodeClick);
+    canvas?.addEventListener('click', handleClickEvent);
 
     return () => {
-      canvas?.removeEventListener('click', handleNodeClick);
+      canvas?.removeEventListener('click', handleClickEvent);
     };
   }, [isActive, handleNodeClick]);
 

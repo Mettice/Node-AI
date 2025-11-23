@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Save, Trash2, Copy, Settings, ChevronRight } from 'lucide-react';
-import { Node } from 'reactflow';
+import { type Node } from 'reactflow';
 import { useWorkflowStore } from '@/store/workflowStore';
 import { cn } from '@/utils/cn';
 import { Button } from '@/components/common/Button';
@@ -22,7 +22,7 @@ export function MobileNodeEditor({ node, isOpen, onClose, onSave, onDelete }: Mo
   const [activeSection, setActiveSection] = useState<string>('basic');
   const [hasChanges, setHasChanges] = useState(false);
   
-  const { duplicateNode } = useWorkflowStore();
+  const { addNode } = useWorkflowStore();
 
   // Track changes
   useEffect(() => {
@@ -41,12 +41,20 @@ export function MobileNodeEditor({ node, isOpen, onClose, onSave, onDelete }: Mo
   };
 
   const handleDuplicate = () => {
-    duplicateNode(node.id);
+    const duplicatedNode = {
+      ...node,
+      id: `${node.id}-copy-${Date.now()}`,
+      position: {
+        x: node.position.x + 20,
+        y: node.position.y + 20
+      }
+    };
+    addNode(duplicatedNode);
     onClose();
   };
 
   const handleFieldChange = (field: string, value: any) => {
-    setNodeData(prev => ({
+    setNodeData((prev: any) => ({
       ...prev,
       config: {
         ...prev.config,

@@ -46,8 +46,8 @@ export function useMobileGestures({
     lastTouchTime: 0,
     tapCount: 0,
   });
-  const longPressTimer = useRef<NodeJS.Timeout>();
-  const doubleTapTimer = useRef<NodeJS.Timeout>();
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const doubleTapTimer = useRef<NodeJS.Timeout | null>(null);
 
   // Helper function to get distance between two touch points
   const getTouchDistance = useCallback((touches: TouchList): number => {
@@ -216,14 +216,14 @@ export function useMobileGestures({
     const canvas = document.querySelector('.react-flow__pane');
     if (!canvas) return;
 
-    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+    canvas.addEventListener('touchstart', handleTouchStart as EventListener, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove as EventListener, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd as EventListener, { passive: false });
 
     return () => {
-      canvas.removeEventListener('touchstart', handleTouchStart);
-      canvas.removeEventListener('touchmove', handleTouchMove);
-      canvas.removeEventListener('touchend', handleTouchEnd);
+      canvas.removeEventListener('touchstart', handleTouchStart as EventListener);
+      canvas.removeEventListener('touchmove', handleTouchMove as EventListener);
+      canvas.removeEventListener('touchend', handleTouchEnd as EventListener);
     };
   }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
 
