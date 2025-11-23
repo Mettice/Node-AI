@@ -5,8 +5,20 @@ This node creates an AI agent using LangChain's ReAct framework.
 The agent can use tools to perform actions and make decisions.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 import json
+
+# For type hints when Tool might not be available
+if TYPE_CHECKING:
+    try:
+        from langchain.tools import Tool
+    except ImportError:
+        try:
+            from langchain_core.tools import Tool
+        except ImportError:
+            Tool = Any  # type: ignore
+else:
+    Tool = Any  # Will be set properly in the try/except below
 
 from backend.nodes.base import BaseNode
 from backend.core.models import NodeMetadata
@@ -21,22 +33,50 @@ from backend.utils.model_pricing import (
 
 logger = get_logger(__name__)
 
+# Import Tool first - try all possible locations
+Tool = None
 try:
-    from langchain.agents import initialize_agent, AgentType
-    from langchain.tools import Tool
-    from langchain_openai import ChatOpenAI
-    from langchain_anthropic import ChatAnthropic
-    LANGCHAIN_AVAILABLE = True
+    from langchain_core.tools import Tool
 except ImportError:
     try:
-        # Try alternative imports for newer versions
+        from langchain.tools import Tool
+    except ImportError:
+        Tool = Any  # Fallback for type hints
+
+# Try old API first
+try:
+    from langchain.agents import initialize_agent, AgentType
+    from langchain_openai import ChatOpenAI
+    from langchain_anthropic import ChatAnthropic
+    # Ensure Tool is imported
+    if Tool is None or Tool == Any:
+        try:
+            from langchain.tools import Tool
+        except ImportError:
+            pass
+    LANGCHAIN_AVAILABLE = True
+    LANGCHAIN_NEW_API = False
+except ImportError:
+    try:
+        # Try newer API
         from langchain.agents import AgentExecutor, create_react_agent
         from langchain.prompts import PromptTemplate
+        # Ensure Tool is imported
+        if Tool is None or Tool == Any:
+            try:
+                from langchain_core.tools import Tool
+            except ImportError:
+                try:
+                    from langchain.tools import Tool
+                except ImportError:
+                    Tool = Any
         LANGCHAIN_NEW_API = True
         LANGCHAIN_AVAILABLE = True
     except ImportError:
         LANGCHAIN_AVAILABLE = False
         LANGCHAIN_NEW_API = False
+        if Tool is None:
+            Tool = Any
         logger.warning("LangChain not available. Install langchain and langchain-openai to use agent nodes.")
 
 
@@ -211,7 +251,7 @@ class LangChainAgentNode(BaseNode):
         else:
             raise ValueError(f"Unsupported provider: {provider}")
 
-    def _get_tools(self, inputs: Dict[str, Any], config: Dict[str, Any]) -> List[Tool]:
+    def _get_tools(self, inputs: Dict[str, Any], config: Dict[str, Any]) -> List[Any]:
         """Get tools for the agent."""
         tools = []
         
@@ -282,8 +322,12 @@ class LangChainAgentNode(BaseNode):
         
         return tools
 
-    def _create_tool_from_dict(self, tool_data: Dict[str, Any]) -> Optional[Tool]:
+    def _create_tool_from_dict(self, tool_data: Dict[str, Any]) -> Optional[Any]:
         """Create a LangChain Tool from a dictionary."""
+        if not LANGCHAIN_AVAILABLE or Tool is None:
+            logger.warning("LangChain Tool not available")
+            return None
+            
         tool_type = tool_data.get("type")
         name = tool_data.get("name", "unknown")
         description = tool_data.get("description", "")
@@ -309,7 +353,7 @@ class LangChainAgentNode(BaseNode):
         
         return None
 
-    def _create_calculator_tool(self) -> Tool:
+    def _create_calculator_tool(self) -> Any:
         """Create a calculator tool."""
         def calculator(expression: str) -> str:
             """Evaluate a mathematical expression safely."""
@@ -324,13 +368,15 @@ class LangChainAgentNode(BaseNode):
             except Exception as e:
                 return f"Error: {str(e)}"
         
+        if not LANGCHAIN_AVAILABLE or Tool is None:
+            raise ValueError("LangChain Tool not available. Cannot create calculator tool.")
         return Tool(
             name="calculator",
             func=calculator,
             description="Evaluates mathematical expressions. Input should be a valid mathematical expression like '2+2' or '10*5'.",
         )
 
-    def _create_agent(self, llm, tools: List[Tool], verbose: bool):
+    def _create_agent(self, llm, tools: List[Any], verbose: bool):
         """Create a ReAct agent."""
         try:
             # Try new API first
