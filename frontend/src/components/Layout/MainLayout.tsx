@@ -2,6 +2,7 @@
  * Main layout component
  */
 
+import { ReactFlowProvider } from 'reactflow';
 import { WorkflowCanvas } from '@/components/Canvas/WorkflowCanvas';
 import { UtilitySidebar } from '@/components/Sidebar/UtilitySidebar';
 import { ExecutionLogsSidebar } from '@/components/Sidebar/ExecutionLogsSidebar';
@@ -44,7 +45,9 @@ export function MainLayout() {
 
       {/* Canvas Area */}
       <div className="flex-1 h-full relative">
-        <WorkflowCanvas />
+        <ReactFlowProvider>
+          <WorkflowCanvas />
+        </ReactFlowProvider>
       </div>
 
       {/* Execution Logs Sidebar (Right) */}
