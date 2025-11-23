@@ -87,6 +87,19 @@ function App() {
     );
   }
 
+  // Force authentication check
+  if (!isAuthenticated && !authLoading) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <Routes>
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="*" element={<LoginPage />} />
+        </Routes>
+        <Toaster position="top-right" />
+      </QueryClientProvider>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <Routes>
@@ -94,25 +107,9 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         
-        {/* Default route - redirect to login if not authenticated */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute requireAuth={true}>
-              <HomePage />
-            </ProtectedRoute>
-          }
-        />
-        
-        {/* Protected route - main application */}
-        <Route
-          path="/*"
-          element={
-            <ProtectedRoute requireAuth={true}>
-              <HomePage />
-            </ProtectedRoute>
-          }
-        />
+        {/* Protected routes - only accessible when authenticated */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/*" element={<HomePage />} />
       </Routes>
 
       {/* Toast notifications */}
