@@ -148,7 +148,7 @@ export function KnowledgeBaseManager() {
         try {
           const fullKB = await getKnowledgeBase(kb.id);
           const versions = fullKB?.versions || [];
-          const currentVersion = versions.find((v) => v.version_number === fullKB?.current_version);
+          const currentVersion = (versions || []).find((v) => v.version_number === fullKB?.current_version);
           return { id: kb.id, status: currentVersion?.status || null };
         } catch {
           return { id: kb.id, status: null };
@@ -157,7 +157,7 @@ export function KnowledgeBaseManager() {
       
       const statusResults = await Promise.all(statusPromises);
       const statusMap: Record<string, ProcessingStatus | null> = {};
-      statusResults.forEach(({ id, status }) => {
+      (statusResults || []).forEach(({ id, status }) => {
         statusMap[id] = status;
       });
       setKbStatuses(statusMap);
@@ -245,7 +245,7 @@ export function KnowledgeBaseManager() {
 
       {/* Knowledge Bases List */}
       <div className="flex-1 overflow-y-auto p-6">
-        {knowledgeBases.length === 0 ? (
+        {(knowledgeBases?.length || 0) === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-400">
             <Database className="w-16 h-16 mb-4 opacity-50" />
             <p className="text-lg mb-2">No knowledge bases yet</p>
@@ -260,7 +260,7 @@ export function KnowledgeBaseManager() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {knowledgeBases.map((kb) => (
+            {(knowledgeBases || []).map((kb) => (
               <KnowledgeBaseCard
                 key={kb.id}
                 kb={kb}

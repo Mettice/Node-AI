@@ -28,8 +28,8 @@ export function DashboardMetrics({ workflowId, onWorkflowChange }: DashboardMetr
     try {
       const { listWorkflows } = await import('@/services/workflowManagement');
       const response = await listWorkflows({ limit: 100 });
-      const safeWorkflows = response?.workflows || [];
-      setWorkflows(safeWorkflows.filter(w => w.is_deployed));
+      const safeWorkflows = (response?.workflows || []);
+      setWorkflows((safeWorkflows || []).filter(w => w.is_deployed));
     } catch (error) {
       console.error('Error loading workflows:', error);
       setWorkflows([]); // Set empty array on error
@@ -49,7 +49,7 @@ export function DashboardMetrics({ workflowId, onWorkflowChange }: DashboardMetr
 
           {loading ? (
             <div className="text-center py-12 text-slate-400">Loading workflows...</div>
-          ) : !Array.isArray(workflows) || workflows.length === 0 ? (
+          ) : (workflows?.length || 0) === 0 ? (
             <div className="text-center py-12 text-slate-400">
               <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>No deployed workflows</p>
@@ -57,7 +57,7 @@ export function DashboardMetrics({ workflowId, onWorkflowChange }: DashboardMetr
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {workflows.map((workflow) => (
+              {(workflows || []).map((workflow) => (
                 <button
                   key={workflow.id}
                   onClick={() => onWorkflowChange(workflow.id)}

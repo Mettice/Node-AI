@@ -133,13 +133,13 @@ export function ProcessKnowledgeBaseModal({
               <label className="block text-sm font-medium text-slate-300 mb-3">
                 Select Files to Process
               </label>
-              {!files || files.files.length === 0 ? (
+              {!files || (files.files?.length || 0) === 0 ? (
                 <div className="text-sm text-slate-400 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
                   <p className="mb-2">No files available. Upload files first.</p>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {files.files.map((file) => (
+                  {(files.files || []).map((file) => (
                     <label
                       key={file.file_id}
                       className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 cursor-pointer transition-colors"

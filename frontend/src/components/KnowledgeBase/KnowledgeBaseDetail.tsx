@@ -158,7 +158,7 @@ export function KnowledgeBaseDetail({ kbId, onClose, onRefresh }: KnowledgeBaseD
     );
   }
 
-  const currentVersion = versions.find((v) => v.version_number === kb.current_version);
+  const currentVersion = (versions || []).find((v) => v.version_number === kb.current_version);
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -274,7 +274,7 @@ function VersionsView({
           <div className="grid grid-cols-4 gap-4 text-sm">
             <div>
               <span className="text-slate-400">Files:</span>
-              <span className="text-white ml-2 font-semibold">{currentVersion.file_ids.length}</span>
+              <span className="text-white ml-2 font-semibold">{(currentVersion.file_ids || []).length}</span>
             </div>
             <div>
               <span className="text-slate-400">Vectors:</span>
@@ -302,7 +302,7 @@ function VersionsView({
       <div>
         <h4 className="font-semibold text-white mb-3">Version History</h4>
         <div className="space-y-2">
-          {versions.map((version) => {
+          {(versions || []).map((version) => {
             const isExpanded = expandedVersions.has(version.version_number);
             const isCurrent = version.version_number === kb.current_version;
             const canRollback = version.status === 'completed' && !isCurrent;
@@ -425,7 +425,7 @@ function VersionsView({
                     <div className="grid grid-cols-4 gap-3 text-sm">
                       <div>
                         <div className="text-slate-400 mb-1">Files</div>
-                        <div className="text-white font-semibold">{version.file_ids.length}</div>
+                        <div className="text-white font-semibold">{(version.file_ids || []).length}</div>
                       </div>
                       <div>
                         <div className="text-slate-400 mb-1">Vectors</div>
@@ -500,7 +500,7 @@ function CompareView({
               className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-sm text-white focus:outline-none focus:border-blue-500"
             >
               <option value="">Select version...</option>
-              {versions.map((v) => (
+              {(versions || []).map((v) => (
                 <option key={v.version_number} value={v.version_number}>
                   v{v.version_number} {v.version_number === currentVersion && '(Current)'}
                 </option>
@@ -515,7 +515,7 @@ function CompareView({
               className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-sm text-white focus:outline-none focus:border-blue-500"
             >
               <option value="">Select version...</option>
-              {versions.map((v) => (
+              {(versions || []).map((v) => (
                 <option key={v.version_number} value={v.version_number}>
                   v{v.version_number} {v.version_number === currentVersion && '(Current)'}
                 </option>
@@ -563,7 +563,7 @@ function CompareView({
             </div>
 
             {/* Differences */}
-            {Object.keys(comparison.differences).length === 0 ? (
+            {Object.keys(comparison.differences || {}).length === 0 ? (
               <div className="text-center py-4 text-slate-400 text-sm">
                 No differences found between these versions
               </div>
@@ -577,7 +577,7 @@ function CompareView({
                       <span className="text-sm font-semibold text-white">Chunking Configuration</span>
                     </div>
                     <div className="space-y-2 text-xs">
-                      {Object.entries(comparison.differences.chunk_config).map(([key, diff]) => (
+                      {Object.entries(comparison.differences.chunk_config || {}).map(([key, diff]) => (
                         <div key={key} className="flex items-center justify-between">
                           <span className="text-slate-400 capitalize">{key.replace('_', ' ')}:</span>
                           <div className="flex items-center gap-2">
@@ -599,7 +599,7 @@ function CompareView({
                       <span className="text-sm font-semibold text-white">Embedding Configuration</span>
                     </div>
                     <div className="space-y-2 text-xs">
-                      {Object.entries(comparison.differences.embed_config).map(([key, diff]) => (
+                      {Object.entries(comparison.differences.embed_config || {}).map(([key, diff]) => (
                         <div key={key} className="flex items-center justify-between">
                           <span className="text-slate-400 capitalize">{key}:</span>
                           <div className="flex items-center gap-2">
@@ -621,7 +621,7 @@ function CompareView({
                       <span className="text-sm font-semibold text-white">Vector Store Configuration</span>
                     </div>
                     <div className="space-y-2 text-xs">
-                      {Object.entries(comparison.differences.vector_store_config).map(([key, diff]) => (
+                      {Object.entries(comparison.differences.vector_store_config || {}).map(([key, diff]) => (
                         <div key={key} className="flex items-center justify-between">
                           <span className="text-slate-400 capitalize">{key.replace('_', ' ')}:</span>
                           <div className="flex items-center gap-2">
@@ -651,14 +651,14 @@ function CompareView({
                           <span className="text-green-400">{comparison.differences.files.v2_count}</span>
                         </div>
                       </div>
-                      {comparison.differences.files.added.length > 0 && (
+                      {(comparison.differences.files?.added?.length || 0) > 0 && (
                         <div>
-                          <span className="text-green-400">+{comparison.differences.files.added.length} added</span>
+                          <span className="text-green-400">+{(comparison.differences.files?.added || []).length} added</span>
                         </div>
                       )}
-                      {comparison.differences.files.removed.length > 0 && (
+                      {(comparison.differences.files?.removed?.length || 0) > 0 && (
                         <div>
-                          <span className="text-red-400">-{comparison.differences.files.removed.length} removed</span>
+                          <span className="text-red-400">-{(comparison.differences.files?.removed || []).length} removed</span>
                         </div>
                       )}
                     </div>
@@ -673,7 +673,7 @@ function CompareView({
                       <span className="text-sm font-semibold text-white">Metadata</span>
                     </div>
                     <div className="space-y-2 text-xs">
-                      {Object.entries(comparison.differences.metadata).map(([key, diff]) => (
+                      {Object.entries(comparison.differences.metadata || {}).map(([key, diff]) => (
                         <div key={key} className="flex items-center justify-between">
                           <span className="text-slate-400 capitalize">{key.replace('_', ' ')}:</span>
                           <div className="flex items-center gap-2">

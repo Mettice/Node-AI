@@ -212,7 +212,7 @@ export function CostIntelligence() {
         )}
         {activeTab === 'optimize' && (
           <OptimizeTab 
-            suggestions={analysis.suggestions} 
+            suggestions={analysis?.suggestions} 
             optimizations={optimizations || []} 
           />
         )}
@@ -238,7 +238,7 @@ function OverviewTab({
           <div>
             <div className="text-xs text-slate-400 mb-1">Total Cost</div>
             <div className="text-2xl font-bold text-green-400">
-              ${analysis.total_cost.toFixed(4)}
+              ${(analysis?.total_cost || 0).toFixed(4)}
             </div>
           </div>
           <DollarSign className="w-8 h-8 text-green-400 opacity-50" />
@@ -283,15 +283,15 @@ function OverviewTab({
           <div className="grid grid-cols-3 gap-3 text-sm">
             <div>
               <div className="text-slate-400 mb-1">Per run</div>
-              <div className="text-white font-semibold">${prediction.estimated_cost_per_run.toFixed(4)}</div>
+              <div className="text-white font-semibold">${(prediction?.estimated_cost_per_run || 0).toFixed(4)}</div>
             </div>
             <div>
               <div className="text-slate-400 mb-1">100 runs</div>
-              <div className="text-white font-semibold">${prediction.estimated_cost_100_runs.toFixed(2)}</div>
+              <div className="text-white font-semibold">${(prediction?.estimated_cost_100_runs || 0).toFixed(2)}</div>
             </div>
             <div>
               <div className="text-slate-400 mb-1">1000 runs</div>
-              <div className="text-white font-semibold">${prediction.estimated_cost_1000_runs.toFixed(2)}</div>
+              <div className="text-white font-semibold">${(prediction?.estimated_cost_1000_runs || 0).toFixed(2)}</div>
             </div>
           </div>
           <div className="mt-3 pt-3 border-t border-white/10 text-xs text-slate-500">
@@ -301,11 +301,11 @@ function OverviewTab({
       )}
 
       {/* Top Cost Nodes */}
-      {analysis.top_cost_nodes.length > 0 && (
+      {analysis?.top_cost_nodes?.length > 0 && (
         <div className="glass rounded-lg p-4 border border-white/10">
           <h3 className="text-sm font-semibold text-slate-200 mb-3">Top Cost Nodes</h3>
           <div className="space-y-2">
-            {analysis.top_cost_nodes.map((node) => (
+            {(analysis?.top_cost_nodes || []).map((node) => (
               <div
                 key={node.node_id}
                 className="flex items-center justify-between p-2 bg-white/5 rounded"
@@ -334,14 +334,14 @@ function BreakdownTab({ analysis }: { analysis: CostAnalysis }) {
   return (
     <div className="space-y-4">
       {/* By Category */}
-      {Object.keys(analysis.cost_by_category).length > 0 && (
+      {Object.keys(analysis?.cost_by_category || {}).length > 0 && (
         <div className="glass rounded-lg p-4 border border-white/10">
           <h3 className="text-sm font-semibold text-slate-200 mb-3">By Category</h3>
           <div className="space-y-2">
-            {Object.entries(analysis.cost_by_category)
+            {Object.entries(analysis?.cost_by_category || {})
               .sort(([, a], [, b]) => b - a)
               .map(([category, cost]) => {
-                const percentage = (cost / analysis.total_cost) * 100;
+                const percentage = (cost / (analysis?.total_cost || 1)) * 100;
                 return (
                   <div key={category}>
                     <div className="flex items-center justify-between mb-1">
@@ -364,14 +364,14 @@ function BreakdownTab({ analysis }: { analysis: CostAnalysis }) {
       )}
 
       {/* By Provider */}
-      {analysis.cost_by_provider && Object.keys(analysis.cost_by_provider).length > 0 && (
+      {analysis?.cost_by_provider && Object.keys(analysis.cost_by_provider).length > 0 && (
         <div className="glass rounded-lg p-4 border border-white/10">
           <h3 className="text-sm font-semibold text-slate-200 mb-3">By Provider</h3>
           <div className="space-y-2">
-            {Object.entries(analysis.cost_by_provider)
+            {Object.entries(analysis?.cost_by_provider || {})
               .sort(([, a], [, b]) => b - a)
               .map(([provider, cost]) => {
-                const percentage = (cost / analysis.total_cost) * 100;
+                const percentage = (cost / (analysis?.total_cost || 1)) * 100;
                 return (
                   <div key={provider} className="flex items-center justify-between">
                     <span className="text-sm text-slate-300 capitalize">{provider}</span>
@@ -386,14 +386,14 @@ function BreakdownTab({ analysis }: { analysis: CostAnalysis }) {
       )}
 
       {/* By Model */}
-      {analysis.cost_by_model && Object.keys(analysis.cost_by_model).length > 0 && (
+      {analysis?.cost_by_model && Object.keys(analysis.cost_by_model).length > 0 && (
         <div className="glass rounded-lg p-4 border border-white/10">
           <h3 className="text-sm font-semibold text-slate-200 mb-3">By Model</h3>
           <div className="space-y-2">
-            {Object.entries(analysis.cost_by_model)
+            {Object.entries(analysis?.cost_by_model || {})
               .sort(([, a], [, b]) => b - a)
               .map(([model, cost]) => {
-                const percentage = (cost / analysis.total_cost) * 100;
+                const percentage = (cost / (analysis?.total_cost || 1)) * 100;
                 return (
                   <div key={model} className="flex items-center justify-between">
                     <span className="text-sm text-slate-300 truncate flex-1">{model}</span>
@@ -455,15 +455,15 @@ function BudgetTab({
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs text-slate-400">Monthly Budget</span>
-                  <span className="text-sm font-semibold text-white">${budgetStatus.monthly_budget.toFixed(2)}</span>
+                  <span className="text-sm font-semibold text-white">${(budgetStatus?.monthly_budget || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs text-slate-400">Current Spend</span>
-                  <span className="text-sm font-semibold text-white">${budgetStatus.current_spend.toFixed(2)}</span>
+                  <span className="text-sm font-semibold text-white">${(budgetStatus?.current_spend || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-slate-400">Remaining</span>
-                  <span className="text-sm font-semibold text-green-400">${budgetStatus.remaining.toFixed(2)}</span>
+                  <span className="text-sm font-semibold text-green-400">${(budgetStatus?.remaining || 0).toFixed(2)}</span>
                 </div>
               </div>
               <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
@@ -474,29 +474,29 @@ function BudgetTab({
                     budgetStatus.status === 'warning' && 'bg-yellow-500',
                     budgetStatus.status === 'ok' && 'bg-green-500'
                   )}
-                  style={{ width: `${Math.min(budgetStatus.percentage_used, 100)}%` }}
+                  style={{ width: `${Math.min(budgetStatus?.percentage_used || 0, 100)}%` }}
                 />
               </div>
               <div className="text-xs text-slate-400">
-                {budgetStatus.percentage_used.toFixed(1)}% used • {budgetStatus.days_remaining} days remaining
+                {(budgetStatus?.percentage_used || 0).toFixed(1)}% used • {budgetStatus?.days_remaining || 0} days remaining
               </div>
-              {budgetStatus.projected_monthly_spend > 0 && (
+              {(budgetStatus?.projected_monthly_spend || 0) > 0 && (
                 <div className="text-xs text-slate-400">
-                  Projected monthly: ${budgetStatus.projected_monthly_spend.toFixed(2)}
+                  Projected monthly: ${(budgetStatus?.projected_monthly_spend || 0).toFixed(2)}
                 </div>
               )}
             </div>
           </div>
 
           {/* Alerts */}
-          {budgetStatus.alerts.length > 0 && (
+          {(budgetStatus?.alerts?.length || 0) > 0 && (
             <div className="glass rounded-lg p-4 border border-yellow-500/50 bg-yellow-500/10">
               <h3 className="text-sm font-semibold text-yellow-300 mb-2 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" />
                 Alerts
               </h3>
               <div className="space-y-1">
-                {budgetStatus.alerts.map((alert, idx) => (
+                {(budgetStatus?.alerts || []).map((alert, idx) => (
                   <div key={idx} className="text-xs text-slate-300">{alert}</div>
                 ))}
               </div>
@@ -689,8 +689,8 @@ function OptimizeTab({
   optimizations: OptimizationSuggestion[];
 }) {
   const allSuggestions = [
-    ...suggestions.map(s => ({ ...s, priority: s.impact })),
-    ...optimizations,
+    ...(suggestions || []).map(s => ({ ...s, priority: s.impact })),
+    ...(optimizations || []),
   ];
 
   if (allSuggestions.length === 0) {
