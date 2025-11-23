@@ -5,7 +5,7 @@
  */
 
 import type { ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
@@ -16,7 +16,6 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, requireAuth = true }: ProtectedRouteProps) {
   const { isAuthenticated, loading } = useAuth();
-  const navigate = useNavigate();
 
   if (loading) {
     return (
@@ -31,8 +30,7 @@ export function ProtectedRoute({ children, requireAuth = true }: ProtectedRouteP
 
   if (requireAuth && !isAuthenticated) {
     // Redirect to login
-    navigate('/login');
-    return null;
+    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;

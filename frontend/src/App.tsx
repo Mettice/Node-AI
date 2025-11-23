@@ -93,6 +93,16 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         
+        {/* Default route - redirect to login if not authenticated */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute requireAuth={true}>
+              <HomePage />
+            </ProtectedRoute>
+          }
+        />
+        
         {/* Protected route - main application */}
         <Route
           path="/*"

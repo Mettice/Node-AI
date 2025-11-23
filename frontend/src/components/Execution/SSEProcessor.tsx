@@ -81,7 +81,7 @@ export function SSEProcessor() {
           // Clear all node statuses to stop animations
           const { updateNodeStatuses } = useExecutionStore.getState();
           const { nodes } = useWorkflowStore.getState();
-          const allNodeIds = nodes.map(n => n.id);
+          const allNodeIds = (nodes || []).map(n => n.id);
           const completedStatuses: Record<string, 'completed'> = {};
           allNodeIds.forEach(nodeId => {
             completedStatuses[nodeId] = 'completed';

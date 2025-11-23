@@ -20,15 +20,16 @@ export function ExecutionStatusBar() {
   }
 
   // Calculate progress
-  const completedNodes = nodes.filter((node) => {
-    const result = useExecutionStore.getState().results[node.id];
+  const safeNodes = nodes || [];
+  const completedNodes = safeNodes.filter((node) => {
+    const result = useExecutionStore.getState().results?.[node.id];
     return result?.status === 'completed';
   }).length;
-  const totalNodes = nodes.length;
+  const totalNodes = safeNodes.length;
   const progress = totalNodes > 0 ? Math.round((completedNodes / totalNodes) * 100) : 0;
 
   // Get current node name
-  const currentNode = currentNodeId ? nodes.find((n) => n.id === currentNodeId) : null;
+  const currentNode = currentNodeId ? safeNodes.find((n) => n.id === currentNodeId) : null;
   const currentNodeName = currentNode?.data?.label || currentNode?.type || currentNodeId || 'Unknown';
 
   // Status icon and color

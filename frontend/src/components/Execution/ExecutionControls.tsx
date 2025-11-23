@@ -19,8 +19,12 @@ export function ExecutionControls() {
 
   // Handle run workflow
   const handleRun = useCallback(async () => {
+    // Ensure nodes and edges are defined
+    const safeNodes = nodes || [];
+    const safeEdges = edges || [];
+    
     // Validate workflow
-    const validation = validateWorkflow({ nodes, edges });
+    const validation = validateWorkflow({ nodes: safeNodes, edges: safeEdges });
     if (!validation.valid) {
       toast.error(`Workflow validation failed: ${validation.errors.join(', ')}`);
       return;
@@ -30,14 +34,14 @@ export function ExecutionControls() {
       // Build workflow object
       const workflow = {
         name: workflowName,
-        nodes: nodes.map((node) => ({
+        nodes: safeNodes.map((node) => ({
           id: node.id,
           type: node.type || 'default',
           position: node.position,
           // Backend expects config directly in data, not nested under data.config
           data: node.data?.config || node.data || {},
         })),
-        edges: edges.map((edge) => ({
+        edges: safeEdges.map((edge) => ({
           id: edge.id,
           source: edge.source,
           target: edge.target,
@@ -51,23 +55,23 @@ export function ExecutionControls() {
       const dependencies = new Map<string, Set<string>>(); // node -> set of dependencies
       
       // Initialize maps
-      nodes.forEach(node => {
+      safeNodes.forEach(node => {
         dependencies.set(node.id, new Set());
       });
       
       // Build dependency graph from edges
-      edges.forEach(edge => {
+      safeEdges.forEach(edge => {
         dependencies.get(edge.target)?.add(edge.source);
       });
       
       // Find root nodes (nodes with no dependencies)
-      const rootNodes = nodes.filter(node => dependencies.get(node.id)?.size === 0);
+      const rootNodes = safeNodes.filter(node => dependencies.get(node.id)?.size === 0);
       
-      console.log('[ExecutionControls] Total nodes:', nodes.length);
+      console.log('[ExecutionControls] Total nodes:', safeNodes.length);
       console.log('[ExecutionControls] Root nodes (no dependencies):', rootNodes.map(n => `${n.data?.label || n.type} (${n.id})`));
-      console.log('[ExecutionControls] All nodes:', nodes.map(n => `${n.data?.label || n.type} (${n.id})`));
+      console.log('[ExecutionControls] All nodes:', safeNodes.map(n => `${n.data?.label || n.type} (${n.id})`));
       console.log('[ExecutionControls] Dependencies:', Array.from(dependencies.entries()).map(([id, deps]) => 
-        `${nodes.find(n => n.id === id)?.data?.label || id}: [${Array.from(deps).map(depId => nodes.find(n => n.id === depId)?.data?.label || depId).join(', ')}]`
+        `${safeNodes.find(n => n.id === id)?.data?.label || id}: [${Array.from(deps).map(depId => safeNodes.find(n => n.id === depId)?.data?.label || depId).join(', ')}]`
       ));
       
       // Only set root nodes to pending initially - others will be set when their dependencies complete

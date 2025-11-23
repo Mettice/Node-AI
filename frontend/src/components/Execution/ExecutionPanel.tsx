@@ -62,10 +62,12 @@ export function ExecutionPanel({ isOpen, onClose }: ExecutionPanelProps) {
     if (status === 'completed') return 100;
     if (status === 'failed') return 100;
 
-    const completedNodes = trace.filter(
+    const safeTrace = trace || [];
+    const safeNodes = nodes || [];
+    const completedNodes = safeTrace.filter(
       (step) => step.action === 'completed' || step.data?.status === 'completed'
     ).length;
-    const totalNodes = nodes.length;
+    const totalNodes = safeNodes.length;
     
     if (totalNodes === 0) return 0;
     return Math.round((completedNodes / totalNodes) * 100);
@@ -75,18 +77,21 @@ export function ExecutionPanel({ isOpen, onClose }: ExecutionPanelProps) {
 
   // Get current executing node
   const getCurrentNode = () => {
-    const runningStep = trace.find(
+    const safeTrace = trace || [];
+    const safeNodes = nodes || [];
+    const runningStep = safeTrace.find(
       (step) => step.action === 'started' || step.data?.status === 'running'
     );
     if (runningStep) {
-      const node = nodes.find((n) => n.id === runningStep.node_id);
+      const node = safeNodes.find((n) => n.id === runningStep.node_id);
       return node?.type || runningStep.node_id;
     }
     return null;
   };
 
   const currentNode = getCurrentNode();
-  const completedCount = trace.filter(
+  const safeTrace = trace || [];
+  const completedCount = safeTrace.filter(
     (step) => step.action === 'completed' || step.data?.status === 'completed'
   ).length;
 
@@ -104,8 +109,10 @@ export function ExecutionPanel({ isOpen, onClose }: ExecutionPanelProps) {
 
   // Build timeline data
   const buildTimeline = () => {
-    const timelineNodes = nodes.map((node) => {
-      const nodeSteps = trace.filter((step) => step.node_id === node.id);
+    const safeNodes = nodes || [];
+    const safeTrace = trace || [];
+    const timelineNodes = safeNodes.map((node) => {
+      const nodeSteps = safeTrace.filter((step) => step.node_id === node.id);
       const latestStep = nodeSteps[nodeSteps.length - 1];
       
       let nodeStatus: 'pending' | 'running' | 'completed' | 'failed' = 'pending';
@@ -134,10 +141,13 @@ export function ExecutionPanel({ isOpen, onClose }: ExecutionPanelProps) {
 
   // Format logs for display
   const formatLogs = () => {
-    return trace.map((step: ExecutionStep) => {
-      const node = nodes.find((n) => n.id === step.node_id);
+    const safeNodes = nodes || [];
+    const safeTrace = trace || [];
+    const safeResults = results || {};
+    return safeTrace.map((step: ExecutionStep) => {
+      const node = safeNodes.find((n) => n.id === step.node_id);
+      const nodeResult = safeResults[step.node_id];
       const nodeType = node?.type || step.node_id;
-      const nodeResult = results[step.node_id];
       
       const stepStatus = step.data?.status || step.action || 'pending';
       const StatusIcon = statusIcons[stepStatus as keyof typeof statusIcons] || Clock;

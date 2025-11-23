@@ -14,18 +14,19 @@ export function ExecutionSummary() {
   const { nodes } = useWorkflowStore();
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
 
-  // Ensure results is always an object
+  // Ensure results and nodes are always defined
   const safeResults = results || {};
+  const safeNodes = nodes || [];
 
   const toggleNodeExpanded = (nodeId: string) => {
     setExpandedNodes(prev => ({ ...prev, [nodeId]: !prev[nodeId] }));
   };
 
   // Calculate statistics
-  const totalNodes = nodes.length;
+  const totalNodes = safeNodes.length;
   const resultsArray = Object.values(safeResults);
-  const completedNodes = resultsArray.filter((r) => r.status === 'completed').length;
-  const failedNodes = resultsArray.filter((r) => r.status === 'failed').length;
+  const completedNodes = resultsArray.filter((r) => r?.status === 'completed').length;
+  const failedNodes = resultsArray.filter((r) => r?.status === 'failed').length;
   const successRate = totalNodes > 0 ? Math.round((completedNodes / totalNodes) * 100) : 0;
 
   // Format duration
@@ -42,7 +43,7 @@ export function ExecutionSummary() {
   };
 
   // Get node breakdown
-  const nodeBreakdown = nodes.map((node) => {
+  const nodeBreakdown = safeNodes.map((node) => {
     const result = safeResults[node.id];
     const nodeType = node.data?.label || node.type || node.id;
     
