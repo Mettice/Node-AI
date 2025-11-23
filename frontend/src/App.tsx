@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
 import { HomePage } from '@/pages/HomePage';
+import { LandingPage } from '@/pages/LandingPage';
 import { API_BASE_URL } from '@/constants';
 
 // Create a client
@@ -92,8 +93,9 @@ function App() {
     return (
       <QueryClientProvider client={queryClient}>
         <Routes>
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="*" element={<LoginPage />} />
+          <Route path="*" element={<LandingPage />} />
         </Routes>
         <Toaster position="top-right" />
       </QueryClientProvider>

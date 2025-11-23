@@ -2,7 +2,7 @@
  * Execution controls component - Run/Stop/Clear buttons
  */
 
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { Play, Square, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { useWorkflowStore } from '@/store/workflowStore';
@@ -11,11 +11,21 @@ import { useUIStore } from '@/store/uiStore';
 import { executeWorkflow } from '@/services/workflows';
 import { toast } from 'react-hot-toast';
 import { validateWorkflow } from '@/utils/workflowValidation';
+import { cn } from '@/utils/cn';
 
 export function ExecutionControls() {
   const { nodes, edges, workflowName } = useWorkflowStore();
   const { status, startExecution, stopExecution, clearExecution } = useExecutionStore();
   const { toggleExecutionLogs, executionLogsOpen } = useUIStore();
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Handle run workflow
   const handleRun = useCallback(async () => {
@@ -195,37 +205,42 @@ export function ExecutionControls() {
   const isRunning = status === 'running' || status === 'pending';
 
   return (
-    <div className="flex items-center gap-3">
+    <div className={cn("flex items-center", isMobile ? "gap-2" : "gap-3")}>
       <Button
         variant="primary"
-        size="sm"
+        size={isMobile ? "xs" : "sm"}
         onClick={handleRun}
         disabled={isRunning || nodes.length === 0}
         isLoading={status === 'pending'}
+        className={cn(isMobile && "px-2 py-1")}
       >
-        <Play className="w-4 h-4 mr-1" />
-        Run Workflow
+        <Play className={cn(isMobile ? "w-3 h-3" : "w-4 h-4", "mr-1")} />
+        <span className={cn(isMobile && "text-xs")}>
+          {isMobile ? "Run" : "Run Workflow"}
+        </span>
       </Button>
 
       {isRunning && (
         <Button
           variant="danger"
-          size="sm"
+          size={isMobile ? "xs" : "sm"}
           onClick={handleStop}
+          className={cn(isMobile && "px-2 py-1")}
         >
-          <Square className="w-4 h-4 mr-1" />
-          Stop
+          <Square className={cn(isMobile ? "w-3 h-3" : "w-4 h-4", "mr-1")} />
+          <span className={cn(isMobile && "text-xs")}>Stop</span>
         </Button>
       )}
 
       <Button
         variant="secondary"
-        size="sm"
+        size={isMobile ? "xs" : "sm"}
         onClick={handleClear}
         disabled={status === 'idle'}
+        className={cn(isMobile && "px-2 py-1")}
       >
-        <RotateCcw className="w-4 h-4 mr-1" />
-        Clear
+        <RotateCcw className={cn(isMobile ? "w-3 h-3" : "w-4 h-4", "mr-1")} />
+        <span className={cn(isMobile && "text-xs")}>Clear</span>
       </Button>
     </div>
   );

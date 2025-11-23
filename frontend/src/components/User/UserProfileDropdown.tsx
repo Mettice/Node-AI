@@ -35,9 +35,14 @@ export function UserProfileDropdown() {
     if (!showMenu) return;
 
     const handleClickOutside = (e: MouseEvent) => {
-      if (buttonRef.current && !buttonRef.current.contains(e.target as Node)) {
-        setShowMenu(false);
-      }
+      // Don't close if clicking inside the dropdown menu itself
+      const target = e.target as Element;
+      if (buttonRef.current?.contains(target)) return;
+      
+      // Check if clicking inside a dropdown menu element
+      if (target.closest('.user-dropdown-menu')) return;
+      
+      setShowMenu(false);
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -45,9 +50,13 @@ export function UserProfileDropdown() {
   }, [showMenu]);
 
   const handleLogout = async () => {
-    await signOut();
-    navigate('/login');
-    setShowMenu(false);
+    try {
+      await signOut();
+      navigate('/login');
+      setShowMenu(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const handleOpenSettings = () => {
@@ -76,7 +85,7 @@ export function UserProfileDropdown() {
         <div className="w-7 h-7 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
           <User className="w-4 h-4 text-purple-400" />
         </div>
-        <span className="hidden sm:block max-w-[120px] truncate">{displayName}</span>
+        <span className="hidden sm:block max-w-[80px] md:max-w-[120px] truncate text-xs md:text-sm">{displayName}</span>
         <ChevronDown className={cn('w-4 h-4 transition-transform', showMenu && 'rotate-180')} />
       </button>
 
@@ -88,7 +97,7 @@ export function UserProfileDropdown() {
             style={{ pointerEvents: 'auto' }}
           />
           <div
-            className="fixed bg-slate-800 border border-white/10 rounded-md shadow-xl z-[10000] py-1 min-w-[200px]"
+            className="user-dropdown-menu fixed bg-slate-800 border border-white/10 rounded-md shadow-xl z-[10000] py-1 min-w-[200px]"
             style={{
               top: `${menuPosition.top}px`,
               right: `${menuPosition.right}px`,
@@ -103,7 +112,11 @@ export function UserProfileDropdown() {
 
             {/* Menu Items */}
             <button
-              onClick={handleOpenSettings}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleOpenSettings();
+              }}
               className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-slate-300 hover:bg-white/5 transition-colors"
             >
               <Settings className="w-4 h-4" />
@@ -111,7 +124,11 @@ export function UserProfileDropdown() {
             </button>
 
             <button
-              onClick={handleLogout}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleLogout();
+              }}
               className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 transition-colors border-t border-white/10"
             >
               <LogOut className="w-4 h-4" />

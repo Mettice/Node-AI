@@ -331,14 +331,14 @@ export function WorkflowHeader() {
   };
 
   return (
-    <header className="h-14 px-6 border-b border-white/10 bg-slate-800/80 backdrop-blur-sm glass-strong flex items-center justify-between">
+    <header className="h-14 px-3 md:px-6 border-b border-white/10 bg-slate-800/80 backdrop-blur-sm glass-strong flex items-center justify-between">
       {/* Left: Logo */}
       <div className="flex items-center">
-        <h1 className="text-xl font-bold text-white">NodeAI</h1>
+        <h1 className="text-lg md:text-xl font-bold text-white">NodeAI</h1>
       </div>
 
       {/* Center: Workflow Management Controls */}
-      <div className="flex items-center gap-3 flex-1 justify-center">
+      <div className="flex items-center gap-1 md:gap-3 flex-1 justify-center overflow-hidden">
         {/* Workflow Name Dropdown */}
         <div className="relative">
           {isRenaming ? (
@@ -369,10 +369,10 @@ export function WorkflowHeader() {
               <button
                 ref={nameButtonRef}
                 onClick={handleNameMenuToggle}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/5 rounded transition-colors"
+                className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium text-white hover:bg-white/5 rounded transition-colors max-w-[120px] md:max-w-none"
               >
-                <span>{workflowName}</span>
-                <ChevronDown className="w-4 h-4" />
+                <span className="truncate">{workflowName}</span>
+                <ChevronDown className="w-3 md:w-4 h-3 md:h-4 flex-shrink-0" />
               </button>
               {showNameMenu && createPortal(
                 <>
@@ -434,21 +434,21 @@ export function WorkflowHeader() {
           )}
         </div>
 
-        <div className="h-6 w-px bg-white/10" />
+        <div className="h-6 w-px bg-white/10 hidden md:block" />
 
         {/* Save Button */}
         <button
           onClick={handleSave}
           disabled={isSaving || nodes.length === 0}
           className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium',
+            'flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium',
             'text-slate-300 hover:text-white hover:bg-white/5 rounded transition-colors',
             'disabled:opacity-50 disabled:cursor-not-allowed'
           )}
           title="Save Workflow (Ctrl+S)"
         >
-          <Save className="w-4 h-4" />
-          <span>{isSaving ? 'Saving...' : 'Save'}</span>
+          <Save className="w-3 md:w-4 h-3 md:h-4" />
+          <span className="hidden sm:inline">{isSaving ? 'Saving...' : 'Save'}</span>
         </button>
 
         {/* Undo Button */}
@@ -456,13 +456,13 @@ export function WorkflowHeader() {
           onClick={handleUndo}
           disabled={!canUndo()}
           className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium',
+            'flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium',
             'text-slate-300 hover:text-white hover:bg-white/5 rounded transition-colors',
             'disabled:opacity-50 disabled:cursor-not-allowed'
           )}
           title="Undo (Ctrl+Z)"
         >
-          <Undo2 className="w-4 h-4" />
+          <Undo2 className="w-3 md:w-4 h-3 md:h-4" />
         </button>
 
         {/* Redo Button */}
@@ -470,13 +470,13 @@ export function WorkflowHeader() {
           onClick={handleRedo}
           disabled={!canRedo()}
           className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium',
+            'flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium',
             'text-slate-300 hover:text-white hover:bg-white/5 rounded transition-colors',
             'disabled:opacity-50 disabled:cursor-not-allowed'
           )}
           title="Redo (Ctrl+Y)"
         >
-          <Redo2 className="w-4 h-4" />
+          <Redo2 className="w-3 md:w-4 h-3 md:h-4" />
         </button>
 
         {/* Deploy/Undeploy Button */}
@@ -485,7 +485,7 @@ export function WorkflowHeader() {
             onClick={isDeployed ? handleUndeploy : handleDeploy}
             disabled={isDeploying}
             className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded transition-colors',
+              'flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium rounded transition-colors',
               isDeploying
                 ? 'text-slate-400 cursor-not-allowed opacity-50'
                 : isDeployed
@@ -496,22 +496,22 @@ export function WorkflowHeader() {
           >
             {isDeployed ? (
               <>
-                <Power className="w-4 h-4" />
-                <span>{isDeploying ? 'Undeploying...' : 'Undeploy'}</span>
+                <Power className="w-3 md:w-4 h-3 md:h-4" />
+                <span className="hidden sm:inline">{isDeploying ? 'Undeploying...' : 'Undeploy'}</span>
               </>
             ) : (
               <>
-                <Rocket className="w-4 h-4" />
-                <span>{isDeploying ? 'Deploying...' : 'Deploy'}</span>
+                <Rocket className="w-3 md:w-4 h-3 md:h-4" />
+                <span className="hidden sm:inline">{isDeploying ? 'Deploying...' : 'Deploy'}</span>
               </>
             )}
           </button>
         )}
 
-        <div className="h-6 w-px bg-white/10" />
+        <div className="h-6 w-px bg-white/10 hidden md:block" />
 
-        {/* Export Dropdown */}
-        <div className="relative">
+        {/* Export Dropdown - Hidden on mobile */}
+        <div className="relative hidden md:block">
           <button
             ref={exportButtonRef}
             onClick={handleExportMenuToggle}
@@ -561,11 +561,11 @@ export function WorkflowHeader() {
             )}
           </div>
 
-        {/* Download Button */}
+        {/* Download Button - Hidden on mobile */}
         <button
           onClick={handleDownload}
           className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium',
+            'hidden md:flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium',
             'text-slate-300 hover:text-white hover:bg-white/5 rounded transition-colors'
           )}
           title="Download Workflow"
@@ -576,9 +576,9 @@ export function WorkflowHeader() {
       </div>
 
       {/* Right: User Profile & Version */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-slate-400">v{APP_VERSION}</span>
+      <div className="flex items-center gap-2 md:gap-4">
+        <div className="hidden md:flex items-center gap-2">
+          <span className="text-xs md:text-sm text-slate-400">v{APP_VERSION}</span>
           <div className="h-2 w-2 bg-green-500 rounded-full"></div>
         </div>
         <UserProfileDropdown />

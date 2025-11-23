@@ -10,6 +10,7 @@ import { cn } from '@/utils/cn';
 export function AddNodeButton() {
   const [isOpen, setIsOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [position, setPosition] = useState(() => {
     // Load saved position from localStorage or use default
     const saved = localStorage.getItem('addNodeButtonPosition');
@@ -25,13 +26,22 @@ export function AddNodeButton() {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const buttonRef = useRef<HTMLButtonElement>(null);
 
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Save position to localStorage when it changes
   useEffect(() => {
     localStorage.setItem('addNodeButtonPosition', JSON.stringify(position));
   }, [position]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return; // Only left mouse button
+    // Disable drag on mobile
+    if (isMobile || e.button !== 0) return; 
     e.preventDefault();
     e.stopPropagation();
     
@@ -87,37 +97,40 @@ export function AddNodeButton() {
 
   return (
     <>
-      {/* Draggable Plus Button - positioned within canvas */}
+      {/* Add Node Button - Fixed position on mobile, draggable on desktop */}
       <button
         ref={buttonRef}
         onMouseDown={handleMouseDown}
         onClick={handleClick}
         className={cn(
-          'absolute z-50 w-14 h-14 rounded-full',
+          'z-50 rounded-full',
           'bg-purple-500 hover:bg-purple-600',
           'text-white shadow-lg shadow-purple-500/50',
           'flex items-center justify-center',
           'transition-all duration-200',
           'hover:scale-110 active:scale-95',
           'border-2 border-purple-400/30',
-          'cursor-move select-none',
+          'select-none',
+          // Mobile: Fixed bottom position
+          isMobile ? 'fixed bottom-4 right-4 w-12 h-12 cursor-pointer' : 'absolute w-14 h-14 cursor-move',
           isDragging && 'scale-105'
         )}
-        style={{
+        style={isMobile ? {} : {
           left: `${position.x}px`,
           top: `${position.y}px`,
         }}
-        title="Add Node (Drag to move)"
+        title={isMobile ? "Add Node" : "Add Node (Drag to move)"}
       >
-        <Plus className="w-6 h-6" />
+        <Plus className={cn(isMobile ? "w-5 h-5" : "w-6 h-6")} />
       </button>
 
-      {/* Node Palette Popup */}
+      {/* Node Palette - Bottom drawer on mobile, popup on desktop */}
       {isOpen && (
         <NodePalettePopup
           isOpen={isOpen}
           onClose={() => setIsOpen(false)}
           position={position}
+          isMobile={isMobile}
         />
       )}
     </>

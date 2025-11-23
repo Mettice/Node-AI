@@ -1,0 +1,79 @@
+/* Mobile Canvas Optimizations */
+
+/* Touch-optimized React Flow controls */
+.react-flow__controls.mobile-optimized {
+  @apply md:bottom-4 md:left-4;
+}
+
+@media (max-width: 768px) {
+  .react-flow__controls.mobile-optimized {
+    bottom: 80px !important; /* Move above mobile UI */
+    left: 10px !important;
+    transform: scale(0.8);
+  }
+  
+  .react-flow__controls.mobile-optimized button {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 14px !important;
+  }
+}
+
+/* Mobile-optimized node interactions */
+@media (max-width: 768px) {
+  .react-flow__node {
+    min-width: 140px;
+    font-size: 12px;
+  }
+  
+  .react-flow__node .react-flow__handle {
+    width: 12px;
+    height: 12px;
+  }
+  
+  /* Larger touch targets for handles */
+  .react-flow__node .react-flow__handle::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    background: transparent;
+  }
+}
+
+/* Mobile canvas gestures */
+@media (max-width: 768px) {
+  .react-flow {
+    touch-action: pan-x pan-y pinch-zoom;
+  }
+  
+  .react-flow__pane {
+    cursor: grab;
+  }
+  
+  .react-flow__pane:active {
+    cursor: grabbing;
+  }
+}
+
+/* Mobile-optimized panels */
+@media (max-width: 768px) {
+  .react-flow__panel {
+    font-size: 12px;
+  }
+  
+  .react-flow__panel.react-flow__panel-bottom {
+    margin-bottom: 60px; /* Space for mobile toolbar */
+  }
+}
+
+/* Hide scroll bars on mobile for cleaner look */
+@media (max-width: 768px) {
+  .react-flow::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .react-flow {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+}

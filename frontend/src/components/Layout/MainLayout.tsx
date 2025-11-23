@@ -21,14 +21,14 @@ export function MainLayout() {
         onClick={toggleNodePalette}
         className={cn(
           'absolute left-0 top-1/2 -translate-y-1/2 z-50 bg-slate-800/90 border border-white/10 rounded-r-lg p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-700/90 transition-all',
-          nodePaletteOpen && 'translate-x-64'
+          nodePaletteOpen && 'translate-x-48 md:translate-x-64'
         )}
         title={nodePaletteOpen ? 'Close sidebar' : 'Open sidebar'}
       >
         {nodePaletteOpen ? (
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-3 md:w-4 h-3 md:h-4" />
         ) : (
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-3 md:w-4 h-3 md:h-4" />
         )}
       </button>
 
@@ -36,7 +36,7 @@ export function MainLayout() {
       <div
         className={cn(
           'transition-all duration-300 ease-in-out flex flex-col border-r border-white/10 glass-strong',
-          nodePaletteOpen ? 'w-64' : 'w-0 overflow-hidden'
+          nodePaletteOpen ? 'w-48 md:w-64' : 'w-0 overflow-hidden'
         )}
       >
         {nodePaletteOpen && <UtilitySidebar />}

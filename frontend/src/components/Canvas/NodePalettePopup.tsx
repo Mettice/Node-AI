@@ -66,6 +66,7 @@ interface NodePalettePopupProps {
   isOpen: boolean;
   onClose: () => void;
   position: { x: number; y: number };
+  isMobile?: boolean;
 }
 
 const categoryLabels: Record<string, string> = {
@@ -82,7 +83,7 @@ const categoryLabels: Record<string, string> = {
   integration: 'Integration',
 };
 
-export function NodePalettePopup({ isOpen, onClose, position }: NodePalettePopupProps) {
+export function NodePalettePopup({ isOpen, onClose, position, isMobile = false }: NodePalettePopupProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const isDraggingRef = useRef(false); // Immediate ref check (not async like state)
@@ -229,17 +230,19 @@ export function NodePalettePopup({ isOpen, onClose, position }: NodePalettePopup
         }}
       />
 
-      {/* Popup */}
+      {/* Popup - Bottom drawer on mobile, positioned popup on desktop */}
       <div
         role="dialog"
         className={cn(
-          'fixed z-50 w-80 max-h-[600px]',
-          'bg-slate-800/95 backdrop-blur-lg',
-          'border border-white/10 rounded-lg shadow-2xl',
+          'fixed z-50 bg-slate-800/95 backdrop-blur-lg border border-white/10 shadow-2xl',
+          // Mobile: bottom drawer
+          isMobile 
+            ? 'bottom-0 left-0 right-0 max-h-[70vh] rounded-t-lg'
+            : 'w-80 max-h-[600px] rounded-lg',
           'flex flex-col',
           'glass-strong'
         )}
-        style={{
+        style={isMobile ? {} : {
           left: `${position.x + 60}px`,
           top: `${position.y}px`,
         }}
@@ -254,19 +257,24 @@ export function NodePalettePopup({ isOpen, onClose, position }: NodePalettePopup
         }}
       >
         {/* Header */}
-        <div className="p-4 border-b border-white/10 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Add Node</h2>
+        <div className={cn("border-b border-white/10 flex items-center justify-between", isMobile ? "p-3" : "p-4")}>
+          {isMobile && (
+            <div className="w-8 h-1 bg-slate-600 rounded-full mx-auto mb-2" />
+          )}
+          <h2 className={cn("font-semibold text-white", isMobile ? "text-base" : "text-lg")}>
+            Add Node
+          </h2>
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-white transition-colors p-1 hover:bg-white/5 rounded"
             title="Close"
           >
-            <X className="w-5 h-5" />
+            <X className={cn(isMobile ? "w-4 h-4" : "w-5 h-5")} />
           </button>
         </div>
 
         {/* Search */}
-        <div className="p-4 border-b border-white/10">
+        <div className={cn("border-b border-white/10", isMobile ? "p-3" : "p-4")}>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input

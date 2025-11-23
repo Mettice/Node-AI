@@ -62,7 +62,7 @@ export function UtilitySidebar() {
               key={utility.id}
               onClick={() => handleUtilityClick(utility)}
               className={cn(
-                'w-full flex items-center gap-2 py-2 px-3',
+                'w-full flex items-center gap-1 md:gap-2 py-2 px-2 md:px-3',
                 'transition-all duration-200',
                 'hover:bg-white/5',
                 isActive && `${utility.bgColor} border-l-2 ${utility.borderColor}`,
@@ -72,7 +72,7 @@ export function UtilitySidebar() {
             >
               <Icon
                 className={cn(
-                  'w-4 h-4 flex-shrink-0 transition-colors',
+                  'w-3 md:w-4 h-3 md:h-4 flex-shrink-0 transition-colors',
                   isActive 
                     ? utility.color 
                     : hasWarning 
@@ -82,7 +82,7 @@ export function UtilitySidebar() {
               />
               <span
                 className={cn(
-                  'text-xs font-medium transition-colors',
+                  'text-xs font-medium transition-colors hidden sm:block',
                   isActive 
                     ? utility.color.replace('-400', '-300') 
                     : hasWarning 

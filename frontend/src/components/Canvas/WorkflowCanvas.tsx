@@ -28,6 +28,7 @@ import { ExecutionStatusIcon } from './ExecutionStatusIcon';
 import { ExecutionControls } from '@/components/Execution/ExecutionControls';
 import { ExecutionStatusBar } from '@/components/Execution/ExecutionStatusBar';
 import { AddNodeButton } from './AddNodeButton';
+import { MobileToolbar } from './MobileToolbar';
 import { MessageSquare } from 'lucide-react';
 
 // Define node and edge types as constants outside component
@@ -80,8 +81,18 @@ const EDGE_TYPES: EdgeTypes = {
 export function WorkflowCanvas() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
+  const [addNodeOpen, setAddNodeOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
   const { toggleChatInterface } = useUIStore();
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   // Memoize node and edge types to ensure stable references
   // Even though they're constants, ReactFlow needs stable references
@@ -97,6 +108,10 @@ export function WorkflowCanvas() {
     addEdge: addEdgeToStore,
     removeEdge,
     selectNode,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
   } = useWorkflowStore();
 
   // Initialize React Flow state from store
@@ -258,6 +273,21 @@ export function WorkflowCanvas() {
     [reactFlowInstance, addNode]
   );
 
+  // Mobile toolbar handlers
+  const handleMobileAddNode = useCallback(() => {
+    setAddNodeOpen(true);
+  }, []);
+
+  const handleMobileSave = useCallback(() => {
+    // Placeholder - integrate with save functionality from WorkflowHeader
+    console.log('Mobile save triggered');
+  }, []);
+
+  const handleMobileRun = useCallback(() => {
+    // Placeholder - integrate with execution functionality
+    console.log('Mobile run triggered');
+  }, []);
+
   return (
     <div 
       className="w-full h-full canvas-dark flex flex-col" 
@@ -283,28 +313,42 @@ export function WorkflowCanvas() {
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         minZoom={0.1}
         maxZoom={2}
+        panOnDrag
+        panOnScroll
+        zoomOnScroll
+        zoomOnPinch
+        zoomOnDoubleClick={false}
+        selectNodesOnDrag={false}
       >
         {/* Grid is in CSS - no React Flow Background needed */}
-        <Controls />
-        <Panel position="top-left" className="glass rounded-lg p-4">
-          <div className="text-sm text-slate-300">
+        <Controls className="react-flow__controls mobile-optimized" />
+        
+        {/* Top Left Panel - Hidden on mobile */}
+        <Panel position="top-left" className="glass rounded-lg p-2 md:p-4 hidden md:block">
+          <div className="text-xs md:text-sm text-slate-300">
             Nodes: {nodes.length} | Edges: {edges.length}
           </div>
         </Panel>
-        <Panel position="top-right" className="glass rounded-lg p-4">
+        
+        {/* Top Right Panel - Execution Status */}
+        <Panel position="top-right" className="glass rounded-lg p-2 md:p-4">
           <ExecutionStatusIcon />
         </Panel>
-        <Panel position="bottom-center" className="glass rounded-lg p-4">
+        
+        {/* Bottom Center Panel - Mobile responsive */}
+        <Panel position="bottom-center" className="glass rounded-lg p-2 md:p-4 mb-16 md:mb-0">
           <ExecutionControls />
         </Panel>
-        <Panel position="bottom-right" className="glass rounded-lg p-4 flex items-center gap-3">
+        
+        {/* Bottom Right Panel - Chat button, mobile optimized */}
+        <Panel position="bottom-right" className="glass rounded-lg p-2 md:p-4 flex items-center gap-2 md:gap-3 mb-16 md:mb-0">
           <button
             onClick={toggleChatInterface}
-            className="flex items-center gap-2 px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-all duration-200 hover:scale-105"
+            className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-all duration-200 hover:scale-105"
             title="Open Chat Interface"
           >
-            <MessageSquare className="w-5 h-5" />
-            <span className="text-sm font-medium">Chat</span>
+            <MessageSquare className="w-4 md:w-5 h-4 md:h-5" />
+            <span className="text-xs md:text-sm font-medium hidden sm:inline">Chat</span>
           </button>
         </Panel>
       </ReactFlow>

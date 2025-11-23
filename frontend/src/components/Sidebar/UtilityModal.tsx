@@ -77,22 +77,28 @@ export function UtilityModal() {
 
   return (
     <>
-      {/* Backdrop - only covers canvas area, not sidebar */}
+      {/* Backdrop - covers entire screen on mobile, canvas area on desktop */}
       <div
-        className="fixed top-0 bottom-0 right-0 bg-black/60 backdrop-blur-sm z-40"
-        style={{ left: '256px' }} // Start after sidebar (256px = w-64)
+        className={cn(
+          "fixed top-0 bottom-0 right-0 bg-black/60 backdrop-blur-sm z-40",
+          "md:left-48 lg:left-64" // Start after sidebar on desktop
+        )}
+        style={{ 
+          left: window.innerWidth < 768 ? '0px' : undefined // Full screen on mobile
+        }}
         onClick={handleClose}
         onKeyDown={handleKeyDown}
       />
 
-      {/* Side Panel - appears next to sidebar, keeping sidebar visible */}
+      {/* Side Panel - full screen on mobile, side panel on desktop */}
       <div
         className={cn(
           'fixed top-0 right-0 bottom-0 z-50 flex flex-col',
           'bg-slate-900/98 backdrop-blur-lg border-l border-white/10',
-          activeUtility === 'dashboard' ? 'w-[800px]' : 'w-[600px]',
-          'shadow-2xl',
-          'transition-all duration-300 ease-out'
+          'shadow-2xl transition-all duration-300 ease-out',
+          // Mobile: full width, Desktop: fixed widths
+          'w-full md:w-[600px]',
+          activeUtility === 'dashboard' && 'md:w-[800px]'
         )}
         style={{
           animation: 'slideInFromRight 0.3s ease-out',
@@ -100,8 +106,8 @@ export function UtilityModal() {
         onKeyDown={handleKeyDown}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between flex-shrink-0">
-          <h2 className="text-xl font-semibold text-white">
+        <div className="px-4 md:px-6 py-3 md:py-4 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+          <h2 className="text-lg md:text-xl font-semibold text-white">
             {modalTitles[activeUtility] || 'Utility'}
           </h2>
           <button
@@ -109,7 +115,7 @@ export function UtilityModal() {
             className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-lg"
             title="Close (Esc)"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 md:w-5 h-4 md:h-5" />
           </button>
         </div>
 
