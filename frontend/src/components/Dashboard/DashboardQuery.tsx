@@ -10,6 +10,7 @@ import { listWorkflows, queryWorkflow, type WorkflowListItem, type WorkflowQuery
 import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { cn } from '@/utils/cn';
+import { API_BASE_URL } from '@/constants';
 
 export function DashboardQuery() {
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
@@ -62,14 +63,14 @@ export function DashboardQuery() {
 
   const copyApiEndpoint = () => {
     if (!selectedWorkflowId) return;
-    const endpoint = `${window.location.origin}/api/v1/workflows/${selectedWorkflowId}/query`;
+    const endpoint = `${API_BASE_URL}/api/v1/workflows/${selectedWorkflowId}/query`;
     navigator.clipboard.writeText(endpoint);
     toast.success('API endpoint copied to clipboard');
   };
 
   const copyExampleCode = () => {
     if (!selectedWorkflowId) return;
-    const example = `curl -X POST ${window.location.origin}/api/v1/workflows/${selectedWorkflowId}/query \\
+    const example = `curl -X POST ${API_BASE_URL}/api/v1/workflows/${selectedWorkflowId}/query \\
   -H "Content-Type: application/json" \\
   -d '{
     "input": {
@@ -238,7 +239,7 @@ export function DashboardQuery() {
               </div>
             </div>
             <code className="text-xs text-blue-200 break-all">
-              POST {window.location.origin}/api/v1/workflows/{selectedWorkflowId}/query
+              POST {API_BASE_URL}/api/v1/workflows/{selectedWorkflowId}/query
             </code>
           </div>
         )}
