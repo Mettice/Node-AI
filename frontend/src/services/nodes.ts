@@ -91,6 +91,7 @@ export async function testLLMConnection(
   apiKey: string
 ): Promise<boolean> {
   try {
+    console.log('Testing LLM connection:', { provider, apiKey: apiKey ? '***' : 'missing' });
     const response = await apiClient.post<{ connected: boolean; message?: string }>(
       '/tools/test-connection',
       {
@@ -99,9 +100,16 @@ export async function testLLMConnection(
         api_key: apiKey,
       }
     );
+    console.log('LLM test response:', response.data);
+    console.log('Connected status:', response.data.connected);
     return response.data.connected;
   } catch (error: any) {
     console.error('LLM connection test failed:', error);
+    console.error('Error details:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    });
     return false;
   }
 }
