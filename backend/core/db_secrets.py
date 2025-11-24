@@ -55,18 +55,22 @@ def create_secret(
         raise RuntimeError(f"Failed to encrypt secret: {str(e)}")
     
     # Try Supabase client first (more reliable for production)
-    # Use user-authenticated client if JWT token is available for RLS compliance
+    # Use service role client first since it's more reliable
     supabase = None
-    if jwt_token and is_supabase_configured():
-        supabase = get_user_supabase_client(jwt_token)
-        if supabase:
-            logger.debug(f"Using user-authenticated Supabase client for user {user_id}")
-    
-    # Fallback to service role client
-    if not supabase and is_supabase_configured():
+    if is_supabase_configured():
         supabase = get_supabase_client()
         if supabase:
             logger.debug(f"Using service role Supabase client for user {user_id}")
+        else:
+            logger.error("Supabase client is None even though it's configured")
+    else:
+        logger.error(f"Supabase not configured: url={is_supabase_configured()}")
+    
+    # Try user-authenticated client if service role fails
+    if not supabase and jwt_token and is_supabase_configured():
+        supabase = get_user_supabase_client(jwt_token)
+        if supabase:
+            logger.debug(f"Using user-authenticated Supabase client for user {user_id}")
     
     if supabase:
         try:
