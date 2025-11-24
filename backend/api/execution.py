@@ -30,7 +30,7 @@ _executions: Dict[str, Execution] = {}
 
 @router.post("/workflows/execute", response_model=ExecutionResponse)
 @limiter.limit("10/minute")
-async def execute_workflow(request: ExecutionRequest, http_request: Request) -> ExecutionResponse:
+async def execute_workflow(http_request: Request, request: ExecutionRequest) -> ExecutionResponse:
     """
     Execute a workflow.
     

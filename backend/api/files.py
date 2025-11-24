@@ -44,7 +44,7 @@ class FileListResponse(BaseModel):
 
 @router.post("/upload")
 @limiter.limit("100/minute")
-async def upload_file(file: UploadFile = File(...), request: Request = None) -> JSONResponse:
+async def upload_file(request: Request, file: UploadFile = File(...)) -> JSONResponse:
     """
     Upload a file (PDF, DOCX, TXT, MD).
     

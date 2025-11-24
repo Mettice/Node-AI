@@ -2,11 +2,11 @@
  * Workflow Loader Component - Modal for loading saved workflows
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Search, FileText, Clock, Tag } from 'lucide-react';
+import { X, Search, FileText, Clock, Tag, Upload } from 'lucide-react';
 import { cn } from '@/utils/cn';
-import { listWorkflows, getWorkflow, type WorkflowListItem } from '@/services/workflowManagement';
+import { listWorkflows, getWorkflow, createWorkflow, type WorkflowListItem } from '@/services/workflowManagement';
 import { useWorkflowStore } from '@/store/workflowStore';
 import toast from 'react-hot-toast';
 import type { Node as RFNode, Edge as RFEdge } from 'reactflow';
@@ -22,6 +22,8 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showTemplates, setShowTemplates] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load workflows when modal opens
   useEffect(() => {
@@ -100,6 +102,75 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
     }
   };
 
+  const handleUploadTemplate = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.json')) {
+      toast.error('Please upload a JSON file');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const text = await file.text();
+      const workflowData = JSON.parse(text);
+
+      // Validate required fields
+      if (!workflowData.name || !workflowData.nodes || !workflowData.edges) {
+        toast.error('Invalid workflow file. Missing required fields (name, nodes, edges)');
+        return;
+      }
+
+      // Convert frontend format to backend format
+      const nodes = workflowData.nodes.map((node: any) => ({
+        id: node.id || `node_${Math.random().toString(36).substr(2, 9)}`,
+        type: node.type || 'default',
+        position: node.position || { x: 0, y: 0 },
+        data: node.data?.config || node.data || {},
+      }));
+
+      const edges = workflowData.edges.map((edge: any) => ({
+        id: edge.id || `edge_${Math.random().toString(36).substr(2, 9)}`,
+        source: edge.source,
+        target: edge.target,
+        sourceHandle: edge.sourceHandle,
+        targetHandle: edge.targetHandle,
+      }));
+
+      // Create workflow as template
+      const newWorkflow = await createWorkflow({
+        name: workflowData.name,
+        description: workflowData.description || `Template: ${workflowData.name}`,
+        nodes,
+        edges,
+        tags: workflowData.tags || ['template', 'imported'],
+        is_template: true,
+      });
+
+      toast.success(`Template "${newWorkflow.name}" uploaded successfully`);
+      loadWorkflows(); // Refresh the list
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error: any) {
+      console.error('Error uploading template:', error);
+      if (error instanceof SyntaxError) {
+        toast.error('Invalid JSON file. Please check the file format.');
+      } else {
+        toast.error(error.response?.data?.detail?.message || error.message || 'Failed to upload template');
+      }
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const filteredWorkflows = workflows.filter((workflow) =>
     workflow.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     workflow.description?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -152,6 +223,25 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
             >
               Templates Only
             </button>
+            <button
+              onClick={handleUploadTemplate}
+              disabled={uploading}
+              className={cn(
+                'px-3 py-1.5 text-sm rounded transition-colors flex items-center gap-2',
+                'bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/50',
+                uploading && 'opacity-50 cursor-not-allowed'
+              )}
+            >
+              <Upload className="w-4 h-4" />
+              {uploading ? 'Uploading...' : 'Upload Template'}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleFileChange}
+              className="hidden"
+            />
           </div>
         </div>
 

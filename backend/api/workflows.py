@@ -180,7 +180,7 @@ def _list_workflows() -> List[Workflow]:
 
 @router.post("/workflows", response_model=Workflow)
 @limiter.limit("20/minute")
-async def create_workflow(request: WorkflowCreateRequest, http_request: Request) -> Workflow:
+async def create_workflow(http_request: Request, request: WorkflowCreateRequest) -> Workflow:
     """
     Create a new workflow.
     
@@ -364,8 +364,8 @@ async def get_workflow(workflow_id: str, request: Request) -> Workflow:
 @limiter.limit("30/minute")
 async def update_workflow(
     workflow_id: str,
-    request: WorkflowUpdateRequest,
     http_request: Request,
+    request: WorkflowUpdateRequest,
 ) -> Workflow:
     """
     Update a workflow.
