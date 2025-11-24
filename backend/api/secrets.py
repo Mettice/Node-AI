@@ -76,6 +76,7 @@ async def create_secret_endpoint(
             description=secret.description,
             tags=secret.tags,
             expires_at=secret.expires_at,
+            jwt_token=user_context.get("jwt_token"),
         )
         return SecretResponse(**created)
     except Exception as e:

@@ -8,7 +8,7 @@ Falls back to Supabase client if direct database connection is not available.
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
-from backend.core.database import get_db_connection, is_database_configured, get_supabase_client, is_supabase_configured
+from backend.core.database import get_db_connection, is_database_configured, get_supabase_client, is_supabase_configured, get_user_supabase_client
 from backend.core.encryption import encrypt_secret, decrypt_secret
 from backend.utils.logger import get_logger
 
@@ -24,6 +24,7 @@ def create_secret(
     description: Optional[str] = None,
     tags: Optional[List[str]] = None,
     expires_at: Optional[datetime] = None,
+    jwt_token: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Create a new secret in the vault.
@@ -43,12 +44,87 @@ def create_secret(
     Returns:
         Created secret dictionary (without decrypted value)
     """
-    # Encrypt the secret
-    encrypted_value = encrypt_secret(user_id, secret_value)
+    logger.info(f"Creating secret for user {user_id}, provider {provider}, type {secret_type}")
     
-    # Try direct database connection first
+    # Encrypt the secret
+    try:
+        encrypted_value = encrypt_secret(user_id, secret_value)
+        logger.debug(f"Successfully encrypted secret for user {user_id}")
+    except Exception as e:
+        logger.error(f"Failed to encrypt secret for user {user_id}: {e}")
+        raise RuntimeError(f"Failed to encrypt secret: {str(e)}")
+    
+    # Try Supabase client first (more reliable for production)
+    # Use user-authenticated client if JWT token is available for RLS compliance
+    supabase = None
+    if jwt_token and is_supabase_configured():
+        supabase = get_user_supabase_client(jwt_token)
+        if supabase:
+            logger.debug(f"Using user-authenticated Supabase client for user {user_id}")
+    
+    # Fallback to service role client
+    if not supabase and is_supabase_configured():
+        supabase = get_supabase_client()
+        if supabase:
+            logger.debug(f"Using service role Supabase client for user {user_id}")
+    
+    if supabase:
+        try:
+            logger.debug(f"Using Supabase client to create secret for user {user_id}")
+            
+            # Prepare data for Supabase
+            secret_data = {
+                "user_id": user_id,
+                "name": name,
+                "provider": provider,
+                "secret_type": secret_type,
+                "encrypted_value": encrypted_value,
+                "description": description,
+                "tags": tags or [],
+                "encryption_key_id": "v1",
+            }
+            if expires_at:
+                secret_data["expires_at"] = expires_at.isoformat()
+            
+            logger.debug(f"Supabase insert data (masked): {dict(secret_data, encrypted_value='***')}")
+            
+            # Use upsert (insert or update on conflict)
+            result = supabase.table("secrets_vault").upsert(
+                secret_data,
+                on_conflict="user_id,provider,secret_type"
+            ).execute()
+            
+            logger.debug(f"Supabase response: {result}")
+            
+            if result.data and len(result.data) > 0:
+                secret = result.data[0]
+                logger.info(f"Successfully created secret {secret['id']} for user {user_id}")
+                return {
+                    "id": str(secret["id"]),
+                    "user_id": str(secret["user_id"]),
+                    "name": secret["name"],
+                    "provider": secret["provider"],
+                    "secret_type": secret["secret_type"],
+                    "description": secret.get("description"),
+                    "tags": secret.get("tags", []),
+                    "is_active": secret.get("is_active", True),
+                    "last_used_at": secret.get("last_used_at"),
+                    "usage_count": secret.get("usage_count", 0),
+                    "expires_at": secret.get("expires_at"),
+                    "created_at": secret.get("created_at"),
+                    "updated_at": secret.get("updated_at"),
+                }
+            else:
+                raise RuntimeError("Supabase returned empty result")
+                
+        except Exception as e:
+            logger.error(f"Failed to create secret via Supabase: {e}")
+            # Don't give up yet, try direct DB connection
+    
+    # Try direct database connection as backup
     if is_database_configured():
         try:
+            logger.debug(f"Using direct database connection to create secret for user {user_id}")
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute(
@@ -76,80 +152,39 @@ def create_secret(
                     )
                     row = cur.fetchone()
                     
-                    return {
-                        "id": str(row[0]),
-                        "user_id": str(row[1]),
-                        "name": row[2],
-                        "provider": row[3],
-                        "secret_type": row[4],
-                        "description": row[5],
-                        "tags": row[6] if row[6] else [],
-                        "is_active": row[7],
-                        "last_used_at": row[8].isoformat() if row[8] else None,
-                        "usage_count": row[9],
-                        "expires_at": row[10].isoformat() if row[10] else None,
-                        "created_at": row[11].isoformat() if row[11] else None,
-                        "updated_at": row[12].isoformat() if row[12] else None,
-                    }
+                    if row:
+                        logger.info(f"Successfully created secret {row[0]} for user {user_id} via direct DB")
+                        return {
+                            "id": str(row[0]),
+                            "user_id": str(row[1]),
+                            "name": row[2],
+                            "provider": row[3],
+                            "secret_type": row[4],
+                            "description": row[5],
+                            "tags": row[6] if row[6] else [],
+                            "is_active": row[7],
+                            "last_used_at": row[8].isoformat() if row[8] else None,
+                            "usage_count": row[9],
+                            "expires_at": row[10].isoformat() if row[10] else None,
+                            "created_at": row[11].isoformat() if row[11] else None,
+                            "updated_at": row[12].isoformat() if row[12] else None,
+                        }
+                    else:
+                        raise RuntimeError("Direct DB insert returned no rows")
+                        
         except Exception as e:
-            logger.warning(f"Direct database connection failed, falling back to Supabase client: {e}")
+            logger.error(f"Direct database connection also failed: {e}")
     
-    # Fallback to Supabase client
-    supabase = get_supabase_client()
-    if supabase:
-        try:
-            # Prepare data for Supabase
-            secret_data = {
-                "user_id": user_id,
-                "name": name,
-                "provider": provider,
-                "secret_type": secret_type,
-                "encrypted_value": encrypted_value,
-                "description": description,
-                "tags": tags or [],
-                "encryption_key_id": "v1",
-            }
-            if expires_at:
-                secret_data["expires_at"] = expires_at.isoformat()
-            
-            # Use upsert (insert or update on conflict)
-            result = supabase.table("secrets_vault").upsert(
-                secret_data,
-                on_conflict="user_id,provider,secret_type"
-            ).execute()
-            
-            if result.data and len(result.data) > 0:
-                secret = result.data[0]
-                return {
-                    "id": str(secret["id"]),
-                    "user_id": str(secret["user_id"]),
-                    "name": secret["name"],
-                    "provider": secret["provider"],
-                    "secret_type": secret["secret_type"],
-                    "description": secret.get("description"),
-                    "tags": secret.get("tags", []),
-                    "is_active": secret.get("is_active", True),
-                    "last_used_at": secret.get("last_used_at"),
-                    "usage_count": secret.get("usage_count", 0),
-                    "expires_at": secret.get("expires_at"),
-                    "created_at": secret.get("created_at"),
-                    "updated_at": secret.get("updated_at"),
-                }
-            else:
-                raise RuntimeError("Failed to create secret via Supabase")
-        except Exception as e:
-            logger.error(f"Failed to create secret via Supabase: {e}")
-            raise RuntimeError(f"Failed to create secret: {str(e)}")
-    
-    # No database or Supabase available
+    # Both methods failed
+    error_msg = "Database connection failed. "
     if not is_supabase_configured():
-        raise RuntimeError(
-            "Database not configured. Please set DATABASE_URL environment variable or configure Supabase (SUPABASE_URL and SUPABASE_ANON_KEY)."
-        )
-    else:
-        raise RuntimeError(
-            "Failed to create secret. Database connection pool not initialized. Please set DATABASE_URL environment variable."
-        )
+        error_msg += "Supabase not configured (missing SUPABASE_URL or SUPABASE_ANON_KEY). "
+    if not is_database_configured():
+        error_msg += "Direct database connection not configured (missing valid DATABASE_URL). "
+    
+    error_msg += "Please check your database configuration."
+    logger.error(error_msg)
+    raise RuntimeError(error_msg)
 
 
 def get_secret(secret_id: str, user_id: str, decrypt: bool = False) -> Optional[Dict[str, Any]]:

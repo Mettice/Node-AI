@@ -28,7 +28,7 @@ async def get_user_context(request: Request) -> Optional[dict]:
         request: FastAPI request object
         
     Returns:
-        User context dictionary with id, email, profile, role, etc., or None
+        User context dictionary with id, email, profile, role, jwt_token, etc., or None
     """
     # Get authenticated user
     user = await get_current_user(request)
@@ -39,6 +39,17 @@ async def get_user_context(request: Request) -> Optional[dict]:
     
     # Set user_id in request state for easy access
     set_user_id(request, user_id)
+    
+    # Extract JWT token from request for RLS operations
+    jwt_token = None
+    authorization = request.headers.get("Authorization")
+    if authorization:
+        try:
+            scheme, token = authorization.split()
+            if scheme.lower() == "bearer":
+                jwt_token = token
+        except ValueError:
+            pass
     
     # Get or create profile (handle database connection failures)
     profile = None
@@ -52,6 +63,7 @@ async def get_user_context(request: Request) -> Optional[dict]:
             "email": user.get("email"),
             "role": "user",
             "profile": None,
+            "jwt_token": jwt_token,
         }
     
     if not profile:
@@ -72,6 +84,7 @@ async def get_user_context(request: Request) -> Optional[dict]:
                 "email": user.get("email"),
                 "role": "user",
                 "profile": None,
+                "jwt_token": jwt_token,
             }
     
     return {
@@ -79,6 +92,7 @@ async def get_user_context(request: Request) -> Optional[dict]:
         "email": user.get("email"),
         "role": profile.get("role", "user"),
         "profile": profile,
+        "jwt_token": jwt_token,
     }
 
 

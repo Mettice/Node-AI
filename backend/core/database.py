@@ -37,13 +37,21 @@ def initialize_database(settings: Settings) -> None:
     _settings = settings
     
     # Initialize Supabase client if configured
-    if settings.supabase_url and settings.supabase_anon_key:
+    if settings.supabase_url:
         try:
-            _supabase_client = create_client(
-                settings.supabase_url,
-                settings.supabase_anon_key
-            )
-            logger.info("Supabase client initialized successfully")
+            # Use service role key for administrative operations if available
+            # This allows us to bypass RLS for system operations while still respecting user context
+            supabase_key = getattr(settings, 'supabase_service_role_key', None) or settings.supabase_anon_key
+            
+            if supabase_key:
+                _supabase_client = create_client(
+                    settings.supabase_url,
+                    supabase_key
+                )
+                logger.info(f"Supabase client initialized successfully (using {'service role' if supabase_key != settings.supabase_anon_key else 'anonymous'} key)")
+            else:
+                logger.warning("No Supabase key available (neither service role nor anonymous key)")
+                
         except Exception as e:
             logger.error(f"Failed to initialize Supabase client: {e}")
             raise
@@ -151,6 +159,46 @@ def get_supabase_client() -> Optional[Client]:
         Supabase client or None if not initialized
     """
     return _supabase_client
+
+
+def get_user_supabase_client(user_jwt_token: str) -> Optional[Client]:
+    """
+    Get a Supabase client authenticated with a user's JWT token.
+    
+    This creates a client that respects RLS policies for the specific user.
+    
+    Args:
+        user_jwt_token: User's JWT token from authentication
+        
+    Returns:
+        Authenticated Supabase client or None if not configured
+    """
+    if not _settings or not _settings.supabase_url or not _settings.supabase_anon_key:
+        return None
+        
+    try:
+        # Create a new client with anonymous key
+        client = create_client(_settings.supabase_url, _settings.supabase_anon_key)
+        
+        # Override the client's default headers to include the user's JWT token
+        # This ensures RLS policies can access auth.uid()
+        original_headers = getattr(client, '_client', client).headers if hasattr(client, '_client') else {}
+        auth_headers = {
+            **original_headers,
+            'Authorization': f'Bearer {user_jwt_token}',
+            'apikey': _settings.supabase_anon_key
+        }
+        
+        # Set headers on the underlying client
+        if hasattr(client, '_client'):
+            client._client.headers.update(auth_headers)
+        elif hasattr(client, 'headers'):
+            client.headers.update(auth_headers)
+        
+        return client
+    except Exception as e:
+        logger.error(f"Failed to create user-authenticated Supabase client: {e}")
+        return None
 
 
 @contextmanager
