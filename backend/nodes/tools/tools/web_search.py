@@ -6,6 +6,7 @@ Supports: DuckDuckGo, SerpAPI, Brave Search, Serper, Perplexity
 import asyncio
 import httpx
 from typing import Dict, Any, Callable
+from backend.core.secret_resolver import resolve_api_key
 
 
 def get_web_search_schema() -> Dict[str, Any]:
@@ -168,9 +169,10 @@ def create_web_search_tool(config: Dict[str, Any]) -> Callable[[str], str]:
     async def search_func_async(query: str) -> str:
         """Search the web for information."""
         provider = config.get("web_search_provider", "duckduckgo")
-        api_key = config.get("web_search_api_key", "")
-        serper_api_key = config.get("serper_api_key", "") or api_key
-        perplexity_api_key = config.get("perplexity_api_key", "") or api_key
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "web_search_api_key", user_id=user_id) or config.get("web_search_api_key", "")
+        serper_api_key = resolve_api_key(config, "serper_api_key", user_id=user_id) or config.get("serper_api_key", "") or api_key
+        perplexity_api_key = resolve_api_key(config, "perplexity_api_key", user_id=user_id) or config.get("perplexity_api_key", "") or api_key
         
         try:
             if provider == "duckduckgo":

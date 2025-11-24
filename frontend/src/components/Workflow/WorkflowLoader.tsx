@@ -127,19 +127,39 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
       }
 
       // Convert frontend format to backend format
-      const nodes = workflowData.nodes.map((node: any) => ({
-        id: node.id || `node_${Math.random().toString(36).substr(2, 9)}`,
-        type: node.type || 'default',
-        position: node.position || { x: 0, y: 0 },
-        data: node.data?.config || node.data || {},
-      }));
+      const nodes = workflowData.nodes.map((node: any) => {
+        // Ensure position is an object with x and y
+        let position = { x: 0, y: 0 };
+        if (node.position) {
+          if (typeof node.position === 'object' && 'x' in node.position && 'y' in node.position) {
+            position = { x: Number(node.position.x) || 0, y: Number(node.position.y) || 0 };
+          }
+        }
+        
+        // Extract data - handle both old and new formats
+        let nodeData = {};
+        if (node.data) {
+          if (node.data.config) {
+            nodeData = node.data.config;
+          } else {
+            nodeData = node.data;
+          }
+        }
+        
+        return {
+          id: node.id || `node_${Math.random().toString(36).substr(2, 9)}`,
+          type: node.type || 'default',
+          position: position,
+          data: nodeData,
+        };
+      });
 
       const edges = workflowData.edges.map((edge: any) => ({
         id: edge.id || `edge_${Math.random().toString(36).substr(2, 9)}`,
         source: edge.source,
         target: edge.target,
-        sourceHandle: edge.sourceHandle,
-        targetHandle: edge.targetHandle,
+        sourceHandle: edge.sourceHandle || undefined,
+        targetHandle: edge.targetHandle || undefined,
       }));
 
       // Create workflow as template

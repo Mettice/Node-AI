@@ -8,6 +8,7 @@ Supports multiple reranking methods: Cohere, Cross-Encoder, and LLM-based.
 from typing import Any, Dict, List, Optional
 from backend.core.models import NodeMetadata
 from backend.core.node_registry import NodeRegistry
+from backend.core.secret_resolver import resolve_api_key
 from backend.nodes.base import BaseNode
 from backend.utils.logger import get_logger
 from backend.utils.model_pricing import (
@@ -176,12 +177,13 @@ class RerankNode(BaseNode):
                 "Cohere reranking requires the cohere package. Install with: pip install cohere"
             )
         
-        # Get API key from environment
+        # Resolve API key from vault, config, or environment
         import os
-        api_key = os.getenv("COHERE_API_KEY")
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "cohere_api_key", user_id=user_id) or os.getenv("COHERE_API_KEY")
         if not api_key:
             raise ValueError(
-                "COHERE_API_KEY environment variable not set. "
+                "Cohere API key not found. Please configure it in the node settings or set COHERE_API_KEY environment variable. "
                 "Get your API key from https://dashboard.cohere.com/api-keys"
             )
         
@@ -284,9 +286,10 @@ class RerankNode(BaseNode):
         await self.stream_progress(node_id, 0.4, "Preparing LLM reranking...")
         
         import os
-        api_key = os.getenv("OPENAI_API_KEY")
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise ValueError("OPENAI_API_KEY environment variable not set")
+            raise ValueError("OpenAI API key not found. Please configure it in the node settings or set OPENAI_API_KEY environment variable")
         
         client = OpenAI(api_key=api_key)
         model = config.get("llm_model", "gpt-4o-mini")
@@ -370,12 +373,13 @@ Return ONLY a JSON array of scores, one per result, in order. Example: [0.9, 0.3
                 "Voyage AI reranking requires the voyageai package. Install with: pip install voyageai"
             )
         
-        # Get API key from environment
+        # Resolve API key from vault, config, or environment
         import os
-        api_key = os.getenv("VOYAGE_API_KEY")
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "voyage_api_key", user_id=user_id) or os.getenv("VOYAGE_API_KEY")
         if not api_key:
             raise ValueError(
-                "VOYAGE_API_KEY environment variable not set. "
+                "Voyage AI API key not found. Please configure it in the node settings or set VOYAGE_API_KEY environment variable. "
                 "Get your API key from https://www.voyageai.com/"
             )
         

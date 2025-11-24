@@ -44,9 +44,9 @@ def resolve_api_key(
                 logger.debug(f"Resolved {key_name} from vault (secret_id: {secret_id})")
                 return api_key
             else:
-                logger.warning(f"Secret {secret_id} not found or empty for user {user_id}")
+                logger.warning(f"Secret {secret_id} not found or empty for user {user_id}, falling back to direct value or settings")
         except Exception as e:
-            logger.error(f"Failed to retrieve secret {secret_id} from vault: {e}")
+            logger.warning(f"Failed to retrieve secret {secret_id} from vault: {e}, falling back to direct value or settings")
     
     # Second, check for direct API key value in config
     api_key = config.get(key_name)

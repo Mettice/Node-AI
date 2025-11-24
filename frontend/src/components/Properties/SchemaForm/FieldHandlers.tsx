@@ -158,17 +158,54 @@ export function getSpecialFieldHandler(context: FieldHandlerContext): React.Reac
     } else if (key.includes('voyage')) {
       serviceName = 'Voyage AI';
       vaultProvider = 'voyage_ai';
+    } else if (key.includes('pinecone')) {
+      serviceName = 'Pinecone';
+      vaultProvider = 'pinecone';
+    } else if (key.includes('azure_search') || (key.includes('azure') && key.includes('search'))) {
+      serviceName = 'Azure Cognitive Search';
+      vaultProvider = 'azure_cognitive_search';
+    } else if (key.includes('reddit')) {
+      serviceName = 'Reddit';
+      vaultProvider = 'reddit';
+    } else if (key.includes('web_search') || key.includes('serper') || key.includes('perplexity')) {
+      // Web search providers - use generic provider or specific ones
+      if (key.includes('serper')) {
+        vaultProvider = 'serper';
+      } else if (key.includes('perplexity')) {
+        vaultProvider = 'perplexity';
+      } else {
+        vaultProvider = 'web_search';
+      }
+    } else if (key.includes('resend')) {
+      vaultProvider = 'resend';
     }
 
-    // Use vault-enabled component for LLM nodes (chat, embed, rerank, vision, langchain_agent)
-    const isLLMNode = ['chat', 'embed', 'rerank', 'vision', 'langchain_agent'].includes(nodeType);
+    // Use vault-enabled component for all nodes that support API keys
+    // This includes: LLM nodes, embedding nodes, agent nodes, processing nodes, retrieval nodes, storage nodes, tool nodes, integration nodes
+    const nodesWithVaultSupport = [
+      'chat', 'embed', 'rerank', 'vision', 'langchain_agent', 'crewai_agent',
+      'advanced_nlp', 'transcribe', 'finetune',
+      'search', 'vector_search',
+      'vector_store',
+      'tool', 'web_search',
+      'reddit'
+    ];
+    // Check if node type matches (exact match or contains the node type)
+    const isVaultSupportedNode = nodesWithVaultSupport.some(node => 
+      nodeType === node || nodeType.includes(node) || node.includes(nodeType)
+    ) || isToolNode; // Tool nodes always support vault
+    
     // Get provider from formValues if not determined from key
     let actualProvider = vaultProvider || formValues.provider;
     // Map provider names to vault provider names
-    if (actualProvider === 'gemini') {
+    if (actualProvider === 'gemini' || actualProvider === 'google') {
       actualProvider = 'google';
     }
-    const shouldUseVault = isLLMNode && actualProvider && (key.includes('api_key') || key === 'api_key');
+    // For tool nodes, we might not have a provider in formValues, so use vaultProvider if available
+    if (isToolNode && !actualProvider && vaultProvider) {
+      actualProvider = vaultProvider;
+    }
+    const shouldUseVault = isVaultSupportedNode && actualProvider && (key.includes('api_key') || key === 'api_key');
 
     const testConnectionFn = async (apiKey: string) => {
       if (key.includes('web_search')) {

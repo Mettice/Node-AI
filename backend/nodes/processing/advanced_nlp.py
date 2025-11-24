@@ -631,7 +631,8 @@ class AdvancedNLPNode(BaseNode):
         from openai import OpenAI
         from backend.config import settings
         
-        api_key = config.get("openai_api_key") or settings.openai_api_key
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or settings.openai_api_key
         model = config.get("openai_model", "gpt-4o-mini")
         
         client = OpenAI(api_key=api_key)
@@ -665,7 +666,8 @@ class AdvancedNLPNode(BaseNode):
         from openai import OpenAI
         from backend.config import settings
         
-        api_key = config.get("openai_api_key") or settings.openai_api_key
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or settings.openai_api_key
         model = config.get("openai_model", "gpt-4o-mini")
         
         client = OpenAI(api_key=api_key)
@@ -719,7 +721,8 @@ Return only valid JSON."""
         from openai import OpenAI
         from backend.config import settings
         
-        api_key = config.get("openai_api_key") or settings.openai_api_key
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or settings.openai_api_key
         model = config.get("openai_model", "gpt-4o-mini")
         
         client = OpenAI(api_key=api_key)
@@ -765,7 +768,8 @@ Return a JSON object with:
         from openai import OpenAI
         from backend.config import settings
         
-        api_key = config.get("openai_api_key") or settings.openai_api_key
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or settings.openai_api_key
         model = config.get("openai_model", "gpt-4o-mini")
         
         client = OpenAI(api_key=api_key)
@@ -807,7 +811,8 @@ Return a JSON object matching the schema."""
         from openai import OpenAI
         from backend.config import settings
         
-        api_key = config.get("openai_api_key") or settings.openai_api_key
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or settings.openai_api_key
         model = config.get("openai_model", "gpt-4o-mini")
         
         client = OpenAI(api_key=api_key)
@@ -849,7 +854,8 @@ Text: {text}"""
         from openai import OpenAI
         from backend.config import settings
         
-        api_key = config.get("openai_api_key") or settings.openai_api_key
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or settings.openai_api_key
         model = config.get("openai_model", "gpt-4o-mini")
         
         client = OpenAI(api_key=api_key)
@@ -890,7 +896,8 @@ Answer:"""
         from openai import OpenAI
         from backend.config import settings
         
-        api_key = config.get("openai_api_key") or settings.openai_api_key
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or settings.openai_api_key
         model = config.get("openai_model", "gpt-4o-mini")
         
         client = OpenAI(api_key=api_key)
@@ -946,7 +953,7 @@ Answer:"""
         
         from backend.config import settings
         
-        api_key = config.get("anthropic_api_key") or settings.anthropic_api_key
+        api_key = resolve_api_key(config, "anthropic_api_key", user_id=user_id) or settings.anthropic_api_key
         model = config.get("anthropic_model", "claude-sonnet-4-5-20250929")
         
         client = anthropic.Anthropic(api_key=api_key)
@@ -984,7 +991,7 @@ Answer:"""
         
         from backend.config import settings
         
-        api_key = config.get("anthropic_api_key") or settings.anthropic_api_key
+        api_key = resolve_api_key(config, "anthropic_api_key", user_id=user_id) or settings.anthropic_api_key
         model = config.get("anthropic_model", "claude-sonnet-4-5-20250929")
         
         client = anthropic.Anthropic(api_key=api_key)
@@ -1041,7 +1048,7 @@ Return only valid JSON."""
         
         from backend.config import settings
         
-        api_key = config.get("anthropic_api_key") or settings.anthropic_api_key
+        api_key = resolve_api_key(config, "anthropic_api_key", user_id=user_id) or settings.anthropic_api_key
         model = config.get("anthropic_model", "claude-sonnet-4-5-20250929")
         
         client = anthropic.Anthropic(api_key=api_key)
@@ -1090,7 +1097,7 @@ Return a JSON object with:
         
         from backend.config import settings
         
-        api_key = config.get("anthropic_api_key") or settings.anthropic_api_key
+        api_key = resolve_api_key(config, "anthropic_api_key", user_id=user_id) or settings.anthropic_api_key
         model = config.get("anthropic_model", "claude-sonnet-4-5-20250929")
         
         client = anthropic.Anthropic(api_key=api_key)
@@ -1137,7 +1144,7 @@ Return a JSON object matching the schema."""
         
         from backend.config import settings
         
-        api_key = config.get("anthropic_api_key") or settings.anthropic_api_key
+        api_key = resolve_api_key(config, "anthropic_api_key", user_id=user_id) or settings.anthropic_api_key
         model = config.get("anthropic_model", "claude-sonnet-4-5-20250929")
         
         client = anthropic.Anthropic(api_key=api_key)
@@ -1180,7 +1187,7 @@ Answer:"""
         from openai import OpenAI
         from backend.config import settings
         
-        api_key = config.get("azure_openai_api_key") or config.get("azure_api_key")
+        api_key = resolve_api_key(config, "azure_openai_api_key", user_id=user_id) or config.get("azure_api_key")
         endpoint = config.get("azure_openai_endpoint") or config.get("azure_endpoint")
         deployment_name = config.get("azure_openai_deployment") or config.get("azure_deployment", "gpt-4o-mini")
         api_version = config.get("azure_openai_api_version", "2024-02-15-preview")
@@ -1285,7 +1292,7 @@ Answer:"""
         from openai import OpenAI
         from backend.config import settings
         
-        api_key = config.get("azure_openai_api_key") or config.get("azure_api_key")
+        api_key = resolve_api_key(config, "azure_openai_api_key", user_id=user_id) or config.get("azure_api_key")
         endpoint = config.get("azure_openai_endpoint") or config.get("azure_endpoint")
         deployment_name = config.get("azure_openai_deployment") or config.get("azure_deployment", "gpt-4o-mini")
         api_version = config.get("azure_openai_api_version", "2024-02-15-preview")

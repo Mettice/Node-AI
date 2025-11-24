@@ -10,6 +10,7 @@ from typing import Any, Dict, Optional
 
 from backend.core.models import NodeMetadata
 from backend.core.node_registry import NodeRegistry
+from backend.core.secret_resolver import resolve_api_key
 from backend.nodes.base import BaseNode
 from backend.utils.logger import get_logger
 
@@ -103,9 +104,10 @@ class TranscribeNode(BaseNode):
             from openai import AsyncOpenAI
             import os
             
-            api_key = os.getenv("OPENAI_API_KEY")
+            user_id = config.get("_user_id")
+            api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or os.getenv("OPENAI_API_KEY")
             if not api_key:
-                raise ValueError("OPENAI_API_KEY environment variable is not set")
+                raise ValueError("OpenAI API key not found. Please configure it in the node settings or set OPENAI_API_KEY environment variable")
             
             client = AsyncOpenAI(api_key=api_key)
             

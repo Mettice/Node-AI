@@ -12,6 +12,7 @@ from backend.core.models import NodeMetadata
 from backend.core.node_registry import NodeRegistry
 from backend.utils.logger import get_logger
 from backend.config import settings
+from backend.core.secret_resolver import resolve_api_key
 from backend.utils.model_pricing import (
     calculate_llm_cost,
     get_available_models,
@@ -420,11 +421,13 @@ class CrewAINode(BaseNode):
         """Create LLM instance based on provider."""
         config = config or {}
         
+        user_id = config.get("_user_id")
+        
         if provider == "openai":
-            # Use API key from config if provided, otherwise fall back to environment variable
-            api_key = config.get("openai_api_key") or settings.openai_api_key
+            # Resolve API key from vault, config, or settings
+            api_key = resolve_api_key(config, "openai_api_key", user_id=user_id)
             if not api_key:
-                raise ValueError("OpenAI API key is required. Provide it in the node configuration or set OPENAI_API_KEY environment variable.")
+                raise ValueError("OpenAI API key not found. Please configure it in the node settings or environment variables.")
             try:
                 from langchain_openai import ChatOpenAI
             except ImportError:
@@ -438,9 +441,9 @@ class CrewAINode(BaseNode):
             )
         elif provider == "anthropic":
             # Use API key from config if provided, otherwise fall back to environment variable
-            api_key = config.get("anthropic_api_key") or settings.anthropic_api_key
+            api_key = resolve_api_key(config, "anthropic_api_key", user_id=user_id)
             if not api_key:
-                raise ValueError("Anthropic API key is required. Provide it in the node configuration or set ANTHROPIC_API_KEY environment variable.")
+                raise ValueError("Anthropic API key not found. Please configure it in the node settings or environment variables.")
             try:
                 from langchain_anthropic import ChatAnthropic
             except ImportError:
@@ -454,9 +457,9 @@ class CrewAINode(BaseNode):
             )
         elif provider == "gemini" or provider == "google":
             # Use API key from config if provided, otherwise fall back to environment variable
-            api_key = config.get("gemini_api_key") or settings.gemini_api_key
+            api_key = resolve_api_key(config, "gemini_api_key", user_id=user_id)
             if not api_key:
-                raise ValueError("Gemini API key is required. Provide it in the node configuration or set GEMINI_API_KEY environment variable.")
+                raise ValueError("Gemini API key not found. Please configure it in the node settings or environment variables.")
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
             except ImportError:

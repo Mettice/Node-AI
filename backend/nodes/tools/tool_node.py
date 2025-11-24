@@ -20,6 +20,7 @@ from urllib.parse import urljoin
 from backend.nodes.base import BaseNode
 from backend.core.models import NodeMetadata
 from backend.core.node_registry import NodeRegistry
+from backend.core.secret_resolver import resolve_api_key
 from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -328,9 +329,10 @@ class ToolNode(BaseNode):
                 async def search_func_async(query: str) -> str:
                     """Search the web for information."""
                     provider = config.get("web_search_provider", "duckduckgo")
-                    api_key = config.get("web_search_api_key", "")
-                    serper_api_key = config.get("serper_api_key", "") or api_key
-                    perplexity_api_key = config.get("perplexity_api_key", "") or api_key
+                    user_id = config.get("_user_id")
+                    api_key = resolve_api_key(config, "web_search_api_key", user_id=user_id) or config.get("web_search_api_key", "")
+                    serper_api_key = resolve_api_key(config, "serper_api_key", user_id=user_id) or config.get("serper_api_key", "") or api_key
+                    perplexity_api_key = resolve_api_key(config, "perplexity_api_key", user_id=user_id) or config.get("perplexity_api_key", "") or api_key
                     
                     try:
                         if provider == "duckduckgo":

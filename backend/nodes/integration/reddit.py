@@ -15,6 +15,7 @@ from backend.nodes.base import BaseNode
 from backend.core.models import NodeMetadata
 from backend.core.node_registry import NodeRegistry
 from backend.core.oauth import OAuthManager
+from backend.core.secret_resolver import resolve_api_key
 from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -47,7 +48,8 @@ class RedditNode(BaseNode):
         
         # Get OAuth token or API key
         token_id = config.get("reddit_token_id")
-        api_key = config.get("reddit_api_key")  # Alternative: API key for read-only access
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "reddit_api_key", user_id=user_id) or config.get("reddit_api_key")  # Alternative: API key for read-only access
         
         access_token = None
         auth_header = None

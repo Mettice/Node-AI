@@ -15,6 +15,7 @@ from openai import OpenAI
 from backend.config import settings
 from backend.core.models import NodeMetadata
 from backend.core.node_registry import NodeRegistry
+from backend.core.secret_resolver import resolve_api_key
 from backend.nodes.base import BaseNode
 from backend.utils.logger import get_logger
 from backend.utils.model_pricing import (
@@ -118,8 +119,11 @@ class EmbedNode(BaseNode):
             model = config.get("openai_model", "text-embedding-3-small")
         batch_size = config.get("batch_size", 100)
         
-        # Use API key from config if provided, otherwise fall back to settings
-        api_key = config.get("openai_api_key") or settings.openai_api_key
+        # Resolve API key from vault, config, or settings
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "openai_api_key", user_id=user_id)
+        if not api_key:
+            raise ValueError("OpenAI API key not found. Please configure it in the node settings or environment variables.")
         client = OpenAI(api_key=api_key)
         
         # Process in batches
@@ -223,8 +227,9 @@ class EmbedNode(BaseNode):
         node_id: str,
     ) -> Dict[str, Any]:
         """Create embeddings using Azure OpenAI Service."""
-        # Get Azure OpenAI configuration
-        api_key = config.get("azure_openai_api_key") or config.get("azure_api_key")
+        # Resolve Azure OpenAI API key from vault, config, or settings
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "azure_openai_api_key", user_id=user_id) or config.get("azure_api_key")
         endpoint = config.get("azure_openai_endpoint") or config.get("azure_endpoint")
         api_version = config.get("azure_openai_api_version", "2024-02-15-preview")
         deployment_name = config.get("azure_openai_deployment") or config.get("azure_deployment")
@@ -331,8 +336,9 @@ class EmbedNode(BaseNode):
         try:
             import cohere
             
-            # Use API key from config if provided, otherwise fall back to settings
-            api_key = config.get("cohere_api_key") or settings.cohere_api_key
+            # Resolve API key from vault, config, or settings
+            user_id = config.get("_user_id")
+            api_key = resolve_api_key(config, "cohere_api_key", user_id=user_id)
             if not api_key:
                 raise ValueError("Cohere API key not configured")
             
@@ -584,9 +590,10 @@ class EmbedNode(BaseNode):
                 "Voyage AI requires the voyageai package. Install with: pip install voyageai"
             )
         
-        # Get API key from config, environment, or settings
+        # Resolve API key from vault, config, or settings
         import os
-        api_key = config.get("voyage_api_key") or os.getenv("VOYAGE_API_KEY") or getattr(settings, "voyage_api_key", None)
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "voyage_api_key", user_id=user_id) or os.getenv("VOYAGE_API_KEY") or getattr(settings, "voyage_api_key", None)
         if not api_key:
             raise ValueError(
                 "Voyage AI API key not configured. "
@@ -666,8 +673,9 @@ class EmbedNode(BaseNode):
             )
         
         import os
-        # Get API key from config, environment, or settings
-        api_key = config.get("gemini_api_key") or os.getenv("GEMINI_API_KEY") or getattr(settings, "gemini_api_key", None)
+        # Resolve API key from vault, config, or settings
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "gemini_api_key", user_id=user_id) or os.getenv("GEMINI_API_KEY") or getattr(settings, "gemini_api_key", None)
         if not api_key:
             raise ValueError(
                 "Gemini API key not configured. "

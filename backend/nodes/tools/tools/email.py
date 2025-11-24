@@ -8,6 +8,7 @@ import httpx
 import re
 import json
 from typing import Dict, Any, Callable, Optional
+from backend.core.secret_resolver import resolve_api_key
 
 
 def get_email_schema() -> Dict[str, Any]:
@@ -209,7 +210,8 @@ def create_email_tool(config: Dict[str, Any]) -> Callable[[str], str]:
         
         # Get config
         provider = config.get("email_provider", "resend")
-        api_key = config.get("resend_api_key", "")
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "resend_api_key", user_id=user_id) or config.get("resend_api_key", "")
         from_email = config.get("email_from", "")
         from_name = config.get("email_from_name")
         reply_to = config.get("email_reply_to")

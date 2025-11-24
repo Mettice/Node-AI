@@ -15,6 +15,7 @@ import numpy as np
 from backend.config import settings
 from backend.core.models import NodeMetadata
 from backend.core.node_registry import NodeRegistry
+from backend.core.secret_resolver import resolve_api_key
 from backend.nodes.base import BaseNode
 from backend.nodes.storage.vector_store import _faiss_indexes, _faiss_metadata
 from backend.utils.logger import get_logger
@@ -100,7 +101,9 @@ class VectorSearchNode(BaseNode):
             logger.info(f"Auto-embedding query using model: {embedding_model} (inputs: {list(inputs.keys())})")
             try:
                 from openai import OpenAI
-                client = OpenAI(api_key=settings.openai_api_key)
+                user_id = config.get("_user_id")
+                api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or settings.openai_api_key
+                client = OpenAI(api_key=api_key)
                 response = client.embeddings.create(
                     model=embedding_model,
                     input=query_text
@@ -274,8 +277,10 @@ class VectorSearchNode(BaseNode):
                 "pinecone-client not installed. Install it with: pip install pinecone-client"
             )
         
-        if not settings.pinecone_api_key:
-            raise ValueError("Pinecone API key not configured")
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "pinecone_api_key", user_id=user_id) or settings.pinecone_api_key
+        if not api_key:
+            raise ValueError("Pinecone API key not found. Please configure it in the node settings or environment variables")
         
         index_name = config.get("pinecone_index_name")
         namespace = config.get("pinecone_namespace", "")
@@ -288,7 +293,7 @@ class VectorSearchNode(BaseNode):
         
         await self.stream_progress(node_id, 0.4, f"Connecting to Pinecone index: {index_name}...")
         
-        pc = Pinecone(api_key=settings.pinecone_api_key)
+        pc = Pinecone(api_key=api_key)
         index = pc.Index(index_name)
         
         await self.stream_progress(node_id, 0.6, f"Searching for top {top_k} results...")
@@ -355,7 +360,8 @@ class VectorSearchNode(BaseNode):
             )
         
         endpoint = config.get("azure_search_endpoint")
-        api_key = config.get("azure_search_api_key")
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "azure_search_api_key", user_id=user_id) or config.get("azure_search_api_key")
         index_name = config.get("azure_search_index_name") or inputs.get("index_id")
         
         if not endpoint or not api_key or not index_name:

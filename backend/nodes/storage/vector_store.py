@@ -17,6 +17,7 @@ import numpy as np
 from backend.config import settings
 from backend.core.models import NodeMetadata
 from backend.core.node_registry import NodeRegistry
+from backend.core.secret_resolver import resolve_api_key
 from backend.nodes.base import BaseNode
 from backend.utils.logger import get_logger
 
@@ -228,8 +229,10 @@ class VectorStoreNode(BaseNode):
                 "pinecone-client not installed. Install it with: pip install pinecone-client"
             )
         
-        if not settings.pinecone_api_key:
-            raise ValueError("Pinecone API key not configured")
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "pinecone_api_key", user_id=user_id) or settings.pinecone_api_key
+        if not api_key:
+            raise ValueError("Pinecone API key not found. Please configure it in the node settings or environment variables")
         
         index_name = config.get("pinecone_index_name")
         namespace = config.get("pinecone_namespace", "")
@@ -240,7 +243,7 @@ class VectorStoreNode(BaseNode):
         
         await self.stream_progress(node_id, 0.2, f"Connecting to Pinecone index: {index_name}...")
         
-        pc = Pinecone(api_key=settings.pinecone_api_key)
+        pc = Pinecone(api_key=api_key)
         
         # Create index if requested
         if create_index:
@@ -327,7 +330,8 @@ class VectorStoreNode(BaseNode):
             )
         
         endpoint = config.get("azure_search_endpoint")
-        api_key = config.get("azure_search_api_key")
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "azure_search_api_key", user_id=user_id) or config.get("azure_search_api_key")
         index_name = config.get("azure_search_index_name")
         
         if not endpoint or not api_key or not index_name:
@@ -384,8 +388,10 @@ class VectorStoreNode(BaseNode):
                 "google-genai not installed. Install it with: pip install google-genai"
             )
         
-        if not settings.gemini_api_key:
-            raise ValueError("Gemini API key not configured")
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "gemini_api_key", user_id=user_id) or settings.gemini_api_key
+        if not api_key:
+            raise ValueError("Gemini API key not found. Please configure it in the node settings or environment variables")
         
         # Get file information from inputs (from File Loader node)
         file_id = inputs.get("file_id")
@@ -427,7 +433,7 @@ class VectorStoreNode(BaseNode):
         
         await self.stream_progress(node_id, 0.2, f"Preparing to upload {file_path.name} to Gemini File Search...")
         
-        client = genai.Client(api_key=settings.gemini_api_key)
+        client = genai.Client(api_key=api_key)
         
         # Get or create File Search store
         store_name = config.get("gemini_store_name")

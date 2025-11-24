@@ -84,7 +84,15 @@ export function APIKeyInputWithVault({
             }
           })
           .catch((err) => {
-            console.error('Failed to load secret from vault:', err);
+            // Secret not found or access denied - clear the secret_id reference
+            if (err.response?.status === 404) {
+              console.warn(`Secret ${initialSecretId} not found, clearing reference`);
+              onChange('', undefined);
+              setUseVault(false);
+              setSelectedSecretId('');
+            } else {
+              console.error('Failed to load secret from vault:', err);
+            }
           });
       }
     } else if (value && secrets.length > 0) {
