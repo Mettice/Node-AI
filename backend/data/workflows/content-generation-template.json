@@ -1,0 +1,95 @@
+{
+  "id": "content-generation-template",
+  "name": "✍️ AI Content Creator",
+  "description": "Generate high-quality blog posts, articles, or marketing copy from just a topic and tone. Includes SEO optimization.",
+  "is_template": true, 
+  "tags": ["content-creation", "marketing", "seo", "blogging", "template"],
+  "nodes": [
+    {
+      "id": "text_input_topic",
+      "type": "text_input",
+      "position": { "x": 100, "y": 100 },
+      "data": {
+        "label": "📝 Content Topic",
+        "config": {
+          "text": "Benefits of sustainable business practices"
+        }
+      }
+    },
+    {
+      "id": "text_input_tone",
+      "type": "text_input", 
+      "position": { "x": 100, "y": 250 },
+      "data": {
+        "label": "🎭 Tone & Style",
+        "config": {
+          "text": "Professional, informative, engaging for business executives"
+        }
+      }
+    },
+    {
+      "id": "chat_outline",
+      "type": "chat",
+      "position": { "x": 400, "y": 100 },
+      "data": {
+        "label": "📋 Create Outline",
+        "config": {
+          "provider": "openai",
+          "model": "gpt-4o",
+          "temperature": 0.6,
+          "system_prompt": "Create a detailed outline for a blog post about the given topic. Include: 1) Catchy title, 2) Introduction hook, 3) 4-6 main sections with bullet points, 4) Conclusion. Consider SEO and reader engagement."
+        }
+      }
+    },
+    {
+      "id": "chat_content",
+      "type": "chat",
+      "position": { "x": 700, "y": 100 },
+      "data": {
+        "label": "✍️ Write Article",
+        "config": {
+          "provider": "openai",
+          "model": "gpt-4o",
+          "temperature": 0.7,
+          "max_tokens": 2000,
+          "system_prompt": "Write a comprehensive, engaging article based on the outline and topic. Use the specified tone. Include relevant examples, data points, and actionable insights. Aim for 800-1200 words. Use subheadings and bullet points for readability."
+        }
+      }
+    },
+    {
+      "id": "chat_seo",
+      "type": "chat",
+      "position": { "x": 1000, "y": 100 },
+      "data": {
+        "label": "🔍 SEO Optimization",
+        "config": {
+          "provider": "openai", 
+          "model": "gpt-4o",
+          "temperature": 0.3,
+          "system_prompt": "Analyze the content and provide SEO recommendations: 1) Meta description (150-160 chars), 2) 5-8 relevant keywords, 3) 3 internal link suggestions, 4) Social media caption for LinkedIn/Twitter."
+        }
+      }
+    },
+    {
+      "id": "chat_images",
+      "type": "chat",
+      "position": { "x": 700, "y": 300 },
+      "data": {
+        "label": "🖼️ Image Suggestions",
+        "config": {
+          "provider": "openai",
+          "model": "gpt-4o", 
+          "temperature": 0.5,
+          "system_prompt": "Suggest 3-4 relevant images/graphics for this article. For each suggestion provide: 1) Description of the image, 2) Where to place it in the article, 3) Alt text for SEO. Focus on images that support the content and improve engagement."
+        }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1-3", "source": "text_input_topic", "target": "chat_outline" },
+    { "id": "e2-3", "source": "text_input_tone", "target": "chat_outline" },
+    { "id": "e3-4", "source": "chat_outline", "target": "chat_content" },
+    { "id": "e4-5", "source": "chat_content", "target": "chat_seo" },
+    { "id": "e4-6", "source": "chat_content", "target": "chat_images" }
+  ]
+}

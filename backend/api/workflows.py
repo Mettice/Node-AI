@@ -888,9 +888,13 @@ async def query_workflow(
         # Execute workflow
         import uuid
         execution_id = str(uuid.uuid4())
+        # Get user ID for observability
+        user_id = get_user_id_from_request(request)
+        
         execution = await engine.execute(
             workflow=query_workflow,
             execution_id=execution_id,
+            user_id=user_id,
         )
         
         # Record metrics asynchronously (don't block response)

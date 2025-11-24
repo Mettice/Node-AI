@@ -188,12 +188,12 @@ def close_database() -> None:
 
 def is_database_configured() -> bool:
     """
-    Check if database is configured.
+    Check if database is configured and connection pool is initialized.
     
     Returns:
-        True if database is configured, False otherwise
+        True if database is configured and connection pool exists, False otherwise
     """
-    return _settings is not None and _settings.supabase_url is not None
+    return _connection_pool is not None and _settings is not None and _settings.supabase_url is not None
 
 
 def execute_query(query: str, params: Optional[tuple] = None) -> list:

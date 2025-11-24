@@ -78,7 +78,7 @@ def get_profile(user_id: str) -> Optional[Dict[str, Any]]:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT id, email, name, role, avatar_url, created_at, updated_at
+                SELECT id, email, name, role, avatar_url, settings, created_at, updated_at
                 FROM profiles
                 WHERE id = %s
                 """,
@@ -95,8 +95,9 @@ def get_profile(user_id: str) -> Optional[Dict[str, Any]]:
                 "name": row[2],
                 "role": row[3],
                 "avatar_url": row[4],
-                "created_at": row[5].isoformat() if row[5] else None,
-                "updated_at": row[6].isoformat() if row[6] else None,
+                "settings": row[5] or {},
+                "created_at": row[6].isoformat() if row[6] else None,
+                "updated_at": row[7].isoformat() if row[7] else None,
             }
 
 
@@ -155,7 +156,7 @@ def update_profile(
                 UPDATE profiles
                 SET {', '.join(updates)}
                 WHERE id = %s
-                RETURNING id, email, name, role, avatar_url, created_at, updated_at
+                RETURNING id, email, name, role, avatar_url, settings, created_at, updated_at
                 """,
                 params,
             )
@@ -170,7 +171,8 @@ def update_profile(
                 "name": row[2],
                 "role": row[3],
                 "avatar_url": row[4],
-                "created_at": row[5].isoformat() if row[5] else None,
-                "updated_at": row[6].isoformat() if row[6] else None,
+                "settings": row[5] or {},
+                "created_at": row[6].isoformat() if row[6] else None,
+                "updated_at": row[7].isoformat() if row[7] else None,
             }
 

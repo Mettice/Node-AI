@@ -1,0 +1,123 @@
+{
+  "id": "competitive-research-template", 
+  "name": "🔍 Competitive Intelligence Researcher",
+  "description": "Automatically research competitors by scraping websites and analyzing their content, features, and positioning.",
+  "is_template": true,
+  "tags": ["competitive-analysis", "market-research", "business-intelligence", "web-scraping", "template"],
+  "nodes": [
+    {
+      "id": "text_input_company",
+      "type": "text_input",
+      "position": { "x": 100, "y": 100 },
+      "data": {
+        "label": "🏢 Competitor Name",
+        "config": {
+          "text": "Notion"
+        }
+      }
+    },
+    {
+      "id": "text_input_industry", 
+      "type": "text_input",
+      "position": { "x": 100, "y": 250 },
+      "data": {
+        "label": "🏭 Industry/Market",
+        "config": {
+          "text": "Productivity software"
+        }
+      }
+    },
+    {
+      "id": "web_search_1",
+      "type": "web_search",
+      "position": { "x": 400, "y": 100 },
+      "data": {
+        "label": "🌐 Find Company Info",
+        "config": {
+          "search_provider": "google",
+          "max_results": 5,
+          "search_query": "{competitor_name} company website features pricing"
+        }
+      }
+    },
+    {
+      "id": "web_scraping_1", 
+      "type": "web_scraping",
+      "position": { "x": 700, "y": 100 },
+      "data": {
+        "label": "📄 Scrape Website",
+        "config": {
+          "max_pages": 3,
+          "include_links": true,
+          "extract_text": true,
+          "timeout": 30
+        }
+      }
+    },
+    {
+      "id": "chat_analysis",
+      "type": "chat",
+      "position": { "x": 1000, "y": 50 },
+      "data": {
+        "label": "📊 Company Analysis", 
+        "config": {
+          "provider": "openai",
+          "model": "gpt-4o",
+          "temperature": 0.3,
+          "max_tokens": 1500,
+          "system_prompt": "Analyze this competitor based on the gathered information. Provide: 1) Company overview & positioning, 2) Key products/services, 3) Target market & customer segments, 4) Unique value proposition, 5) Strengths & weaknesses, 6) Recent news or developments."
+        }
+      }
+    },
+    {
+      "id": "web_search_pricing",
+      "type": "web_search",
+      "position": { "x": 400, "y": 300 },
+      "data": {
+        "label": "💰 Find Pricing Info",
+        "config": {
+          "search_provider": "google", 
+          "max_results": 3,
+          "search_query": "{competitor_name} pricing plans costs subscription"
+        }
+      }
+    },
+    {
+      "id": "chat_pricing",
+      "type": "chat",
+      "position": { "x": 1000, "y": 200 },
+      "data": {
+        "label": "💵 Pricing Strategy",
+        "config": {
+          "provider": "openai",
+          "model": "gpt-4o",
+          "temperature": 0.2, 
+          "system_prompt": "Extract and analyze pricing information: 1) Pricing tiers/plans, 2) Key features per tier, 3) Pricing strategy (freemium, subscription, etc.), 4) Value proposition per price point, 5) Comparison insights for competitive positioning."
+        }
+      }
+    },
+    {
+      "id": "chat_recommendations",
+      "type": "chat",
+      "position": { "x": 1000, "y": 350 },
+      "data": {
+        "label": "💡 Strategic Insights",
+        "config": {
+          "provider": "openai",
+          "model": "gpt-4o",
+          "temperature": 0.4,
+          "system_prompt": "Provide strategic recommendations based on this competitive analysis: 1) Market opportunities, 2) Differentiation strategies, 3) Potential partnerships or collaborations, 4) Threats to watch, 5) Areas for innovation or improvement."
+        }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1-3", "source": "text_input_company", "target": "web_search_1" },
+    { "id": "e3-4", "source": "web_search_1", "target": "web_scraping_1" },
+    { "id": "e4-5", "source": "web_scraping_1", "target": "chat_analysis" },
+    { "id": "e1-6", "source": "text_input_company", "target": "web_search_pricing" },
+    { "id": "e6-7", "source": "web_search_pricing", "target": "chat_pricing" },
+    { "id": "e5-8", "source": "chat_analysis", "target": "chat_recommendations" },
+    { "id": "e7-8", "source": "chat_pricing", "target": "chat_recommendations" }
+  ]
+}

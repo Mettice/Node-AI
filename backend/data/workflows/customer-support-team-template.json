@@ -1,0 +1,127 @@
+{
+  "id": "customer-support-team-template",
+  "name": "🎧 AI Customer Support Team (CrewAI)",
+  "description": "Multi-agent customer support crew: Analyzer categorizes issues, Specialist provides solutions, QA reviews responses. Automated ticket handling and response generation.",
+  "is_template": true,
+  "tags": ["crewai", "customer-support", "automation", "service", "template"],
+  "nodes": [
+    {
+      "id": "text_input_ticket",
+      "type": "text_input", 
+      "position": { "x": 100, "y": 100 },
+      "data": {
+        "label": "🎫 Customer Ticket",
+        "config": {
+          "text": "Hi, I'm having trouble logging into my account. I keep getting an error message that says 'invalid credentials' even though I'm sure my password is correct. I've tried resetting it twice but the same issue persists. This is urgent as I need to access my project files for a client presentation tomorrow."
+        }
+      }
+    },
+    {
+      "id": "text_input_kb",
+      "type": "text_input",
+      "position": { "x": 100, "y": 250 },
+      "data": {
+        "label": "📚 Knowledge Base",
+        "config": {
+          "text": "Common solutions:\n- Login issues: Check caps lock, clear browser cache, try incognito mode\n- Password reset: Allow 10 minutes for email, check spam folder\n- Account lockout: Automatic unlock after 30 minutes\n- Browser compatibility: Chrome, Firefox, Safari supported\n- Contact: support@company.com for escalation"
+        }
+      }
+    },
+    {
+      "id": "crewai_support_team", 
+      "type": "crewai_agent",
+      "position": { "x": 400, "y": 150 },
+      "data": {
+        "label": "🎧 Support Team Crew",
+        "config": {
+          "process": "sequential",
+          "verbose": true,
+          "agents": [
+            {
+              "role": "Support Ticket Analyzer",
+              "goal": "Analyze customer tickets to categorize issues, determine priority, and extract key information",
+              "backstory": "You are an experienced support analyst who excels at quickly understanding customer issues and categorizing them appropriately. You can identify urgency levels and root causes efficiently.",
+              "tools": [],
+              "allow_delegation": false,
+              "max_iter": 1
+            },
+            {
+              "role": "Technical Support Specialist",
+              "goal": "Provide accurate, helpful solutions to customer problems using available knowledge base and best practices",
+              "backstory": "You are a skilled technical support specialist with deep product knowledge and excellent problem-solving skills. You provide clear, step-by-step solutions that customers can easily follow.",
+              "tools": [],
+              "allow_delegation": false,
+              "max_iter": 2
+            },
+            {
+              "role": "Quality Assurance Reviewer",
+              "goal": "Review support responses to ensure quality, accuracy, and appropriate tone before sending to customers",
+              "backstory": "You are a QA specialist who ensures all customer communications meet high standards for helpfulness, professionalism, and accuracy. You catch potential issues and improve response quality.",
+              "tools": [],
+              "allow_delegation": false,
+              "max_iter": 1
+            }
+          ],
+          "tasks": [
+            {
+              "description": "Analyze this customer ticket: {customer_ticket}. Provide: 1) Issue category (technical, billing, account, etc.), 2) Priority level (low, medium, high, urgent), 3) Key problem points, 4) Customer sentiment, 5) Required information or next steps.",
+              "agent": "Support Ticket Analyzer", 
+              "expected_output": "A structured analysis with issue categorization, priority assessment, and key insights about the customer problem."
+            },
+            {
+              "description": "Based on the ticket analysis and knowledge base: {knowledge_base}, create a helpful response that: 1) Acknowledges the customer's issue, 2) Provides step-by-step solution, 3) Offers alternative solutions if needed, 4) Includes prevention tips, 5) Provides escalation path if solution doesn't work.",
+              "agent": "Technical Support Specialist",
+              "expected_output": "A comprehensive, helpful response with clear step-by-step solutions and alternatives."
+            },
+            {
+              "description": "Review the support response for: 1) Accuracy of information, 2) Clarity of instructions, 3) Appropriate tone and empathy, 4) Completeness of solution, 5) Professional formatting. Improve if needed.",
+              "agent": "Quality Assurance Reviewer",
+              "expected_output": "A polished, professional support response ready to send to the customer."
+            }
+          ],
+          "provider": "openai",
+          "model": "gpt-4o",
+          "temperature": 0.3
+        }
+      }
+    },
+    {
+      "id": "advanced_nlp_sentiment",
+      "type": "advanced_nlp",
+      "position": { "x": 700, "y": 100 },
+      "data": {
+        "label": "😊 Customer Sentiment",
+        "config": {
+          "task": "sentiment_analysis",
+          "provider": "openai",
+          "model": "gpt-4o-mini",
+          "categories": ["frustrated", "neutral", "satisfied", "angry", "confused"],
+          "confidence_threshold": 0.8,
+          "custom_prompt": "Analyze the customer's emotional state and satisfaction level from their message."
+        }
+      }
+    },
+    {
+      "id": "advanced_nlp_classification",
+      "type": "advanced_nlp",
+      "position": { "x": 700, "y": 250 },
+      "data": {
+        "label": "🏷️ Issue Classification",
+        "config": {
+          "task": "classification",
+          "provider": "openai", 
+          "model": "gpt-4o-mini",
+          "categories": ["login_issues", "billing_questions", "feature_requests", "bug_reports", "account_management", "general_inquiry"],
+          "confidence_threshold": 0.7,
+          "custom_prompt": "Classify this support ticket into the most appropriate category for routing and tracking."
+        }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1-3", "source": "text_input_ticket", "target": "crewai_support_team" },
+    { "id": "e2-3", "source": "text_input_kb", "target": "crewai_support_team" },
+    { "id": "e1-4", "source": "text_input_ticket", "target": "advanced_nlp_sentiment" },
+    { "id": "e1-5", "source": "text_input_ticket", "target": "advanced_nlp_classification" }
+  ]
+}

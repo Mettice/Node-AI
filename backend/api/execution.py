@@ -17,6 +17,7 @@ from backend.core.exceptions import WorkflowExecutionError, WorkflowValidationEr
 from backend.core.models import Execution, ExecutionRequest, ExecutionResponse, ExecutionStatus, Workflow
 from backend.core.streaming import stream_manager
 from backend.core.security import limiter
+from backend.core.user_context import get_user_id_from_request
 from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -62,6 +63,9 @@ async def execute_workflow(request: ExecutionRequest, http_request: Request) -> 
         )
         _executions[execution_id] = placeholder_execution
         
+        # Get user ID for observability
+        user_id = get_user_id_from_request(http_request)
+        
         # Start workflow execution in background
         # This allows the frontend to connect to SSE stream before execution completes
         async def execute_in_background():
@@ -69,6 +73,7 @@ async def execute_workflow(request: ExecutionRequest, http_request: Request) -> 
                 execution = await engine.execute(
                     workflow=request.workflow,
                     execution_id=execution_id,
+                    user_id=user_id,
                 )
                 
                 # Update stored execution with results

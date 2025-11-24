@@ -1,0 +1,104 @@
+{
+  "id": "basic-rag-template",
+  "name": "📚 Basic RAG - Document Q&A",
+  "description": "Simple document upload and question-answering workflow. Perfect for getting started with RAG.",
+  "is_template": true,
+  "tags": ["rag", "beginner", "document-qa", "template"],
+  "nodes": [
+    {
+      "id": "file_input_1",
+      "type": "file_loader",
+      "position": { "x": 100, "y": 100 },
+      "data": {
+        "label": "📁 Upload Documents",
+        "config": {
+          "accepted_types": [".pdf", ".txt", ".docx", ".md"],
+          "max_size_mb": 10,
+          "description": "Upload your documents here"
+        }
+      }
+    },
+    {
+      "id": "chunk_1",
+      "type": "chunk",
+      "position": { "x": 400, "y": 100 },
+      "data": {
+        "label": "✂️ Split Text",
+        "config": {
+          "chunk_size": 1000,
+          "chunk_overlap": 200,
+          "strategy": "text_splitter"
+        }
+      }
+    },
+    {
+      "id": "embed_1",
+      "type": "embed",
+      "position": { "x": 700, "y": 100 },
+      "data": {
+        "label": "🧠 Create Embeddings",
+        "config": {
+          "provider": "openai",
+          "model": "text-embedding-3-small"
+        }
+      }
+    },
+    {
+      "id": "vector_store_1",
+      "type": "vector_store",
+      "position": { "x": 1000, "y": 100 },
+      "data": {
+        "label": "💾 Store Vectors",
+        "config": {
+          "provider": "memory",
+          "collection_name": "documents"
+        }
+      }
+    },
+    {
+      "id": "text_input_1",
+      "type": "text_input",
+      "position": { "x": 100, "y": 300 },
+      "data": {
+        "label": "❓ Your Question",
+        "config": {
+          "text": "What is this document about?"
+        }
+      }
+    },
+    {
+      "id": "vector_search_1",
+      "type": "vector_search",
+      "position": { "x": 400, "y": 300 },
+      "data": {
+        "label": "🔍 Search Documents",
+        "config": {
+          "top_k": 5,
+          "similarity_threshold": 0.7
+        }
+      }
+    },
+    {
+      "id": "chat_1",
+      "type": "chat",
+      "position": { "x": 700, "y": 300 },
+      "data": {
+        "label": "💬 Generate Answer",
+        "config": {
+          "provider": "openai",
+          "model": "gpt-4o-mini",
+          "temperature": 0.3,
+          "system_prompt": "You are a helpful assistant that answers questions based on the provided context. If you don't know the answer, say so."
+        }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1-2", "source": "file_input_1", "target": "chunk_1" },
+    { "id": "e2-3", "source": "chunk_1", "target": "embed_1" },
+    { "id": "e3-4", "source": "embed_1", "target": "vector_store_1" },
+    { "id": "e5-6", "source": "text_input_1", "target": "vector_search_1" },
+    { "id": "e6-7", "source": "vector_search_1", "target": "chat_1" },
+    { "id": "e4-6", "source": "vector_store_1", "target": "vector_search_1" }
+  ]
+}

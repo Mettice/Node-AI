@@ -120,6 +120,39 @@ class Settings(BaseSettings):
     )
 
     # ============================================
+    # Observability Configuration
+    # ============================================
+    langsmith_api_key: Optional[str] = Field(
+        default=None,
+        description="LangSmith API key for observability (optional)",
+    )
+    langsmith_project: str = Field(
+        default="nodeflow",
+        description="LangSmith project name",
+    )
+    langfuse_public_key: Optional[str] = Field(
+        default=None,
+        description="LangFuse public key for observability (optional)",
+    )
+    langfuse_secret_key: Optional[str] = Field(
+        default=None,
+        description="LangFuse secret key for observability (optional)",
+    )
+    langfuse_host: str = Field(
+        default="https://cloud.langfuse.com",
+        description="LangFuse host URL",
+    )
+    trace_storage_backend: str = Field(
+        default="memory",
+        description="Trace storage backend: 'memory' or 'database'",
+    )
+    trace_retention_days: int = Field(
+        default=90,
+        ge=1,
+        description="Number of days to retain traces",
+    )
+
+    # ============================================
     # Server Configuration
     # ============================================
     host: str = Field(

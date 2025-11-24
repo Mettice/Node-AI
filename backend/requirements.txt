@@ -104,6 +104,8 @@ passlib[bcrypt]  # Password hashing
 # Monitoring & Observability
 # ============================================
 sentry-sdk[fastapi]  # Error tracking and performance monitoring
+# langsmith  # LangSmith observability (optional - uncomment to enable)
+# langfuse  # LangFuse observability (optional - uncomment to enable)
 
 # ============================================
 # Text Processing

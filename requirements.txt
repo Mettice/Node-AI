@@ -45,6 +45,10 @@ langchain-anthropic
 # CrewAI
 crewai
 
+# Observability (Optional)
+langsmith  # Uncomment to enable LangSmith
+langfuse  # Uncomment to enable LangFuse
+
 # Document Processing
 pypdf2
 pdfplumber

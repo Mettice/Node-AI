@@ -110,3 +110,18 @@ async def require_user_context(request: Request) -> dict:
     
     return context
 
+
+def get_user_id_from_request(request: Request) -> Optional[str]:
+    """
+    Get user ID from request state (set by auth middleware).
+    
+    This is a convenience function that extracts the user_id from the request state.
+    The user_id is set by the auth middleware when a user is authenticated.
+    
+    Args:
+        request: FastAPI request object
+        
+    Returns:
+        User ID string or None if not authenticated
+    """
+    return getattr(request.state, "user_id", None)

@@ -111,12 +111,13 @@ export function renderField(context: FieldRendererContext): React.ReactNode | nu
 
   // Special handling for model fields in langchain_agent, chat, and vision (add icons)
   if ((nodeType === 'langchain_agent' || nodeType === 'chat' || nodeType === 'vision') && 
-      (key === 'openai_model' || key === 'anthropic_model' || key === 'gemini_model')) {
+      (key === 'openai_model' || key === 'anthropic_model' || key === 'gemini_model' || key === 'azure_openai_deployment')) {
     const provider = formValues.provider || 'openai';
     const iconMap: Record<string, string> = {
       'openai_model': 'openai',
       'anthropic_model': 'anthropic',
       'gemini_model': 'gemini',
+      'azure_openai_deployment': 'microsoftazure',
     };
     const icon = iconMap[key] || provider;
     
@@ -124,7 +125,8 @@ export function renderField(context: FieldRendererContext): React.ReactNode | nu
     if (
       (key === 'openai_model' && provider !== 'openai') ||
       (key === 'anthropic_model' && provider !== 'anthropic') ||
-      (key === 'gemini_model' && provider !== 'gemini' && provider !== 'google') // Keep 'google' for backward compatibility
+      (key === 'gemini_model' && provider !== 'gemini' && provider !== 'google') || // Keep 'google' for backward compatibility
+      (key === 'azure_openai_deployment' && provider !== 'azure_openai')
     ) {
       return null;
     }

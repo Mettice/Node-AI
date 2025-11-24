@@ -67,7 +67,7 @@ else:
     logger.info("Sentry not configured (SENTRY_DSN not set)")
 
 # Import API routers
-from backend.api import execution, nodes, files, workflows, metrics, knowledge_base, api_keys, tools, oauth, query_tracer, secrets
+from backend.api import execution, nodes, files, workflows, metrics, knowledge_base, api_keys, tools, oauth, query_tracer, secrets, observability_settings, cost_forecasting, traces
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -245,6 +245,9 @@ app.include_router(tools.router)
 app.include_router(oauth.router)
 app.include_router(query_tracer.router)
 app.include_router(secrets.router)
+app.include_router(observability_settings.router)
+app.include_router(cost_forecasting.router)
+app.include_router(traces.router)
 
 # Import and register fine-tuning router
 try:

@@ -3,13 +3,14 @@
  */
 
 import { useState } from 'react';
-import { User, Key, Bell, Palette, Shield, Save } from 'lucide-react';
+import { User, Key, Bell, Palette, Shield, Save, Activity } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
 import { SecretsVault } from './SecretsVault';
+import { ObservabilitySettings } from './ObservabilitySettings';
 
-type SettingsTab = 'profile' | 'api-keys' | 'notifications' | 'appearance' | 'security';
+type SettingsTab = 'profile' | 'api-keys' | 'observability' | 'notifications' | 'appearance' | 'security';
 
 export function SettingsPanel() {
   const { user, updateProfile } = useAuth();
@@ -20,6 +21,7 @@ export function SettingsPanel() {
   const tabs: { id: SettingsTab; label: string; icon: typeof User }[] = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'api-keys', label: 'Secrets Vault', icon: Key },
+    { id: 'observability', label: 'Observability', icon: Activity },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'appearance', label: 'Appearance', icon: Palette },
     { id: 'security', label: 'Security', icon: Shield },
@@ -92,6 +94,9 @@ export function SettingsPanel() {
 
       case 'api-keys':
         return <SecretsVault />;
+
+      case 'observability':
+        return <ObservabilitySettings />;
 
       case 'notifications':
         return (

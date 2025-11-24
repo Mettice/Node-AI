@@ -10,9 +10,10 @@ This module contains the core engine that executes workflows by:
 """
 
 import time
+import traceback
 from collections import defaultdict, deque
 from datetime import datetime
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Optional, Set
 
 from backend.core.exceptions import (
     CircularDependencyError,
@@ -34,9 +35,18 @@ from backend.core.models import (
 from backend.core.node_registry import NodeRegistry
 from backend.core.streaming import StreamEventType, stream_manager
 from backend.core.query_tracer import QueryTracer, TraceStepType
+from backend.core.observability import (
+    get_observability_manager,
+    SpanType,
+)
+from backend.core.observability_adapter import get_observability_adapter
+from backend.core.span_evaluator import SpanEvaluator
 from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+# Initialize span evaluator
+_span_evaluator = SpanEvaluator()
 
 
 class WorkflowEngine:
@@ -59,6 +69,7 @@ class WorkflowEngine:
         self,
         workflow: Workflow,
         execution_id: str | None = None,
+        user_id: str | None = None,
     ) -> Execution:
         """
         Execute a workflow.
@@ -110,13 +121,31 @@ class WorkflowEngine:
                     query_text = node.data.get("query", "")
                     break
             
-            # If we found a query, start tracing
+            # Start observability trace
+            observability_manager = get_observability_manager()
+            observability_adapter = get_observability_adapter(user_id=user_id)
+            
+            trace = observability_manager.start_trace(
+                workflow_id=workflow.id or "unknown",
+                execution_id=execution_id,
+                query=query_text,
+            )
+            
+            # Also start legacy QueryTracer for backward compatibility
             if query_text:
                 QueryTracer.start_trace(
                     execution_id=execution_id,
                     query=query_text,
                     workflow_id=workflow.id or "unknown",
                 )
+            
+            # Start trace in external adapters (LangSmith/LangFuse)
+            observability_adapter.start_trace(
+                trace_id=trace.trace_id,
+                workflow_id=workflow.id or "unknown",
+                execution_id=execution_id,
+                query=query_text,
+            )
             
             # Create stream for this execution
             await stream_manager.create_stream(execution_id)
@@ -153,12 +182,24 @@ class WorkflowEngine:
                     node_outputs,
                 )
 
+                # Start observability span for this node
+                span = None
+                if trace:
+                    span_type = self._map_node_type_to_span_type(node.type)
+                    span = observability_manager.start_span(
+                        trace_id=trace.trace_id,
+                        span_type=span_type,
+                        name=f"{node.type}:{node.id}",
+                        inputs=self._sanitize_inputs_for_trace(inputs),
+                    )
+                
                 # Execute node
                 node_result = await self._execute_node(
                     node,
                     inputs,
                     execution,
                     execution_id,  # Pass execution_id for streaming
+                    span=span,  # Pass span for enhanced tracking
                 )
 
                 # Store result
@@ -178,7 +219,16 @@ class WorkflowEngine:
                     )
                 )
                 
-                # Add to query tracer if this is a RAG-relevant node
+                # Complete observability span
+                if span:
+                    self._complete_observability_span(
+                        span=span,
+                        node=node,
+                        node_result=node_result,
+                        inputs=inputs,
+                    )
+                
+                # Add to query tracer if this is a RAG-relevant node (legacy)
                 self._add_to_query_trace(
                     execution_id=execution_id,
                     node=node,
@@ -203,7 +253,11 @@ class WorkflowEngine:
             execution.status = ExecutionStatus.COMPLETED
             execution.completed_at = datetime.now()
             
-            # Complete query trace
+            # Complete observability trace
+            observability_manager.complete_trace(trace.trace_id)
+            observability_adapter.complete_trace(trace.trace_id, trace)
+            
+            # Complete query trace (legacy)
             QueryTracer.complete_trace(execution_id)
             
             # Stream workflow completion
@@ -231,6 +285,17 @@ class WorkflowEngine:
 
         except Exception as e:
             logger.error(f"Workflow execution failed: {e}", exc_info=True)
+            
+            # Mark trace as failed
+            try:
+                observability_manager = get_observability_manager()
+                observability_adapter = get_observability_adapter()
+                trace = observability_manager.get_trace_by_execution_id(execution_id)
+                if trace:
+                    trace.fail(str(e))
+                    observability_adapter.complete_trace(trace.trace_id, trace)
+            except Exception as obs_error:
+                logger.warning(f"Failed to mark trace as failed: {obs_error}")
             
             # Create failed execution
             execution = Execution(
@@ -448,6 +513,7 @@ class WorkflowEngine:
         inputs: Dict[str, Any],
         execution: Execution,
         execution_id: str,
+        span: Optional[Any] = None,
     ) -> NodeResult:
         """
         Execute a single node.
@@ -490,8 +556,20 @@ class WorkflowEngine:
 
             # Execute node
             start_time = time.time()
-            output = await node_instance.execute_safe(inputs, node_config)
-            duration_ms = int((time.time() - start_time) * 1000)
+            try:
+                output = await node_instance.execute_safe(inputs, node_config)
+                duration_ms = int((time.time() - start_time) * 1000)
+            except Exception as e:
+                # Track error in span if available
+                if span:
+                    observability_manager = get_observability_manager()
+                    observability_manager.fail_span(
+                        span_id=span.span_id,
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        error_stack=traceback.format_exc(),
+                    )
+                raise
             
             # Stream progress update during execution (if node supports it)
             if hasattr(node_instance, 'stream_progress'):
@@ -516,6 +594,26 @@ class WorkflowEngine:
 
             completed_at = datetime.now()
 
+            # Extract tokens if available
+            tokens = {}
+            if isinstance(output, dict):
+                tokens = output.get("tokens_used", {})
+            
+            # Update span with metadata if available
+            if span:
+                observability_manager = get_observability_manager()
+                observability_manager.update_span_metadata(
+                    span_id=span.span_id,
+                    tokens=tokens,
+                    cost=cost,
+                    model=node.data.get("openai_model") or node.data.get("anthropic_model") or node.data.get("gemini_model"),
+                    provider=node.data.get("provider"),
+                    metadata={
+                        "node_type": node.type,
+                        "node_id": node.id,
+                    },
+                )
+            
             return NodeResult(
                 node_id=node.id,
                 status=NodeStatus.COMPLETED,
@@ -525,6 +623,7 @@ class WorkflowEngine:
                 duration_ms=duration_ms,
                 started_at=started_at,
                 completed_at=completed_at,
+                tokens_used=tokens if tokens else None,
             )
 
         except Exception as e:
@@ -733,6 +832,90 @@ class WorkflowEngine:
         except Exception as e:
             # Don't fail execution if cost recording fails
             logger.warning(f"Failed to record execution costs: {e}", exc_info=True)
+    
+    def _map_node_type_to_span_type(self, node_type: str) -> SpanType:
+        """Map node type to observability span type."""
+        mapping = {
+            "text_input": SpanType.QUERY_INPUT,
+            "chunk": SpanType.CHUNKING,
+            "embed": SpanType.EMBEDDING,
+            "vector_search": SpanType.VECTOR_SEARCH,
+            "rerank": SpanType.RERANKING,
+            "chat": SpanType.LLM,
+            "langchain_agent": SpanType.AGENT_START,
+            "crewai_agent": SpanType.AGENT_START,
+        }
+        return mapping.get(node_type, SpanType.NODE_EXECUTION)
+    
+    def _sanitize_inputs_for_trace(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        """Sanitize inputs for trace (remove large data, keep metadata)."""
+        sanitized = {}
+        for key, value in inputs.items():
+            if isinstance(value, str) and len(value) > 1000:
+                sanitized[key] = value[:1000] + "... (truncated)"
+            elif isinstance(value, (list, dict)) and len(str(value)) > 1000:
+                sanitized[key] = f"{type(value).__name__} (size: {len(str(value))})"
+            else:
+                sanitized[key] = value
+        return sanitized
+    
+    def _complete_observability_span(
+        self,
+        span: Any,
+        node: Node,
+        node_result: NodeResult,
+        inputs: Dict[str, Any],
+    ):
+        """Complete an observability span with all metadata."""
+        try:
+            observability_manager = get_observability_manager()
+            observability_adapter = get_observability_adapter()
+            
+            # Extract outputs (sanitize if needed)
+            outputs = node_result.output or {}
+            sanitized_outputs = self._sanitize_inputs_for_trace(outputs)
+            
+            # Complete span
+            observability_manager.complete_span(
+                span_id=span.span_id,
+                outputs=sanitized_outputs,
+                tokens=node_result.tokens_used or {},
+                cost=node_result.cost,
+            )
+            
+            # Update span with additional metadata
+            observability_manager.update_span_metadata(
+                span_id=span.span_id,
+                model=node.data.get("openai_model") or node.data.get("anthropic_model") or node.data.get("gemini_model"),
+                provider=node.data.get("provider"),
+                metadata={
+                    "node_type": node.type,
+                    "node_id": node.id,
+                    "chunk_size": node.data.get("chunk_size"),
+                    "chunk_overlap": node.data.get("chunk_overlap"),
+                    "top_k": node.data.get("top_k"),
+                    "temperature": node.data.get("temperature"),
+                },
+            )
+            
+            # Evaluate span if evaluator available
+            try:
+                # Get updated span for evaluation
+                updated_span = observability_manager.get_span(span.span_id)
+                if updated_span:
+                    evaluation = _span_evaluator.evaluate_span(updated_span)
+                    observability_manager.add_span_evaluation(span.span_id, evaluation)
+            except Exception as e:
+                logger.debug(f"Failed to evaluate span: {e}")
+            
+            # Log to external adapters
+            updated_span = observability_manager.get_span(span.span_id)
+            if updated_span:
+                observability_adapter.log_span(span.trace_id, updated_span)
+            
+        except Exception as e:
+            # Don't fail execution if observability fails
+            logger.warning(f"Failed to complete observability span: {e}", exc_info=True)
 
 
 # Global engine instance

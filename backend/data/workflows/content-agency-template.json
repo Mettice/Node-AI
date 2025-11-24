@@ -1,0 +1,139 @@
+{
+  "id": "content-agency-template", 
+  "name": "🎨 AI Content Agency (CrewAI)",
+  "description": "Multi-agent content creation team: Strategist plans content, Copywriter creates content, Editor refines, SEO specialist optimizes. Full content production pipeline.",
+  "is_template": true,
+  "tags": ["crewai", "content-creation", "marketing", "seo", "collaboration", "template"],
+  "nodes": [
+    {
+      "id": "text_input_brand",
+      "type": "text_input",
+      "position": { "x": 100, "y": 100 },
+      "data": {
+        "label": "🏢 Brand & Product",
+        "config": {
+          "text": "Brand: TechFlow\nProduct: Project management software for remote teams\nTarget: Small business owners and startup founders"
+        }
+      }
+    },
+    {
+      "id": "text_input_content_type",
+      "type": "text_input",
+      "position": { "x": 100, "y": 250 },
+      "data": {
+        "label": "📝 Content Type",
+        "config": {
+          "text": "Blog post about remote team productivity tips"
+        }
+      }
+    },
+    {
+      "id": "crewai_content_agency",
+      "type": "crewai_agent",
+      "position": { "x": 400, "y": 150 },
+      "data": {
+        "label": "🎨 Content Agency Crew",
+        "config": {
+          "process": "sequential",
+          "verbose": true,
+          "agents": [
+            {
+              "role": "Content Strategist",
+              "goal": "Develop a comprehensive content strategy and outline that aligns with brand goals and audience needs",
+              "backstory": "You are a senior content strategist with expertise in brand positioning and audience psychology. You excel at creating content strategies that drive engagement and conversions.",
+              "tools": ["web_search"],
+              "allow_delegation": false,
+              "max_iter": 2
+            },
+            {
+              "role": "Senior Copywriter",
+              "goal": "Create compelling, engaging content that follows the strategy and resonates with the target audience",
+              "backstory": "You are an award-winning copywriter with 8+ years of experience creating high-converting content across industries. You know how to craft messages that connect with audiences and drive action.",
+              "tools": [],
+              "allow_delegation": false,
+              "max_iter": 3
+            },
+            {
+              "role": "Content Editor",
+              "goal": "Review, refine, and enhance the content for clarity, flow, and maximum impact",
+              "backstory": "You are a meticulous content editor with a keen eye for detail and flow. You excel at transforming good content into exceptional content that engages readers and achieves business goals.",
+              "tools": [],
+              "allow_delegation": false,
+              "max_iter": 2
+            },
+            {
+              "role": "SEO Specialist", 
+              "goal": "Optimize the content for search engines while maintaining readability and engagement",
+              "backstory": "You are an SEO expert who understands how to optimize content for search visibility without sacrificing quality. You stay current with SEO best practices and algorithm changes.",
+              "tools": ["web_search"],
+              "allow_delegation": false,
+              "max_iter": 2
+            }
+          ],
+          "tasks": [
+            {
+              "description": "Create a content strategy for: {content_type} for brand: {brand_info}. Include: 1) Target audience analysis, 2) Key messaging pillars, 3) Content outline with main points, 4) Tone and style guidelines, 5) Success metrics.",
+              "agent": "Content Strategist",
+              "expected_output": "A comprehensive content strategy document with audience insights, messaging framework, and detailed outline."
+            },
+            {
+              "description": "Write high-quality content based on the strategy. Create engaging, valuable content that: 1) Follows the outlined structure, 2) Uses the defined tone and style, 3) Includes compelling headlines and subheadings, 4) Incorporates storytelling and examples, 5) Has clear calls-to-action.",
+              "agent": "Senior Copywriter",
+              "expected_output": "Well-written, engaging content that aligns with the strategy and resonates with the target audience."
+            },
+            {
+              "description": "Edit and refine the content to: 1) Improve clarity and flow, 2) Enhance readability and engagement, 3) Strengthen key messages, 4) Polish language and style, 5) Ensure consistency with brand voice.",
+              "agent": "Content Editor",
+              "expected_output": "Polished, refined content with improved flow, clarity, and impact."
+            },
+            {
+              "description": "Optimize the content for SEO by: 1) Researching relevant keywords, 2) Optimizing headlines and subheadings, 3) Adding meta descriptions, 4) Improving content structure, 5) Suggesting internal/external links.",
+              "agent": "SEO Specialist",
+              "expected_output": "SEO-optimized content with keyword recommendations, meta descriptions, and optimization suggestions."
+            }
+          ],
+          "provider": "openai",
+          "model": "gpt-4o",
+          "temperature": 0.7
+        }
+      }
+    },
+    {
+      "id": "advanced_nlp_readability",
+      "type": "advanced_nlp",
+      "position": { "x": 700, "y": 100 },
+      "data": {
+        "label": "📖 Readability Check",
+        "config": {
+          "task": "classification",
+          "provider": "openai",
+          "model": "gpt-4o-mini",
+          "categories": ["elementary", "middle_school", "high_school", "college", "graduate"],
+          "custom_prompt": "Analyze the readability level of this content and provide a readability score with suggestions for improvement."
+        }
+      }
+    },
+    {
+      "id": "advanced_nlp_keywords",
+      "type": "advanced_nlp",
+      "position": { "x": 700, "y": 250 },
+      "data": {
+        "label": "🔍 Keyword Extraction", 
+        "config": {
+          "task": "extraction",
+          "provider": "openai",
+          "model": "gpt-4o-mini",
+          "extract_type": "keywords",
+          "max_items": 20,
+          "custom_prompt": "Extract the most important keywords and phrases from this content for SEO purposes."
+        }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1-3", "source": "text_input_brand", "target": "crewai_content_agency" },
+    { "id": "e2-3", "source": "text_input_content_type", "target": "crewai_content_agency" },
+    { "id": "e3-4", "source": "crewai_content_agency", "target": "advanced_nlp_readability" },
+    { "id": "e3-5", "source": "crewai_content_agency", "target": "advanced_nlp_keywords" }
+  ]
+}

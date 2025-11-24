@@ -9,13 +9,15 @@
  */
 
 import { useState, useEffect } from 'react';
-import { BarChart3, LayoutDashboard, Workflow, TrendingUp, Search, Key, GitBranch } from 'lucide-react';
+import { BarChart3, LayoutDashboard, Workflow, TrendingUp, Search, Key, GitBranch, Activity, DollarSign } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { DashboardOverview } from './DashboardOverview';
 import { DashboardWorkflows } from './DashboardWorkflows';
 import { DashboardMetrics } from './DashboardMetrics';
 import { DashboardAnalytics } from './DashboardAnalytics';
 import { DashboardQuery } from './DashboardQuery';
+import { DashboardTraces } from './DashboardTraces';
+import { DashboardCostForecast } from './DashboardCostForecast';
 import { APIKeyManager } from '@/components/APIKeys/APIKeyManager';
 import { DeploymentManager } from '@/components/Deployment/DeploymentManager';
 import { useQuery } from '@tanstack/react-query';
@@ -110,7 +112,7 @@ function DeploymentTab({
   );
 }
 
-type DashboardTab = 'overview' | 'workflows' | 'metrics' | 'analytics' | 'query' | 'api-keys' | 'deployments';
+type DashboardTab = 'overview' | 'workflows' | 'metrics' | 'analytics' | 'query' | 'api-keys' | 'deployments' | 'traces' | 'cost-forecast';
 
 interface DashboardProps {
   workflowId?: string; // Optional: pre-select a workflow
@@ -133,6 +135,8 @@ export function Dashboard({ workflowId }: DashboardProps) {
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'workflows', label: 'Workflows', icon: Workflow },
     { id: 'query', label: 'Query', icon: Search },
+    { id: 'traces', label: 'Traces', icon: Activity },
+    { id: 'cost-forecast', label: 'Cost Forecast', icon: DollarSign },
     { id: 'api-keys', label: 'API Keys', icon: Key },
     { id: 'deployments', label: 'Deployments', icon: GitBranch },
     { id: 'metrics', label: 'Metrics', icon: BarChart3 },
@@ -168,6 +172,10 @@ export function Dashboard({ workflowId }: DashboardProps) {
         return <DashboardAnalytics selectedWorkflowId={selectedWorkflowId} />;
       case 'deployments':
         return <DeploymentTab selectedWorkflowId={selectedWorkflowId} onWorkflowChange={setSelectedWorkflowId} />;
+      case 'traces':
+        return <DashboardTraces workflowId={selectedWorkflowId} />;
+      case 'cost-forecast':
+        return <DashboardCostForecast workflowId={selectedWorkflowId} />;
       default:
         return null;
     }
@@ -176,8 +184,8 @@ export function Dashboard({ workflowId }: DashboardProps) {
   return (
     <div className="h-full flex flex-col">
       {/* Tab Navigation */}
-      <div className="border-b border-white/10 bg-slate-800/50">
-        <div className="flex items-center justify-center gap-0.5 px-2 overflow-x-auto scrollbar-hide">
+      <div className="border-b border-white/10 bg-slate-800/50 flex-shrink-0">
+        <div className="flex items-center gap-0.5 px-2 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'thin' }}>
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;

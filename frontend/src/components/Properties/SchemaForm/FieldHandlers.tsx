@@ -190,11 +190,9 @@ export function getSpecialFieldHandler(context: FieldHandlerContext): React.Reac
       } else if (key.includes('gemini')) {
         return await testLLMConnection('gemini', apiKey);
       } else if (key.includes('cohere')) {
-        // Cohere connection test - you may need to implement this
-        return true;
+        return await testLLMConnection('cohere', apiKey);
       } else if (key.includes('voyage')) {
-        // Voyage AI connection test - you may need to implement this
-        return true;
+        return await testLLMConnection('voyage_ai', apiKey);
       }
       return true;
     };

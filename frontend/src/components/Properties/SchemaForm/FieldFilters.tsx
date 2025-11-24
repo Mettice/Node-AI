@@ -109,6 +109,7 @@ export function shouldShowField(
     const currentProviderValue = formValues.provider || currentProvider;
     const providerPrefixes: Record<string, string[]> = {
       openai: ['openai_'],
+      azure_openai: ['azure_openai_', 'azure_'],
       huggingface: ['hf_', 'huggingface_'],
       cohere: ['cohere_'],
       anthropic: ['anthropic_'],

@@ -1,0 +1,123 @@
+{
+  "id": "email-automation-template",
+  "name": "📧 Personalized Email Generator", 
+  "description": "Generate personalized sales/marketing emails based on recipient data and your product info. Perfect for outreach campaigns.",
+  "is_template": true,
+  "tags": ["email-marketing", "personalization", "sales", "automation", "template"],
+  "nodes": [
+    {
+      "id": "text_input_recipient",
+      "type": "text_input",
+      "position": { "x": 100, "y": 100 },
+      "data": {
+        "label": "👤 Recipient Info", 
+        "config": {
+          "text": "Name: John Smith\nCompany: TechCorp Inc\nRole: CTO\nIndustry: Software Development"
+        }
+      }
+    },
+    {
+      "id": "text_input_product",
+      "type": "text_input",
+      "position": { "x": 100, "y": 250 },
+      "data": {
+        "label": "🎯 Product/Service",
+        "config": {
+          "text": "NodAI - Visual AI workflow builder that helps teams create RAG applications without coding"
+        }
+      }
+    },
+    {
+      "id": "text_input_goal",
+      "type": "text_input", 
+      "position": { "x": 100, "y": 400 },
+      "data": {
+        "label": "🎯 Email Goal",
+        "config": {
+          "text": "Book a 15-minute product demo"
+        }
+      }
+    },
+    {
+      "id": "chat_research",
+      "type": "chat",
+      "position": { "x": 400, "y": 100 },
+      "data": {
+        "label": "🔍 Research Context",
+        "config": {
+          "provider": "openai",
+          "model": "gpt-4o",
+          "temperature": 0.4,
+          "system_prompt": "Based on the recipient's role and industry, identify: 1) Likely pain points they face, 2) How our product could help them, 3) Relevant industry trends, 4) Appropriate tone and approach for this professional."
+        }
+      }
+    },
+    {
+      "id": "chat_subject",
+      "type": "chat",
+      "position": { "x": 700, "y": 50 },
+      "data": {
+        "label": "📝 Subject Line",
+        "config": {
+          "provider": "openai", 
+          "model": "gpt-4o",
+          "temperature": 0.7,
+          "max_tokens": 100,
+          "system_prompt": "Create 3 compelling email subject lines for this outreach. Make them: 1) Personalized to recipient, 2) Value-focused, 3) Curiosity-driven. Avoid spam words. Each should be under 50 characters."
+        }
+      }
+    },
+    {
+      "id": "chat_email",
+      "type": "chat",
+      "position": { "x": 700, "y": 200 },
+      "data": {
+        "label": "✍️ Email Content",
+        "config": {
+          "provider": "openai",
+          "model": "gpt-4o",
+          "temperature": 0.6,
+          "max_tokens": 800,
+          "system_prompt": "Write a personalized, professional email. Structure: 1) Personal opening (reference their role/company), 2) Brief value proposition relevant to their pain points, 3) Social proof or relevant case study, 4) Clear, specific call to action, 5) Professional closing. Keep under 150 words. Avoid being pushy."
+        }
+      }
+    },
+    {
+      "id": "chat_followup",
+      "type": "chat", 
+      "position": { "x": 1000, "y": 200 },
+      "data": {
+        "label": "🔄 Follow-up Sequence",
+        "config": {
+          "provider": "openai",
+          "model": "gpt-4o",
+          "temperature": 0.5,
+          "system_prompt": "Create a 3-email follow-up sequence if they don't respond: 1) Email 2 (3 days later) - different angle/benefit, 2) Email 3 (1 week later) - helpful resource/insight, 3) Email 4 (2 weeks later) - final friendly check-in. Each should be brief and provide value."
+        }
+      }
+    },
+    {
+      "id": "chat_metrics",
+      "type": "chat",
+      "position": { "x": 700, "y": 400 },
+      "data": {
+        "label": "📊 Success Metrics",
+        "config": {
+          "provider": "openai",
+          "model": "gpt-4o",
+          "temperature": 0.3, 
+          "system_prompt": "Suggest key metrics to track for this email campaign: 1) Email performance metrics (open rate, click rate, response rate), 2) Engagement indicators, 3) Conversion metrics, 4) A/B testing suggestions for optimization."
+        }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1-4", "source": "text_input_recipient", "target": "chat_research" },
+    { "id": "e2-4", "source": "text_input_product", "target": "chat_research" },
+    { "id": "e4-5", "source": "chat_research", "target": "chat_subject" },
+    { "id": "e4-6", "source": "chat_research", "target": "chat_email" },
+    { "id": "e3-6", "source": "text_input_goal", "target": "chat_email" },
+    { "id": "e6-7", "source": "chat_email", "target": "chat_followup" },
+    { "id": "e6-8", "source": "chat_email", "target": "chat_metrics" }
+  ]
+}

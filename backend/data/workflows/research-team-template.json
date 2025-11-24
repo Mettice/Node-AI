@@ -1,0 +1,130 @@
+{
+  "id": "research-team-template",
+  "name": "👥 AI Research Team (CrewAI)",
+  "description": "Multi-agent research crew: Researcher gathers data, Analyst processes insights, Writer creates comprehensive report. Perfect for market research, competitive analysis, or academic research.",
+  "is_template": true,
+  "tags": ["crewai", "multi-agent", "research", "collaboration", "template"],
+  "nodes": [
+    {
+      "id": "text_input_topic",
+      "type": "text_input",
+      "position": { "x": 100, "y": 100 },
+      "data": {
+        "label": "🔍 Research Topic",
+        "config": {
+          "text": "Impact of artificial intelligence on small business productivity"
+        }
+      }
+    },
+    {
+      "id": "crewai_research_team",
+      "type": "crewai_agent",
+      "position": { "x": 400, "y": 100 },
+      "data": {
+        "label": "👥 Research Crew",
+        "config": {
+          "process": "sequential",
+          "verbose": true,
+          "agents": [
+            {
+              "role": "Senior Research Analyst",
+              "goal": "Conduct thorough research on the given topic and gather comprehensive data",
+              "backstory": "You are a seasoned research analyst with 10+ years of experience in market research and data analysis. You excel at finding reliable sources, identifying trends, and gathering comprehensive information.",
+              "tools": ["web_search", "web_scraping"],
+              "allow_delegation": false,
+              "max_iter": 3
+            },
+            {
+              "role": "Data Analyst", 
+              "goal": "Analyze the research data and extract key insights, patterns, and actionable recommendations",
+              "backstory": "You are an expert data analyst who specializes in transforming raw research into meaningful insights. You have a keen eye for patterns and excel at creating data-driven recommendations.",
+              "tools": [],
+              "allow_delegation": false,
+              "max_iter": 2
+            },
+            {
+              "role": "Technical Writer",
+              "goal": "Create a comprehensive, well-structured research report based on the analysis",
+              "backstory": "You are a professional technical writer who excels at creating clear, engaging, and well-structured reports. You can transform complex analysis into accessible insights for business stakeholders.",
+              "tools": [],
+              "allow_delegation": false,
+              "max_iter": 2
+            }
+          ],
+          "tasks": [
+            {
+              "description": "Research the topic: '{research_topic}'. Gather comprehensive information including current trends, statistics, key players, challenges, and opportunities. Focus on recent developments and credible sources.",
+              "agent": "Senior Research Analyst",
+              "expected_output": "A detailed research compilation with sources, statistics, and key findings about the topic."
+            },
+            {
+              "description": "Analyze the research data to identify: 1) Key trends and patterns, 2) Main challenges and opportunities, 3) Impact assessment, 4) Future outlook, 5) Actionable recommendations. Provide data-driven insights.",
+              "agent": "Data Analyst", 
+              "expected_output": "A structured analysis with key insights, trends, and actionable recommendations based on the research."
+            },
+            {
+              "description": "Create a comprehensive research report that includes: 1) Executive summary, 2) Methodology, 3) Key findings, 4) Analysis and insights, 5) Recommendations, 6) Conclusion. Make it professional and actionable.",
+              "agent": "Technical Writer",
+              "expected_output": "A well-structured, comprehensive research report suitable for business stakeholders."
+            }
+          ],
+          "provider": "openai",
+          "model": "gpt-4o",
+          "temperature": 0.3
+        }
+      }
+    },
+    {
+      "id": "advanced_nlp_summary",
+      "type": "advanced_nlp",
+      "position": { "x": 700, "y": 50 },
+      "data": {
+        "label": "📋 Extract Key Points",
+        "config": {
+          "task": "summarization",
+          "provider": "openai",
+          "model": "gpt-4o-mini",
+          "max_length": 500,
+          "focus": "key_points",
+          "custom_prompt": "Extract the 10 most important key points from this research report as bullet points."
+        }
+      }
+    },
+    {
+      "id": "advanced_nlp_entities",
+      "type": "advanced_nlp",
+      "position": { "x": 700, "y": 200 },
+      "data": {
+        "label": "🏷️ Extract Entities",
+        "config": {
+          "task": "ner",
+          "provider": "openai",
+          "model": "gpt-4o-mini",
+          "entity_types": ["ORGANIZATION", "PERSON", "TECHNOLOGY", "LOCATION", "MONEY"],
+          "output_format": "structured"
+        }
+      }
+    },
+    {
+      "id": "advanced_nlp_sentiment",
+      "type": "advanced_nlp", 
+      "position": { "x": 700, "y": 350 },
+      "data": {
+        "label": "😊 Sentiment Analysis",
+        "config": {
+          "task": "sentiment_analysis",
+          "provider": "openai",
+          "model": "gpt-4o-mini",
+          "categories": ["positive", "negative", "neutral"],
+          "confidence_threshold": 0.7
+        }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1-2", "source": "text_input_topic", "target": "crewai_research_team" },
+    { "id": "e2-3", "source": "crewai_research_team", "target": "advanced_nlp_summary" },
+    { "id": "e2-4", "source": "crewai_research_team", "target": "advanced_nlp_entities" },
+    { "id": "e2-5", "source": "crewai_research_team", "target": "advanced_nlp_sentiment" }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "id": "data-analysis-template",
+  "name": "📊 Smart Data Analyzer",
+  "description": "Upload CSV data and get automatic insights, trends, and visualizations. Perfect for business intelligence and data exploration.",
+  "is_template": true,
+  "tags": ["data-analysis", "business-intelligence", "csv", "insights", "template"], 
+  "nodes": [
+    {
+      "id": "file_input_csv",
+      "type": "file_loader", 
+      "position": { "x": 100, "y": 100 },
+      "data": {
+        "label": "📈 Upload CSV Data",
+        "config": {
+          "accepted_types": [".csv", ".xlsx", ".tsv"],
+          "max_size_mb": 50,
+          "description": "Upload your dataset for analysis"
+        }
+      }
+    },
+    {
+      "id": "data_processor_1",
+      "type": "data_to_text",
+      "position": { "x": 400, "y": 100 },
+      "data": {
+        "label": "🔄 Process Data",
+        "config": {
+          "include_stats": true,
+          "sample_rows": 10,
+          "describe_columns": true
+        }
+      }
+    },
+    {
+      "id": "chat_overview",
+      "type": "chat",
+      "position": { "x": 700, "y": 50 },
+      "data": {
+        "label": "📋 Data Overview",
+        "config": {
+          "provider": "openai",
+          "model": "gpt-4o",
+          "temperature": 0.3,
+          "system_prompt": "Analyze this dataset and provide a comprehensive overview: 1) Dataset description, 2) Number of rows/columns, 3) Column types and meanings, 4) Data quality observations (missing values, outliers), 5) Potential use cases for this data."
+        }
+      }
+    },
+    {
+      "id": "chat_insights", 
+      "type": "chat",
+      "position": { "x": 700, "y": 200 },
+      "data": {
+        "label": "💡 Key Insights",
+        "config": {
+          "provider": "openai",
+          "model": "gpt-4o",
+          "temperature": 0.4,
+          "system_prompt": "Extract actionable insights from this data: 1) Notable patterns or trends, 2) Surprising findings, 3) Correlations between variables, 4) Business implications, 5) Recommendations for further analysis."
+        }
+      }
+    },
+    {
+      "id": "chat_questions",
+      "type": "chat",
+      "position": { "x": 700, "y": 350 },
+      "data": {
+        "label": "❓ Suggested Questions",
+        "config": {
+          "provider": "openai",
+          "model": "gpt-4o", 
+          "temperature": 0.5,
+          "system_prompt": "Based on this dataset, suggest 8-10 interesting questions that could be explored with further analysis. Include questions about trends, comparisons, predictions, and business impact. Format as a numbered list."
+        }
+      }
+    },
+    {
+      "id": "chat_visualizations",
+      "type": "chat",
+      "position": { "x": 1000, "y": 200 },
+      "data": {
+        "label": "📊 Visualization Ideas",
+        "config": {
+          "provider": "openai",
+          "model": "gpt-4o",
+          "temperature": 0.4,
+          "system_prompt": "Recommend 5-6 specific data visualizations for this dataset. For each suggestion: 1) Chart type (bar, line, scatter, etc.), 2) Variables to plot, 3) What insight it would reveal, 4) Target audience. Focus on actionable visualizations."
+        }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1-2", "source": "file_input_csv", "target": "data_processor_1" },
+    { "id": "e2-3", "source": "data_processor_1", "target": "chat_overview" },
+    { "id": "e2-4", "source": "data_processor_1", "target": "chat_insights" },
+    { "id": "e2-5", "source": "data_processor_1", "target": "chat_questions" },
+    { "id": "e2-6", "source": "data_processor_1", "target": "chat_visualizations" }
+  ]
+}
