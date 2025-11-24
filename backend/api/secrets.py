@@ -66,6 +66,8 @@ async def create_secret_endpoint(
     user_context: dict = Depends(require_user_context),
 ):
     """Create a new secret."""
+    logger.info(f"CREATE SECRET REQUEST: user={user_context['id']}, provider={secret.provider}, type={secret.secret_type}, name={secret.name}")
+    
     try:
         created = create_secret(
             user_id=user_context["id"],
@@ -78,9 +80,10 @@ async def create_secret_endpoint(
             expires_at=secret.expires_at,
             jwt_token=user_context.get("jwt_token"),
         )
+        logger.info(f"SECRET CREATED SUCCESSFULLY: id={created['id']}")
         return SecretResponse(**created)
     except Exception as e:
-        logger.error(f"Failed to create secret: {e}")
+        logger.error(f"Failed to create secret: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create secret: {str(e)}",
