@@ -349,28 +349,28 @@ def list_secrets(
             query += " ORDER BY created_at DESC"
             
             with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(query, params)
-            
-            results = []
-            for row in cur.fetchall():
-                results.append({
-                    "id": str(row[0]),
-                    "user_id": str(row[1]),
-                    "name": row[2],
-                    "provider": row[3],
-                    "secret_type": row[4],
-                    "description": row[5],
-                    "tags": row[6] if row[6] else [],
-                    "is_active": row[7],
-                    "last_used_at": row[8].isoformat() if row[8] else None,
-                    "usage_count": row[9],
-                    "expires_at": row[10].isoformat() if row[10] else None,
-                    "created_at": row[11].isoformat() if row[11] else None,
-                    "updated_at": row[12].isoformat() if row[12] else None,
-                })
-            
-            return results
+                with conn.cursor() as cur:
+                    cur.execute(query, params)
+                    
+                    results = []
+                    for row in cur.fetchall():
+                        results.append({
+                            "id": str(row[0]),
+                            "user_id": str(row[1]),
+                            "name": row[2],
+                            "provider": row[3],
+                            "secret_type": row[4],
+                            "description": row[5],
+                            "tags": row[6] if row[6] else [],
+                            "is_active": row[7],
+                            "last_used_at": row[8].isoformat() if row[8] else None,
+                            "usage_count": row[9],
+                            "expires_at": row[10].isoformat() if row[10] else None,
+                            "created_at": row[11].isoformat() if row[11] else None,
+                            "updated_at": row[12].isoformat() if row[12] else None,
+                        })
+                    
+                    return results
 
 
 def update_secret(
