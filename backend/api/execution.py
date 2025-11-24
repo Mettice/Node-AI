@@ -30,7 +30,7 @@ _executions: Dict[str, Execution] = {}
 
 @router.post("/workflows/execute", response_model=ExecutionResponse)
 @limiter.limit("10/minute")
-async def execute_workflow(http_request: Request, request: ExecutionRequest) -> ExecutionResponse:
+async def execute_workflow(request: Request, execution_request: ExecutionRequest) -> ExecutionResponse:
     """
     Execute a workflow.
     
@@ -38,7 +38,7 @@ async def execute_workflow(http_request: Request, request: ExecutionRequest) -> 
     the execution ID and initial status.
     
     Args:
-        request: Execution request containing workflow and options
+        execution_request: Execution request containing workflow and options
         
     Returns:
         Execution response with execution ID and status
@@ -57,21 +57,21 @@ async def execute_workflow(http_request: Request, request: ExecutionRequest) -> 
         from backend.core.models import Execution
         placeholder_execution = Execution(
             id=execution_id,
-            workflow_id=request.workflow.id or "unknown",
+            workflow_id=execution_request.workflow.id or "unknown",
             status=ExecutionStatus.RUNNING,
             started_at=datetime.now(),
         )
         _executions[execution_id] = placeholder_execution
         
         # Get user ID for observability
-        user_id = get_user_id_from_request(http_request)
+        user_id = get_user_id_from_request(request)
         
         # Start workflow execution in background
         # This allows the frontend to connect to SSE stream before execution completes
         async def execute_in_background():
             try:
                 execution = await engine.execute(
-                    workflow=request.workflow,
+                    workflow=execution_request.workflow,
                     execution_id=execution_id,
                     user_id=user_id,
                 )
@@ -98,7 +98,7 @@ async def execute_workflow(http_request: Request, request: ExecutionRequest) -> 
                 from datetime import datetime
                 _executions[execution_id] = Execution(
                     id=execution_id,
-                    workflow_id=request.workflow.id or "unknown",
+                    workflow_id=execution_request.workflow.id or "unknown",
                     status=ExecutionStatus.FAILED,
                     started_at=placeholder_execution.started_at,
                     completed_at=datetime.now(),

@@ -180,13 +180,13 @@ def _list_workflows() -> List[Workflow]:
 
 @router.post("/workflows", response_model=Workflow)
 @limiter.limit("20/minute")
-async def create_workflow(http_request: Request, request: WorkflowCreateRequest) -> Workflow:
+async def create_workflow(request: Request, workflow_request: WorkflowCreateRequest) -> Workflow:
     """
     Create a new workflow.
     
     Args:
-        request: Workflow creation request
-        http_request: FastAPI request object for auth
+        workflow_request: Workflow creation request
+        request: FastAPI request object for auth
         
     Returns:
         Created workflow with ID
@@ -196,23 +196,23 @@ async def create_workflow(http_request: Request, request: WorkflowCreateRequest)
     """
     # Require authentication for non-public workflows
     user_id = None
-    if not request.is_template:
-        user_id = require_user_id(http_request)
+    if not workflow_request.is_template:
+        user_id = require_user_id(request)
     
     try:
         # Convert dicts to Node and Edge objects
-        nodes = [Node(**node) for node in request.nodes]
-        edges = [Edge(**edge) for edge in request.edges]
+        nodes = [Node(**node) for node in workflow_request.nodes]
+        edges = [Edge(**edge) for edge in workflow_request.edges]
         
         # Validate workflow structure using engine
         workflow = Workflow(
             id=str(uuid.uuid4()),
-            name=request.name,
-            description=request.description,
+            name=workflow_request.name,
+            description=workflow_request.description,
             nodes=nodes,
             edges=edges,
-            tags=request.tags,
-            is_template=request.is_template,
+            tags=workflow_request.tags,
+            is_template=workflow_request.is_template,
             owner_id=user_id,  # Set owner
             created_at=datetime.now(),
             updated_at=datetime.now(),
@@ -364,16 +364,16 @@ async def get_workflow(workflow_id: str, request: Request) -> Workflow:
 @limiter.limit("30/minute")
 async def update_workflow(
     workflow_id: str,
-    http_request: Request,
-    request: WorkflowUpdateRequest,
+    request: Request,
+    workflow_request: WorkflowUpdateRequest,
 ) -> Workflow:
     """
     Update a workflow.
     
     Args:
         workflow_id: The workflow ID
-        request: Workflow update request
-        http_request: FastAPI request object for auth
+        workflow_request: Workflow update request
+        request: FastAPI request object for auth
         
     Returns:
         Updated workflow
@@ -382,7 +382,7 @@ async def update_workflow(
         HTTPException: If workflow not found, validation fails, or access denied
     """
     # Require authentication
-    user_id = require_user_id(http_request)
+    user_id = require_user_id(request)
     
     workflow = _load_workflow(workflow_id)
     if not workflow:
@@ -396,18 +396,18 @@ async def update_workflow(
     
     try:
         # Update fields
-        if request.name is not None:
-            workflow.name = request.name
-        if request.description is not None:
-            workflow.description = request.description
-        if request.nodes is not None:
-            workflow.nodes = [Node(**node) for node in request.nodes]
-        if request.edges is not None:
-            workflow.edges = [Edge(**edge) for edge in request.edges]
-        if request.tags is not None:
-            workflow.tags = request.tags
-        if request.is_template is not None:
-            workflow.is_template = request.is_template
+        if workflow_request.name is not None:
+            workflow.name = workflow_request.name
+        if workflow_request.description is not None:
+            workflow.description = workflow_request.description
+        if workflow_request.nodes is not None:
+            workflow.nodes = [Node(**node) for node in workflow_request.nodes]
+        if workflow_request.edges is not None:
+            workflow.edges = [Edge(**edge) for edge in workflow_request.edges]
+        if workflow_request.tags is not None:
+            workflow.tags = workflow_request.tags
+        if workflow_request.is_template is not None:
+            workflow.is_template = workflow_request.is_template
         
         workflow.updated_at = datetime.now()
         
@@ -715,7 +715,8 @@ class WorkflowQueryRequest(BaseModel):
 @router.post("/workflows/{workflow_id}/query", response_model=ExecutionResponse)
 async def query_workflow(
     workflow_id: str,
-    request: WorkflowQueryRequest,
+    query_request: WorkflowQueryRequest,
+    http_request: Request,
     x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
 ) -> ExecutionResponse:
     """
@@ -821,16 +822,16 @@ async def query_workflow(
             # Merge input data into node config based on node type
             if node.type == "vector_search" or node.type == "search":
                 # For search nodes, inject query from input
-                if "query" in request.input:
-                    config["query"] = request.input["query"]
+                if "query" in query_request.input:
+                    config["query"] = query_request.input["query"]
             elif node.type == "chat" or node.type == "llm":
                 # For chat/LLM nodes, inject query from input
-                if "query" in request.input:
-                    config["query"] = request.input["query"]
+                if "query" in query_request.input:
+                    config["query"] = query_request.input["query"]
             elif node.type == "file_loader":
                 # For file loader, inject file_id from input
-                if "file_id" in request.input:
-                    config["file_id"] = request.input["file_id"]
+                if "file_id" in query_request.input:
+                    config["file_id"] = query_request.input["file_id"]
             
             # OPTIMIZATION: Skip file processing if vector store is ready
             # Check if this node feeds into a ready vector store
@@ -855,7 +856,7 @@ async def query_workflow(
                     logger.info(f"Marking {node.type} node {node.id} to skip (vector store ready)")
             
             # Also merge any other input fields that match node config keys
-            for key, value in request.input.items():
+            for key, value in query_request.input.items():
                 if key not in config:  # Don't override existing config
                     config[key] = value
             
@@ -889,7 +890,7 @@ async def query_workflow(
         import uuid
         execution_id = str(uuid.uuid4())
         # Get user ID for observability
-        user_id = get_user_id_from_request(request)
+        user_id = get_user_id_from_request(http_request)
         
         execution = await engine.execute(
             workflow=query_workflow,
