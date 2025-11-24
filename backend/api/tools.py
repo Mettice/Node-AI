@@ -375,9 +375,8 @@ async def _test_llm_connection(provider: Optional[str], api_key: str) -> TestCon
                 client = OpenAI(api_key=api_key)
                 logger.info("OpenAI client created")
                 # Make a simple test call (list models is lightweight)
-                # The OpenAI SDK v1+ supports both sync and async
-                # We'll use sync here since we're in an async function but the SDK handles it
-                models = client.models.list(limit=1)
+                # Use the standard models.list() method without limit parameter
+                models = client.models.list()
                 logger.info("OpenAI models.list() called")
                 # Consume the iterator to actually make the API call
                 models_list = list(models)
