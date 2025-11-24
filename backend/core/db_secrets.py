@@ -371,6 +371,53 @@ def list_secrets(
                         })
                     
                     return results
+        except Exception as e:
+            logger.warning(f"Direct database connection failed for list_secrets, falling back to Supabase client: {e}")
+    
+    # Fall back to Supabase client
+    supabase = get_supabase_client()
+    if supabase:
+        try:
+            logger.debug(f"Using Supabase client to list secrets for user {user_id}")
+            
+            query = supabase.table("secrets_vault").select("*").eq("user_id", user_id)
+            
+            if provider:
+                query = query.eq("provider", provider)
+            if secret_type:
+                query = query.eq("secret_type", secret_type)
+            if is_active is not None:
+                query = query.eq("is_active", is_active)
+            
+            query = query.order("created_at", desc=True)
+            
+            response = query.execute()
+            
+            if response.data:
+                results = []
+                for secret_data in response.data:
+                    results.append({
+                        "id": secret_data["id"],
+                        "user_id": secret_data["user_id"],
+                        "name": secret_data["name"],
+                        "provider": secret_data["provider"],
+                        "secret_type": secret_data["secret_type"],
+                        "description": secret_data.get("description"),
+                        "tags": secret_data.get("tags", []),
+                        "is_active": secret_data.get("is_active", True),
+                        "last_used_at": secret_data.get("last_used_at"),
+                        "usage_count": secret_data.get("usage_count", 0),
+                        "expires_at": secret_data.get("expires_at"),
+                        "created_at": secret_data.get("created_at"),
+                        "updated_at": secret_data.get("updated_at"),
+                    })
+                return results
+        except Exception as e:
+            logger.error(f"Failed to list secrets via Supabase client: {e}")
+            return []
+    
+    logger.warning(f"Neither direct database connection nor Supabase client available for list_secrets")
+    return []
 
 
 def update_secret(
