@@ -79,7 +79,7 @@ export function ExecutionSummary() {
   const nodesWithOutputs = nodeBreakdown.filter(node => node.hasOutput && node.outputPreview);
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="space-y-6">
       {/* Results Section - Show outputs prominently */}
       {nodesWithOutputs.length > 0 && (status === 'completed' || status === 'failed') && (
         <div className="space-y-3">

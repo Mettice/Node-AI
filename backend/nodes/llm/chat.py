@@ -19,6 +19,7 @@ from openai import OpenAI
 from backend.config import settings
 from backend.core.models import NodeMetadata
 from backend.core.node_registry import NodeRegistry
+from backend.core.secret_resolver import resolve_api_key
 from backend.nodes.base import BaseNode
 from backend.utils.logger import get_logger
 from backend.utils.model_pricing import (
@@ -173,8 +174,11 @@ class ChatNode(BaseNode):
         # Render template
         user_prompt = self._render_template(user_prompt_template, template_inputs)
         
-        # Use API key from config if provided, otherwise fall back to settings
-        api_key = config.get("openai_api_key") or settings.openai_api_key
+        # Resolve API key from vault, config, or settings
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "openai_api_key", user_id=user_id)
+        if not api_key:
+            raise ValueError("OpenAI API key not found. Please configure it in the node settings or environment variables.")
         client = OpenAI(api_key=api_key)
         
         messages = []
@@ -294,8 +298,9 @@ class ChatNode(BaseNode):
         config: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Generate response using Azure OpenAI Service."""
-        # Get Azure OpenAI configuration
-        api_key = config.get("azure_openai_api_key") or config.get("azure_api_key")
+        # Resolve Azure OpenAI API key from vault, config, or settings
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "azure_openai_api_key", user_id=user_id) or config.get("azure_api_key")
         endpoint = config.get("azure_openai_endpoint") or config.get("azure_endpoint")
         api_version = config.get("azure_openai_api_version", "2024-02-15-preview")
         deployment_name = config.get("azure_openai_deployment") or config.get("azure_deployment")
@@ -445,10 +450,11 @@ class ChatNode(BaseNode):
                 "anthropic not installed. Install it with: pip install anthropic"
             )
         
-        # Use API key from config if provided, otherwise fall back to settings
-        api_key = config.get("anthropic_api_key") or settings.anthropic_api_key
+        # Resolve API key from vault, config, or settings
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "anthropic_api_key", user_id=user_id)
         if not api_key:
-            raise ValueError("Anthropic API key not configured")
+            raise ValueError("Anthropic API key not found. Please configure it in the node settings or environment variables.")
         
         model = config.get("anthropic_model", "claude-3-5-sonnet-20241022")
         temperature = config.get("temperature", 0.7)
@@ -545,10 +551,11 @@ class ChatNode(BaseNode):
                 "google-genai not installed. Install it with: pip install google-genai"
             )
         
-        # Use API key from config if provided, otherwise fall back to settings
-        api_key = config.get("gemini_api_key") or settings.gemini_api_key
+        # Resolve API key from vault, config, or settings
+        user_id = config.get("_user_id")
+        api_key = resolve_api_key(config, "gemini_api_key", user_id=user_id)
         if not api_key:
-            raise ValueError("Gemini API key not configured")
+            raise ValueError("Gemini API key not found. Please configure it in the node settings or environment variables.")
         
         model = config.get("gemini_model", "gemini-2.5-flash")
         temperature = config.get("temperature", 0.7)

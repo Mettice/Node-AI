@@ -63,7 +63,7 @@ export function ExecutionLogsSidebar() {
       )}
     >
       {/* Header */}
-      <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+      <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between flex-shrink-0">
         <h2 className="text-lg font-semibold text-slate-200">Execution Results</h2>
         <div className="flex items-center gap-1">
           <button
@@ -87,7 +87,7 @@ export function ExecutionLogsSidebar() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-white/10">
+      <div className="flex border-b border-white/10 flex-shrink-0">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
@@ -112,12 +112,14 @@ export function ExecutionLogsSidebar() {
         })}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {activeTab === 'summary' && <ExecutionSummary />}
-        {activeTab === 'logs' && <ExecutionLogs />}
-        {activeTab === 'cost' && <CostIntelligence />}
-        {activeTab === 'trace' && <QueryTracer />}
+      {/* Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
+        <div className="p-4">
+          {activeTab === 'summary' && <ExecutionSummary />}
+          {activeTab === 'logs' && <ExecutionLogs />}
+          {activeTab === 'cost' && <CostIntelligence />}
+          {activeTab === 'trace' && <QueryTracer />}
+        </div>
       </div>
     </div>
   );

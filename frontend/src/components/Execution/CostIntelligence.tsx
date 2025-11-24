@@ -157,7 +157,7 @@ export function CostIntelligence() {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-4">
       {/* Tabs */}
       <div className="flex gap-1 border-b border-white/10 overflow-x-auto">
         {tabs.map((tab) => {

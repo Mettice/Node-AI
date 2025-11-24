@@ -22,6 +22,7 @@ interface APIKeyInputWithVaultProps {
   serviceName?: string;
   provider?: string; // Provider name for vault filtering (e.g., 'openai', 'anthropic')
   secretType?: string; // Secret type (default: 'api_key')
+  secretId?: string; // Secret ID from config (if key is from vault)
 }
 
 export function APIKeyInputWithVault({
@@ -36,19 +37,21 @@ export function APIKeyInputWithVault({
   serviceName = 'API',
   provider,
   secretType = 'api_key',
+  secretId: initialSecretId,
 }: APIKeyInputWithVaultProps) {
   const [showKey, setShowKey] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
-  const [useVault, setUseVault] = useState(false);
-  const [selectedSecretId, setSelectedSecretId] = useState<string>('');
+  const [useVault, setUseVault] = useState(!!initialSecretId);
+  const [selectedSecretId, setSelectedSecretId] = useState<string>(initialSecretId || '');
   const [saveToVault, setSaveToVault] = useState(true);
   const queryClient = useQueryClient();
 
-  // Fetch secrets from vault if provider is specified
+  // Fetch secrets from vault if provider is specified (always fetch to show available secrets)
   const { data: secrets = [] } = useQuery({
     queryKey: ['secrets', provider, secretType],
     queryFn: async () => {
+      if (!provider) return [];
       const list = await secretsApi.list({ provider, secret_type: secretType, is_active: true });
       // Fetch decrypted values for each secret
       const secretsWithValues = await Promise.all(
@@ -63,20 +66,36 @@ export function APIKeyInputWithVault({
       );
       return secretsWithValues;
     },
-    enabled: !!provider && useVault,
+    enabled: !!provider, // Always fetch if provider is specified
   });
 
-  // Check if current value is from vault (has secret_id in config)
+  // Check if current value is from vault (has secret_id in config or matches a vault secret)
   useEffect(() => {
-    // If value exists and we have secrets, check if it matches a vault secret
-    if (value && secrets.length > 0) {
+    // If secret_id is provided, use vault mode
+    if (initialSecretId) {
+      setUseVault(true);
+      setSelectedSecretId(initialSecretId);
+      // Load the secret value if not already loaded
+      if (!value && initialSecretId) {
+        secretsApi.get(initialSecretId, true)
+          .then((secret) => {
+            if (secret.value) {
+              onChange(secret.value, initialSecretId);
+            }
+          })
+          .catch((err) => {
+            console.error('Failed to load secret from vault:', err);
+          });
+      }
+    } else if (value && secrets.length > 0) {
+      // If value exists and we have secrets, check if it matches a vault secret
       const matchingSecret = secrets.find((s) => s.value === value);
       if (matchingSecret) {
         setUseVault(true);
         setSelectedSecretId(matchingSecret.id);
       }
     }
-  }, [value, secrets]);
+  }, [value, secrets, initialSecretId, onChange]);
 
   const createSecretMutation = useMutation({
     mutationFn: (keyValue: string) =>

@@ -202,6 +202,7 @@ export function getSpecialFieldHandler(context: FieldHandlerContext): React.Reac
         <APIKeyInputWithVault
           key={key}
           value={formValues[key] || ''}
+          secretId={formValues[`${key}_secret_id`]}
           onChange={(value, secretId) => {
             setValue(key, value);
             // Store secret ID if using vault

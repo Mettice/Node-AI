@@ -89,6 +89,9 @@ class WorkflowEngine:
 
         execution_id = execution_id or str(uuid.uuid4())
         started_at = datetime.now()
+        
+        # Store user_id for node execution
+        self._user_id = user_id
 
         logger.info(f"Starting workflow execution: {execution_id}")
 
@@ -553,6 +556,9 @@ class WorkflowEngine:
             node_config = node.data.copy() if node.data else {}
             node_config["_node_id"] = node.id
             node_config["_execution_id"] = execution_id
+            # Add user_id for vault access
+            if hasattr(self, '_user_id') and self._user_id:
+                node_config["_user_id"] = self._user_id
 
             # Execute node
             start_time = time.time()

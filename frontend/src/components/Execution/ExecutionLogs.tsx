@@ -49,7 +49,7 @@ export function ExecutionLogs() {
   ).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="space-y-4">
       {/* Real-time Event Feed */}
       {allEvents.length > 0 && (
         <div className="space-y-2">

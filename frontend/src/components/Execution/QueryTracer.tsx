@@ -125,7 +125,7 @@ export function QueryTracer({ executionId }: QueryTracerProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-4">
       {/* Trace Header */}
       <div className="glass rounded-lg p-4 border border-white/10">
         <div className="flex items-start justify-between mb-3">
