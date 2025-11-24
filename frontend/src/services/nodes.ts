@@ -102,6 +102,9 @@ export async function testLLMConnection(
     );
     console.log('LLM test response:', response.data);
     console.log('Connected status:', response.data.connected);
+    if (!response.data.connected) {
+      console.log('Connection failed, message:', response.data.message);
+    }
     return response.data.connected;
   } catch (error: any) {
     console.error('LLM connection test failed:', error);

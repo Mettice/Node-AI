@@ -368,26 +368,33 @@ async def _test_llm_connection(provider: Optional[str], api_key: str) -> TestCon
     
     try:
         if provider == "openai":
+            logger.info(f"Testing OpenAI connection with API key: {'***' if api_key else 'None'}")
             try:
                 from openai import OpenAI
+                logger.info("OpenAI package imported successfully")
                 client = OpenAI(api_key=api_key)
+                logger.info("OpenAI client created")
                 # Make a simple test call (list models is lightweight)
                 # The OpenAI SDK v1+ supports both sync and async
                 # We'll use sync here since we're in an async function but the SDK handles it
                 models = client.models.list(limit=1)
+                logger.info("OpenAI models.list() called")
                 # Consume the iterator to actually make the API call
-                list(models)
+                models_list = list(models)
+                logger.info(f"OpenAI test successful, got {len(models_list)} model(s)")
                 return TestConnectionResponse(
                     connected=True,
                     message="OpenAI connection successful"
                 )
-            except ImportError:
+            except ImportError as e:
+                logger.error(f"OpenAI import error: {e}")
                 return TestConnectionResponse(
                     connected=False,
                     message="OpenAI package not installed. Install with: pip install openai"
                 )
             except Exception as e:
                 error_msg = str(e)
+                logger.error(f"OpenAI connection test failed: {error_msg}", exc_info=True)
                 # Check for authentication errors
                 if any(keyword in error_msg.lower() for keyword in ["401", "invalid", "authentication", "api_key", "unauthorized", "incorrect api key"]):
                     return TestConnectionResponse(
