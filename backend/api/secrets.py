@@ -104,6 +104,7 @@ async def list_secrets_endpoint(
             provider=provider,
             secret_type=secret_type,
             is_active=is_active,
+            jwt_token=user_context.get("jwt_token"),
         )
         return [SecretResponse(**s) for s in secrets]
     except Exception as e:
@@ -126,6 +127,7 @@ async def get_secret_endpoint(
             secret_id=secret_id,
             user_id=user_context["id"],
             decrypt=decrypt,
+            jwt_token=user_context.get("jwt_token"),
         )
         if not secret:
             raise HTTPException(

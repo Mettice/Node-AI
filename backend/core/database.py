@@ -123,10 +123,11 @@ def initialize_database(settings: Settings) -> None:
         
         if db_url:
             try:
-                # Test the connection first
-                test_conn = psycopg2.connect(db_url, connect_timeout=5)
+                # Test the connection first with longer timeout for Railway/cloud databases
+                logger.info("Testing direct database connection...")
+                test_conn = psycopg2.connect(db_url, connect_timeout=10)
                 test_conn.close()
-                logger.info("Database connection test successful")
+                logger.info("✓ Database connection test successful")
                 
                 # Create connection pool
                 # minconn=1, maxconn=10 connections
@@ -135,14 +136,24 @@ def initialize_database(settings: Settings) -> None:
                     maxconn=10,
                     dsn=db_url
                 )
-                logger.info("Database connection pool initialized successfully")
+                logger.info("✓ Database connection pool initialized successfully")
             except psycopg2.OperationalError as e:
-                logger.error(f"Failed to connect to database: {e}")
-                logger.warning("Database connection pool not initialized. Will use Supabase client as fallback.")
+                error_msg = str(e)
+                logger.error(f"✗ Failed to connect to database (OperationalError): {error_msg}")
+                logger.warning("⚠ Database connection pool not initialized. Will use Supabase client as fallback.")
+                logger.info("💡 Common causes: incorrect DATABASE_URL, network timeout, or firewall blocking connection")
+                # Don't raise - allow Supabase client to be used as fallback
+            except psycopg2.InterfaceError as e:
+                error_msg = str(e)
+                logger.error(f"✗ Failed to connect to database (InterfaceError): {error_msg}")
+                logger.warning("⚠ Database connection pool not initialized. Will use Supabase client as fallback.")
+                logger.info("💡 This usually indicates a connection pool or network issue")
                 # Don't raise - allow Supabase client to be used as fallback
             except Exception as e:
-                logger.error(f"Failed to initialize database connection pool: {e}")
-                logger.warning("Database connection pool not initialized. Will use Supabase client as fallback.")
+                error_msg = str(e)
+                error_type = type(e).__name__
+                logger.error(f"✗ Failed to initialize database connection pool ({error_type}): {error_msg}")
+                logger.warning("⚠ Database connection pool not initialized. Will use Supabase client as fallback.")
                 # Don't raise - allow Supabase client to be used as fallback
         else:
             logger.warning(

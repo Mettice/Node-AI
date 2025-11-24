@@ -191,64 +191,113 @@ def create_secret(
     raise RuntimeError(error_msg)
 
 
-def get_secret(secret_id: str, user_id: str, decrypt: bool = False) -> Optional[Dict[str, Any]]:
+def get_secret(secret_id: str, user_id: str, decrypt: bool = False, jwt_token: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """
     Get a secret by ID.
+    
+    Uses direct database connection if available, otherwise falls back to Supabase client.
     
     Args:
         secret_id: Secret ID
         user_id: User ID (for access control)
         decrypt: Whether to decrypt the secret value
+        jwt_token: Optional JWT token for user-authenticated Supabase client
         
     Returns:
         Secret dictionary (with decrypted value if decrypt=True)
     """
-    if not is_database_configured():
-        return None
+    # Try direct database connection first
+    if is_database_configured():
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        SELECT id, user_id, name, provider, secret_type, encrypted_value,
+                               description, tags, is_active, last_used_at, usage_count,
+                               expires_at, created_at, updated_at
+                        FROM secrets_vault
+                        WHERE id = %s AND user_id = %s
+                        """,
+                        (secret_id, user_id),
+                    )
+                    
+                    row = cur.fetchone()
+                    if row:
+                        result = {
+                            "id": str(row[0]),
+                            "user_id": str(row[1]),
+                            "name": row[2],
+                            "provider": row[3],
+                            "secret_type": row[4],
+                            "description": row[6],
+                            "tags": row[7] if row[7] else [],
+                            "is_active": row[8],
+                            "last_used_at": row[9].isoformat() if row[9] else None,
+                            "usage_count": row[10],
+                            "expires_at": row[11].isoformat() if row[11] else None,
+                            "created_at": row[12].isoformat() if row[12] else None,
+                            "updated_at": row[13].isoformat() if row[13] else None,
+                        }
+                        
+                        # Decrypt if requested
+                        if decrypt:
+                            try:
+                                encrypted_value = row[5]
+                                result["value"] = decrypt_secret(user_id, encrypted_value)
+                            except Exception as e:
+                                logger.error(f"Failed to decrypt secret {secret_id}: {e}")
+                                result["value"] = None
+                        
+                        return result
+        except Exception as e:
+            logger.warning(f"Direct database connection failed for get_secret, falling back to Supabase client: {e}")
     
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT id, user_id, name, provider, secret_type, encrypted_value,
-                       description, tags, is_active, last_used_at, usage_count,
-                       expires_at, created_at, updated_at
-                FROM secrets_vault
-                WHERE id = %s AND user_id = %s
-                """,
-                (secret_id, user_id),
-            )
+    # Fall back to Supabase client
+    supabase = get_supabase_client()
+    if supabase:
+        try:
+            logger.debug(f"Using Supabase client to get secret {secret_id} for user {user_id}")
             
-            row = cur.fetchone()
-            if not row:
-                return None
+            response = supabase.table("secrets_vault").select("*").eq("id", secret_id).eq("user_id", user_id).execute()
             
-            result = {
-                "id": str(row[0]),
-                "user_id": str(row[1]),
-                "name": row[2],
-                "provider": row[3],
-                "secret_type": row[4],
-                "description": row[6],
-                "tags": row[7] if row[7] else [],
-                "is_active": row[8],
-                "last_used_at": row[9].isoformat() if row[9] else None,
-                "usage_count": row[10],
-                "expires_at": row[11].isoformat() if row[11] else None,
-                "created_at": row[12].isoformat() if row[12] else None,
-                "updated_at": row[13].isoformat() if row[13] else None,
-            }
-            
-            # Decrypt if requested
-            if decrypt:
-                try:
-                    encrypted_value = row[5]
-                    result["value"] = decrypt_secret(user_id, encrypted_value)
-                except Exception as e:
-                    logger.error(f"Failed to decrypt secret {secret_id}: {e}")
-                    result["value"] = None
-            
-            return result
+            if response.data and len(response.data) > 0:
+                secret_data = response.data[0]
+                result = {
+                    "id": secret_data["id"],
+                    "user_id": secret_data["user_id"],
+                    "name": secret_data["name"],
+                    "provider": secret_data["provider"],
+                    "secret_type": secret_data["secret_type"],
+                    "description": secret_data.get("description"),
+                    "tags": secret_data.get("tags", []),
+                    "is_active": secret_data.get("is_active", True),
+                    "last_used_at": secret_data.get("last_used_at"),
+                    "usage_count": secret_data.get("usage_count", 0),
+                    "expires_at": secret_data.get("expires_at"),
+                    "created_at": secret_data.get("created_at"),
+                    "updated_at": secret_data.get("updated_at"),
+                }
+                
+                # Decrypt if requested
+                if decrypt:
+                    try:
+                        encrypted_value = secret_data.get("encrypted_value")
+                        if encrypted_value:
+                            result["value"] = decrypt_secret(user_id, encrypted_value)
+                        else:
+                            result["value"] = None
+                    except Exception as e:
+                        logger.error(f"Failed to decrypt secret {secret_id}: {e}")
+                        result["value"] = None
+                
+                return result
+        except Exception as e:
+            logger.error(f"Failed to get secret via Supabase client: {e}")
+            return None
+    
+    logger.warning(f"Neither direct database connection nor Supabase client available for get_secret")
+    return None
 
 
 def list_secrets(
@@ -256,46 +305,50 @@ def list_secrets(
     provider: Optional[str] = None,
     secret_type: Optional[str] = None,
     is_active: Optional[bool] = None,
+    jwt_token: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
     List all secrets for a user.
+    
+    Uses direct database connection if available, otherwise falls back to Supabase client.
     
     Args:
         user_id: User ID
         provider: Optional provider filter
         secret_type: Optional type filter
         is_active: Optional active status filter
+        jwt_token: Optional JWT token for user-authenticated Supabase client
         
     Returns:
         List of secret dictionaries (without decrypted values)
     """
-    if not is_database_configured():
-        return []
-    
-    query = """
-        SELECT id, user_id, name, provider, secret_type, description,
-               tags, is_active, last_used_at, usage_count,
-               expires_at, created_at, updated_at
-        FROM secrets_vault
-        WHERE user_id = %s
-    """
-    params = [user_id]
-    
-    if provider:
-        query += " AND provider = %s"
-        params.append(provider)
-    
-    if secret_type:
-        query += " AND secret_type = %s"
-        params.append(secret_type)
-    
-    if is_active is not None:
-        query += " AND is_active = %s"
-        params.append(is_active)
-    
-    query += " ORDER BY created_at DESC"
-    
-    with get_db_connection() as conn:
+    # Try direct database connection first
+    if is_database_configured():
+        try:
+            query = """
+                SELECT id, user_id, name, provider, secret_type, description,
+                       tags, is_active, last_used_at, usage_count,
+                       expires_at, created_at, updated_at
+                FROM secrets_vault
+                WHERE user_id = %s
+            """
+            params = [user_id]
+            
+            if provider:
+                query += " AND provider = %s"
+                params.append(provider)
+            
+            if secret_type:
+                query += " AND secret_type = %s"
+                params.append(secret_type)
+            
+            if is_active is not None:
+                query += " AND is_active = %s"
+                params.append(is_active)
+            
+            query += " ORDER BY created_at DESC"
+            
+            with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(query, params)
             
