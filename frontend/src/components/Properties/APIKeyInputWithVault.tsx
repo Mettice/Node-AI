@@ -45,6 +45,7 @@ export function APIKeyInputWithVault({
   const [useVault, setUseVault] = useState(!!initialSecretId);
   const [selectedSecretId, setSelectedSecretId] = useState<string>(initialSecretId || '');
   const [saveToVault, setSaveToVault] = useState(true);
+  const [secretNotFound, setSecretNotFound] = useState(false);
   const queryClient = useQueryClient();
 
   // Fetch secrets from vault if provider is specified (always fetch to show available secrets)
@@ -75,25 +76,33 @@ export function APIKeyInputWithVault({
     if (initialSecretId) {
       setUseVault(true);
       setSelectedSecretId(initialSecretId);
+      setSecretNotFound(false);
       // Load the secret value if not already loaded
       if (!value && initialSecretId) {
         secretsApi.get(initialSecretId, true)
           .then((secret) => {
             if (secret.value) {
               onChange(secret.value, initialSecretId);
+              setSecretNotFound(false);
             }
           })
           .catch((err) => {
             // Secret not found or access denied - clear the secret_id reference
             if (err.response?.status === 404) {
               console.warn(`Secret ${initialSecretId} not found, clearing reference`);
+              setSecretNotFound(true);
               onChange('', undefined);
               setUseVault(false);
               setSelectedSecretId('');
+              toast.error(`Secret not found in vault. Please select a new secret or enter a new API key.`);
             } else {
               console.error('Failed to load secret from vault:', err);
+              setSecretNotFound(true);
             }
           });
+      } else if (value) {
+        // Value already loaded, just verify the secret exists
+        setSecretNotFound(false);
       }
     } else if (value && secrets.length > 0) {
       // If value exists and we have secrets, check if it matches a vault secret
@@ -101,7 +110,11 @@ export function APIKeyInputWithVault({
       if (matchingSecret) {
         setUseVault(true);
         setSelectedSecretId(matchingSecret.id);
+        setSecretNotFound(false);
       }
+    } else if (!initialSecretId && !value) {
+      // Reset secret not found state when switching away from vault
+      setSecretNotFound(false);
     }
   }, [value, secrets, initialSecretId, onChange]);
 
@@ -218,14 +231,15 @@ export function APIKeyInputWithVault({
         <p className="text-xs text-slate-400 -mt-2">{description}</p>
       )}
 
-      {/* Vault Toggle (only show if provider is specified) */}
-      {provider && secrets.length > 0 && (
+      {/* Vault Toggle (always show if provider is specified) */}
+      {provider && (
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => {
               setUseVault(false);
               setSelectedSecretId('');
+              setSecretNotFound(false);
             }}
             className={cn(
               'flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors',
@@ -239,7 +253,10 @@ export function APIKeyInputWithVault({
           </button>
           <button
             type="button"
-            onClick={() => setUseVault(true)}
+            onClick={() => {
+              setUseVault(true);
+              setSecretNotFound(false);
+            }}
             className={cn(
               'flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors',
               useVault
@@ -259,27 +276,47 @@ export function APIKeyInputWithVault({
       )}
 
       {/* Vault Selection */}
-      {useVault && provider && secrets.length > 0 ? (
+      {useVault && provider ? (
         <div className="space-y-2">
-          <select
-            value={selectedSecretId}
-            onChange={(e) => {
-              handleVaultSelection(e.target.value);
-            }}
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 [&>option]:bg-slate-800 [&>option]:text-white"
-            style={{ colorScheme: 'dark' }}
-          >
-            <option value="">Select from vault...</option>
-            {secrets.map((secret) => (
-              <option key={secret.id} value={secret.id}>
-                {secret.name} {secret.last_used_at && `(Last used: ${new Date(secret.last_used_at).toLocaleDateString()})`}
-              </option>
-            ))}
-          </select>
-          {selectedSecretId && (
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <Database className="w-3 h-3" />
-              <span>Using secret from vault</span>
+          {secrets.length > 0 ? (
+            <>
+              <select
+                value={selectedSecretId}
+                onChange={(e) => {
+                  handleVaultSelection(e.target.value);
+                  setSecretNotFound(false);
+                }}
+                className={cn(
+                  'w-full px-3 py-2 bg-white/5 border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 [&>option]:bg-slate-800 [&>option]:text-white',
+                  secretNotFound ? 'border-red-500/50' : 'border-white/10'
+                )}
+                style={{ colorScheme: 'dark' }}
+              >
+                <option value="">Select from vault...</option>
+                {secrets.map((secret) => (
+                  <option key={secret.id} value={secret.id}>
+                    {secret.name} {secret.last_used_at && `(Last used: ${new Date(secret.last_used_at).toLocaleDateString()})`}
+                  </option>
+                ))}
+              </select>
+              {selectedSecretId && !secretNotFound && (
+                <div className="flex items-center gap-2 text-xs text-green-400">
+                  <Database className="w-3 h-3" />
+                  <span>✓ Using secret from vault</span>
+                </div>
+              )}
+              {secretNotFound && (
+                <div className="flex items-center gap-2 text-xs text-red-400">
+                  <XCircle className="w-3 h-3" />
+                  <span>Secret not found in vault. Please select a different secret or enter a new key.</span>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="px-3 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+              <p className="text-xs text-yellow-400">
+                No secrets found in vault for this provider. Enter a new API key below and save it to the vault.
+              </p>
             </div>
           )}
         </div>

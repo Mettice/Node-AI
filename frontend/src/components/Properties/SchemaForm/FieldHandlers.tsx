@@ -242,11 +242,15 @@ export function getSpecialFieldHandler(context: FieldHandlerContext): React.Reac
           secretId={formValues[`${key}_secret_id`]}
           onChange={(value, secretId) => {
             setValue(key, value);
-            // Store secret ID if using vault
+            // Store secret ID if using vault, clear it if not
             if (secretId) {
               setValue(`${key}_secret_id`, secretId);
             } else {
-              setValue(`${key}_secret_id`, undefined);
+              // Explicitly remove the secret_id field when clearing
+              const currentValues = formValues;
+              if (currentValues[`${key}_secret_id`]) {
+                setValue(`${key}_secret_id`, undefined);
+              }
             }
           }}
           placeholder={fieldSchema.description || 'Enter API key...'}
