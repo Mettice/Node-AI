@@ -115,6 +115,11 @@ def initialize_database(settings: Settings) -> None:
         
         if db_url:
             try:
+                # Test the connection first
+                test_conn = psycopg2.connect(db_url, connect_timeout=5)
+                test_conn.close()
+                logger.info("Database connection test successful")
+                
                 # Create connection pool
                 # minconn=1, maxconn=10 connections
                 _connection_pool = ThreadedConnectionPool(
@@ -123,13 +128,18 @@ def initialize_database(settings: Settings) -> None:
                     dsn=db_url
                 )
                 logger.info("Database connection pool initialized successfully")
+            except psycopg2.OperationalError as e:
+                logger.error(f"Failed to connect to database: {e}")
+                logger.warning("Database connection pool not initialized. Will use Supabase client as fallback.")
+                # Don't raise - allow Supabase client to be used as fallback
             except Exception as e:
                 logger.error(f"Failed to initialize database connection pool: {e}")
-                raise
+                logger.warning("Database connection pool not initialized. Will use Supabase client as fallback.")
+                # Don't raise - allow Supabase client to be used as fallback
         else:
             logger.warning(
                 "DATABASE_URL not set. Database connection pool not initialized. "
-                "Set DATABASE_URL environment variable to enable direct database access."
+                "Will use Supabase client if available."
             )
 
 
@@ -191,9 +201,19 @@ def is_database_configured() -> bool:
     Check if database is configured and connection pool is initialized.
     
     Returns:
-        True if database is configured and connection pool exists, False otherwise
+        True if database connection pool exists, False otherwise
     """
-    return _connection_pool is not None and _settings is not None and _settings.supabase_url is not None
+    return _connection_pool is not None
+
+
+def is_supabase_configured() -> bool:
+    """
+    Check if Supabase client is configured.
+    
+    Returns:
+        True if Supabase client is initialized, False otherwise
+    """
+    return _supabase_client is not None and _settings is not None and _settings.supabase_url is not None
 
 
 def execute_query(query: str, params: Optional[tuple] = None) -> list:

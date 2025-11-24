@@ -2,12 +2,13 @@
 Database operations for secrets vault.
 
 This module provides CRUD operations for user secrets using the database.
+Falls back to Supabase client if direct database connection is not available.
 """
 
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
-from backend.core.database import get_db_connection, is_database_configured
+from backend.core.database import get_db_connection, is_database_configured, get_supabase_client, is_supabase_configured
 from backend.core.encryption import encrypt_secret, decrypt_secret
 from backend.utils.logger import get_logger
 
@@ -27,6 +28,8 @@ def create_secret(
     """
     Create a new secret in the vault.
     
+    Uses direct database connection if available, otherwise falls back to Supabase client.
+    
     Args:
         user_id: User ID
         name: Secret name
@@ -40,54 +43,113 @@ def create_secret(
     Returns:
         Created secret dictionary (without decrypted value)
     """
-    if not is_database_configured():
-        raise RuntimeError("Database not configured")
-    
     # Encrypt the secret
     encrypted_value = encrypt_secret(user_id, secret_value)
     
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO secrets_vault (
-                    user_id, name, provider, secret_type, encrypted_value,
-                    description, tags, expires_at, encryption_key_id
-                )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'v1')
-                ON CONFLICT (user_id, provider, secret_type) DO UPDATE
-                SET name = EXCLUDED.name,
-                    encrypted_value = EXCLUDED.encrypted_value,
-                    description = EXCLUDED.description,
-                    tags = EXCLUDED.tags,
-                    expires_at = EXCLUDED.expires_at,
-                    updated_at = NOW()
-                RETURNING id, user_id, name, provider, secret_type, description,
-                          tags, is_active, last_used_at, usage_count,
-                          expires_at, created_at, updated_at
-                """,
-                (
-                    user_id, name, provider, secret_type, encrypted_value,
-                    description, tags, expires_at
-                ),
-            )
-            row = cur.fetchone()
-            
-            return {
-                "id": str(row[0]),
-                "user_id": str(row[1]),
-                "name": row[2],
-                "provider": row[3],
-                "secret_type": row[4],
-                "description": row[5],
-                "tags": row[6] if row[6] else [],
-                "is_active": row[7],
-                "last_used_at": row[8].isoformat() if row[8] else None,
-                "usage_count": row[9],
-                "expires_at": row[10].isoformat() if row[10] else None,
-                "created_at": row[11].isoformat() if row[11] else None,
-                "updated_at": row[12].isoformat() if row[12] else None,
+    # Try direct database connection first
+    if is_database_configured():
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        INSERT INTO secrets_vault (
+                            user_id, name, provider, secret_type, encrypted_value,
+                            description, tags, expires_at, encryption_key_id
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'v1')
+                        ON CONFLICT (user_id, provider, secret_type) DO UPDATE
+                        SET name = EXCLUDED.name,
+                            encrypted_value = EXCLUDED.encrypted_value,
+                            description = EXCLUDED.description,
+                            tags = EXCLUDED.tags,
+                            expires_at = EXCLUDED.expires_at,
+                            updated_at = NOW()
+                        RETURNING id, user_id, name, provider, secret_type, description,
+                                  tags, is_active, last_used_at, usage_count,
+                                  expires_at, created_at, updated_at
+                        """,
+                        (
+                            user_id, name, provider, secret_type, encrypted_value,
+                            description, tags, expires_at
+                        ),
+                    )
+                    row = cur.fetchone()
+                    
+                    return {
+                        "id": str(row[0]),
+                        "user_id": str(row[1]),
+                        "name": row[2],
+                        "provider": row[3],
+                        "secret_type": row[4],
+                        "description": row[5],
+                        "tags": row[6] if row[6] else [],
+                        "is_active": row[7],
+                        "last_used_at": row[8].isoformat() if row[8] else None,
+                        "usage_count": row[9],
+                        "expires_at": row[10].isoformat() if row[10] else None,
+                        "created_at": row[11].isoformat() if row[11] else None,
+                        "updated_at": row[12].isoformat() if row[12] else None,
+                    }
+        except Exception as e:
+            logger.warning(f"Direct database connection failed, falling back to Supabase client: {e}")
+    
+    # Fallback to Supabase client
+    supabase = get_supabase_client()
+    if supabase:
+        try:
+            # Prepare data for Supabase
+            secret_data = {
+                "user_id": user_id,
+                "name": name,
+                "provider": provider,
+                "secret_type": secret_type,
+                "encrypted_value": encrypted_value,
+                "description": description,
+                "tags": tags or [],
+                "encryption_key_id": "v1",
             }
+            if expires_at:
+                secret_data["expires_at"] = expires_at.isoformat()
+            
+            # Use upsert (insert or update on conflict)
+            result = supabase.table("secrets_vault").upsert(
+                secret_data,
+                on_conflict="user_id,provider,secret_type"
+            ).execute()
+            
+            if result.data and len(result.data) > 0:
+                secret = result.data[0]
+                return {
+                    "id": str(secret["id"]),
+                    "user_id": str(secret["user_id"]),
+                    "name": secret["name"],
+                    "provider": secret["provider"],
+                    "secret_type": secret["secret_type"],
+                    "description": secret.get("description"),
+                    "tags": secret.get("tags", []),
+                    "is_active": secret.get("is_active", True),
+                    "last_used_at": secret.get("last_used_at"),
+                    "usage_count": secret.get("usage_count", 0),
+                    "expires_at": secret.get("expires_at"),
+                    "created_at": secret.get("created_at"),
+                    "updated_at": secret.get("updated_at"),
+                }
+            else:
+                raise RuntimeError("Failed to create secret via Supabase")
+        except Exception as e:
+            logger.error(f"Failed to create secret via Supabase: {e}")
+            raise RuntimeError(f"Failed to create secret: {str(e)}")
+    
+    # No database or Supabase available
+    if not is_supabase_configured():
+        raise RuntimeError(
+            "Database not configured. Please set DATABASE_URL environment variable or configure Supabase (SUPABASE_URL and SUPABASE_ANON_KEY)."
+        )
+    else:
+        raise RuntimeError(
+            "Failed to create secret. Database connection pool not initialized. Please set DATABASE_URL environment variable."
+        )
 
 
 def get_secret(secret_id: str, user_id: str, decrypt: bool = False) -> Optional[Dict[str, Any]]:

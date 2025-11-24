@@ -34,7 +34,7 @@ from backend.core.security import add_security_headers, sanitize_dict
 
 from backend.config import settings
 from backend.utils.logger import get_logger
-from backend.core.database import initialize_database, close_database, is_database_configured
+from backend.core.database import initialize_database, close_database, is_database_configured, is_supabase_configured
 from backend.middleware.auth import AuthMiddleware
 
 # Initialize logger first
@@ -103,11 +103,17 @@ async def lifespan(app: FastAPI):
     try:
         initialize_database(settings)
         if is_database_configured():
-            logger.info("Database connection initialized")
+            logger.info("✓ Database connection pool initialized successfully")
+        elif is_supabase_configured():
+            logger.info("✓ Supabase client initialized (using Supabase for database operations)")
         else:
-            logger.info("Database not configured (file-based storage mode)")
+            logger.warning("⚠ Database not configured (file-based storage mode)")
     except Exception as e:
-        logger.warning(f"Database initialization failed: {e}. Continuing with file-based storage.")
+        logger.error(f"Database initialization failed: {e}")
+        if is_supabase_configured():
+            logger.info("✓ Supabase client available (will use Supabase for database operations)")
+        else:
+            logger.warning("Continuing without database support")
 
     # Import nodes to trigger registration
     import backend.nodes  # noqa: F401
