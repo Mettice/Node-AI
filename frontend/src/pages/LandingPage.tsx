@@ -9,7 +9,9 @@ import {
   ArrowRight, Play, Zap, DollarSign, Shield, Code, 
   BarChart3, Users, CheckCircle, Star, Github, 
   Cpu, Database, Brain, Target, TrendingDown,
-  Monitor, Lock, Cloud, Workflow
+  Monitor, Lock, Cloud, Workflow, Eye, Key,
+  Rocket, BookOpen, TrendingUp, Activity, 
+  FileText, Search, Layers, Settings
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
@@ -44,6 +46,7 @@ export function LandingPage() {
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-slate-300 hover:text-white transition-colors">Features</a>
+              <a href="#observability" className="text-slate-300 hover:text-white transition-colors">Observability</a>
               <a href="#industries" className="text-slate-300 hover:text-white transition-colors">Industries</a>
               <a href="#pricing" className="text-slate-300 hover:text-white transition-colors">Pricing</a>
               <Link 
@@ -101,6 +104,7 @@ export function LandingPage() {
             </div>
             <div className="p-4 space-y-4">
               <a href="#features" className="block text-slate-300 hover:text-white py-2 transition-colors">Features</a>
+              <a href="#observability" className="block text-slate-300 hover:text-white py-2 transition-colors">Observability</a>
               <a href="#industries" className="block text-slate-300 hover:text-white py-2 transition-colors">Industries</a>
               <a href="#pricing" className="block text-slate-300 hover:text-white py-2 transition-colors">Pricing</a>
               <div className="border-t border-white/10 pt-4 mt-4 space-y-3">
@@ -134,15 +138,15 @@ export function LandingPage() {
             </div>
             
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold mb-4 md:mb-6 leading-tight px-2">
-              <span className="block">The Intelligence Layer</span>
+              <span className="block">Production AI Platform</span>
               <span className="block bg-gradient-to-r from-purple-400 via-cyan-400 to-green-400 bg-clip-text text-transparent">
-                Your AI Stack Needs
+                From Development to Production
               </span>
             </h1>
             
             <p className="text-base sm:text-lg md:text-xl text-slate-400 mb-6 md:mb-8 max-w-4xl mx-auto leading-relaxed px-2">
-              From prompt to production in minutes. Build multi-agent teams, orchestrate complex workflows, 
-              and deploy intelligent systems that actually work. The platform where AI ideas become reality.
+              Build, deploy, and monitor enterprise-grade AI systems. Multi-agent orchestration, production observability, 
+              and enterprise security—all in one platform. Deploy in minutes, monitor forever.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center mb-8 md:mb-12 px-4">
@@ -162,7 +166,7 @@ export function LandingPage() {
             </div>
 
             {/* Value Props */}
-            <div className="flex flex-wrap justify-center items-center gap-8 text-slate-400 text-sm">
+            <div className="flex flex-wrap justify-center items-center gap-6 md:gap-8 text-slate-400 text-sm">
               <div className="flex items-center gap-2">
                 <Brain className="w-4 h-4 text-purple-400" />
                 <span>50+ AI Components</span>
@@ -172,12 +176,16 @@ export function LandingPage() {
                 <span>Multi-Agent Teams</span>
               </div>
               <div className="flex items-center gap-2">
-                <Code className="w-4 h-4 text-green-400" />
-                <span>Code Export</span>
+                <Eye className="w-4 h-4 text-green-400" />
+                <span>Full Observability</span>
               </div>
               <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-yellow-400" />
-                <span>5-min Setup</span>
+                <Key className="w-4 h-4 text-yellow-400" />
+                <span>Enterprise Security</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Rocket className="w-4 h-4 text-pink-400" />
+                <span>One-Click Deploy</span>
               </div>
             </div>
           </div>
@@ -641,66 +649,379 @@ export function LandingPage() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Production Intelligence */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      {/* Observability & Production Features Section */}
+      <section id="observability" className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/20">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-bold mb-6">
+              Production-Ready
+              <span className="bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent"> Features</span>
+            </h2>
+            <p className="text-xl text-slate-400 max-w-4xl mx-auto">
+              Enterprise-grade observability, security, and deployment. Everything you need to run AI systems in production.
+            </p>
+          </div>
+
+          {/* Observability & Monitoring */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20">
+            <div>
+              <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-2 mb-6">
+                <Eye className="w-4 h-4 text-emerald-400" />
+                <span className="text-sm text-emerald-300">Full Observability</span>
+              </div>
+              <h3 className="text-3xl font-bold mb-4">See Every Token, Track Every Cost</h3>
+              <p className="text-slate-400 mb-6 leading-relaxed">
+                End-to-end execution traces, span-level performance metrics, and AI-powered cost forecasting. 
+                Debug faster, optimize smarter, and forecast expenses with confidence.
+              </p>
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <span>End-to-end execution traces</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <span>Cost forecasting based on historical data</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <span>Span-level performance metrics</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <span>LangSmith & LangFuse integration</span>
+                </li>
+              </ul>
+            </div>
+            <div className="bg-gradient-to-br from-slate-900 to-emerald-900/20 rounded-xl p-6 border border-emerald-500/20">
+              <div className="bg-slate-950 rounded-lg p-4">
+                <div className="text-sm text-slate-400 mb-4">Trace Visualization</div>
+                <div className="space-y-3">
+                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-emerald-300 font-semibold">Query Processing</span>
+                      <span className="text-xs text-slate-400">1.2s</span>
+                    </div>
+                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: '100%' }}></div>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">Cost: $0.0045 | Tokens: 1,234</div>
+                  </div>
+                  <div className="bg-cyan-500/10 border border-cyan-500/30 rounded p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-cyan-300 font-semibold">Vector Search</span>
+                      <span className="text-xs text-slate-400">0.3s</span>
+                    </div>
+                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-cyan-500 rounded-full" style={{ width: '25%' }}></div>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">Cost: $0.0001 | Results: 5</div>
+                  </div>
+                  <div className="bg-purple-500/10 border border-purple-500/30 rounded p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-purple-300 font-semibold">LLM Generation</span>
+                      <span className="text-xs text-slate-400">0.8s</span>
+                    </div>
+                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-purple-500 rounded-full" style={{ width: '67%' }}></div>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">Cost: $0.0032 | Tokens: 856</div>
+                  </div>
+                  <div className="bg-slate-800/50 rounded p-2 mt-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400">Forecasted Monthly Cost:</span>
+                      <span className="text-emerald-400 font-semibold">$1,247</span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1">
+                      <TrendingUp className="w-3 h-3 text-green-400" />
+                      <span className="text-xs text-green-400">+12% vs last month</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Enterprise Security */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20">
             <div className="order-2 lg:order-1">
-              <div className="bg-gradient-to-br from-slate-900 to-orange-900/20 rounded-xl p-6 border border-orange-500/20">
+              <div className="bg-gradient-to-br from-slate-900 to-yellow-900/20 rounded-xl p-6 border border-yellow-500/20">
                 <div className="bg-slate-950 rounded-lg p-4">
-                  <div className="text-sm text-slate-400 mb-4">Production Monitoring</div>
+                  <div className="text-sm text-slate-400 mb-4">Secrets Vault</div>
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Active Workflows</span>
-                      <span className="text-green-400">1,247</span>
+                    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Key className="w-4 h-4 text-yellow-400" />
+                          <span className="text-xs text-yellow-300 font-semibold">OpenAI API Key</span>
+                        </div>
+                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                      </div>
+                      <div className="text-xs text-slate-400">Encrypted • Last used 2h ago</div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Success Rate</span>
-                      <span className="text-green-400">99.94%</span>
+                    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Key className="w-4 h-4 text-yellow-400" />
+                          <span className="text-xs text-yellow-300 font-semibold">Anthropic API Key</span>
+                        </div>
+                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                      </div>
+                      <div className="text-xs text-slate-400">Encrypted • Last used 5m ago</div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Avg Response Time</span>
-                      <span className="text-cyan-400">124ms</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Cost Optimization</span>
-                      <span className="text-green-400">↑ 60%</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Error Rate</span>
-                      <span className="text-orange-400">0.06%</span>
+                    <div className="bg-slate-800/50 rounded p-2 mt-3">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-400">Multi-tenant isolation:</span>
+                        <span className="text-green-400 font-semibold">✓ Enabled</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs mt-1">
+                        <span className="text-slate-400">Encryption:</span>
+                        <span className="text-green-400 font-semibold">AES-256</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
             <div className="order-1 lg:order-2">
-              <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 rounded-full px-4 py-2 mb-6">
-                <Monitor className="w-4 h-4 text-orange-400" />
-                <span className="text-sm text-orange-300">Production Intelligence</span>
+              <div className="inline-flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full px-4 py-2 mb-6">
+                <Shield className="w-4 h-4 text-yellow-400" />
+                <span className="text-sm text-yellow-300">Enterprise Security</span>
               </div>
-              <h3 className="text-3xl font-bold mb-4">Monitor & Optimize Everything</h3>
+              <h3 className="text-3xl font-bold mb-4">Bank-Grade Security Built In</h3>
               <p className="text-slate-400 mb-6 leading-relaxed">
-                Real-time monitoring, automatic cost optimization, performance analytics, and intelligent alerting. 
-                Know exactly what's happening in your AI systems before your users do.
+                Encrypted secrets vault, multi-tenant isolation, and SOC2-ready architecture. 
+                Your API keys are encrypted at rest, isolated per tenant, and never exposed in logs.
               </p>
               <ul className="space-y-3 mb-6">
                 <li className="flex items-center gap-3">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  <span>Real-time performance monitoring</span>
+                  <span>Encrypted secrets vault (AES-256)</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  <span>Automatic cost optimization</span>
+                  <span>Multi-tenant data isolation</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  <span>Intelligent alerting & notifications</span>
+                  <span>SOC2-ready architecture</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  <span>99.9% uptime SLA</span>
+                  <span>Zero-trust API key management</span>
                 </li>
               </ul>
+            </div>
+          </div>
+
+          {/* Deployment & Production */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20">
+            <div>
+              <div className="inline-flex items-center gap-2 bg-pink-500/10 border border-pink-500/20 rounded-full px-4 py-2 mb-6">
+                <Rocket className="w-4 h-4 text-pink-400" />
+                <span className="text-sm text-pink-300">Deployment</span>
+              </div>
+              <h3 className="text-3xl font-bold mb-4">Deploy to Production in Minutes</h3>
+              <p className="text-slate-400 mb-6 leading-relaxed">
+                One-click workflow deployment, version control with rollbacks, and production API endpoints. 
+                Deploy instantly, monitor continuously, and scale effortlessly.
+              </p>
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <span>One-click workflow deployment</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <span>Version control & instant rollbacks</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <span>Webhook endpoints for integrations</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <span>Production API access</span>
+                </li>
+              </ul>
+            </div>
+            <div className="bg-gradient-to-br from-slate-900 to-pink-900/20 rounded-xl p-6 border border-pink-500/20">
+              <div className="bg-slate-950 rounded-lg p-4">
+                <div className="text-sm text-slate-400 mb-4">Deployment Dashboard</div>
+                <div className="space-y-3">
+                  <div className="bg-pink-500/10 border border-pink-500/30 rounded p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-pink-300 font-semibold">Customer Support Bot</span>
+                      <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">Active</span>
+                    </div>
+                    <div className="text-xs text-slate-400">Version 3.2.1 • Deployed 2h ago</div>
+                    <div className="flex items-center gap-4 mt-2 text-xs">
+                      <span className="text-slate-500">Queries: 1,247</span>
+                      <span className="text-green-400">Success: 99.8%</span>
+                    </div>
+                  </div>
+                  <div className="bg-slate-800/50 border border-slate-700 rounded p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-slate-300 font-semibold">Document Processor</span>
+                      <span className="text-xs bg-slate-700 text-slate-400 px-2 py-1 rounded">v2.1.0</span>
+                    </div>
+                    <div className="text-xs text-slate-500">Last deployed 3d ago</div>
+                  </div>
+                  <div className="bg-slate-800/50 border border-slate-700 rounded p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-slate-300 font-semibold">RAG Knowledge Base</span>
+                      <span className="text-xs bg-slate-700 text-slate-400 px-2 py-1 rounded">v1.5.2</span>
+                    </div>
+                    <div className="text-xs text-slate-500">Last deployed 1w ago</div>
+                  </div>
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded p-2 mt-3">
+                    <div className="flex items-center gap-2 text-xs">
+                      <Cloud className="w-3 h-3 text-blue-400" />
+                      <span className="text-blue-300">Webhook: api.nodai.io/webhook/abc123</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Knowledge Bases & RAG */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20">
+            <div className="order-2 lg:order-1">
+              <div className="bg-gradient-to-br from-slate-900 to-blue-900/20 rounded-xl p-6 border border-blue-500/20">
+                <div className="bg-slate-950 rounded-lg p-4">
+                  <div className="text-sm text-slate-400 mb-4">Knowledge Base</div>
+                  <div className="space-y-3">
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <FileText className="w-4 h-4 text-blue-400" />
+                        <span className="text-xs text-blue-300 font-semibold">Company Docs</span>
+                      </div>
+                      <div className="text-xs text-slate-400">5,247 documents • 12,456 chunks</div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                        <span className="text-xs text-green-400">Processing complete</span>
+                      </div>
+                    </div>
+                    <div className="bg-slate-800/50 rounded p-2">
+                      <div className="text-xs text-slate-400 mb-1">Hybrid Search Enabled</div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <Search className="w-3 h-3 text-cyan-400" />
+                        <span className="text-cyan-300">Semantic + BM25 + Graph</span>
+                      </div>
+                    </div>
+                    <div className="bg-purple-500/10 border border-purple-500/30 rounded p-2">
+                      <div className="text-xs text-purple-300 font-semibold mb-1">Query Performance</div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-400">Avg latency:</span>
+                        <span className="text-green-400">0.8s</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-400">Relevance score:</span>
+                        <span className="text-green-400">94%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="order-1 lg:order-2">
+              <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-2 mb-6">
+                <BookOpen className="w-4 h-4 text-blue-400" />
+                <span className="text-sm text-blue-300">Knowledge Bases</span>
+              </div>
+              <h3 className="text-3xl font-bold mb-4">Build Production RAG Systems</h3>
+              <p className="text-slate-400 mb-6 leading-relaxed">
+                Process 5000+ documents, build knowledge bases, and deploy hybrid search with semantic, 
+                BM25, and knowledge graph queries. Enterprise-scale document processing pipelines.
+              </p>
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <span>Knowledge base management</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <span>3-way hybrid search (semantic + BM25 + graph)</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <span>Document processing pipelines</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <span>Enterprise-scale ingestion</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Fine-tuning */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20">
+            <div>
+              <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-4 py-2 mb-6">
+                <Settings className="w-4 h-4 text-indigo-400" />
+                <span className="text-sm text-indigo-300">Fine-Tuning</span>
+              </div>
+              <h3 className="text-3xl font-bold mb-4">Train Your Own Models</h3>
+              <p className="text-slate-400 mb-6 leading-relaxed">
+                Fine-tune LLMs on your data, create custom models, and maintain brand voice consistency. 
+                Custom model training workflows with full control over training parameters.
+              </p>
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <span>Fine-tune LLMs on your data</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <span>Custom model training workflows</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <span>Model registry & management</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <span>Brand voice consistency</span>
+                </li>
+              </ul>
+            </div>
+            <div className="bg-gradient-to-br from-slate-900 to-indigo-900/20 rounded-xl p-6 border border-indigo-500/20">
+              <div className="bg-slate-950 rounded-lg p-4">
+                <div className="text-sm text-slate-400 mb-4">Model Training</div>
+                <div className="space-y-3">
+                  <div className="bg-indigo-500/10 border border-indigo-500/30 rounded p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-indigo-300 font-semibold">Customer Support Model</span>
+                      <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">Trained</span>
+                    </div>
+                    <div className="text-xs text-slate-400">Base: GPT-4 • Epochs: 3 • Accuracy: 96%</div>
+                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden mt-2">
+                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: '96%' }}></div>
+                    </div>
+                  </div>
+                  <div className="bg-slate-800/50 border border-slate-700 rounded p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-slate-300 font-semibold">Legal Document Analyzer</span>
+                      <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded">Training</span>
+                    </div>
+                    <div className="text-xs text-slate-400">Base: Claude-3 • Epochs: 2/5 • Progress: 40%</div>
+                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden mt-2">
+                      <div className="h-full bg-yellow-500 rounded-full" style={{ width: '40%' }}></div>
+                    </div>
+                  </div>
+                  <div className="bg-slate-800/50 rounded p-2 mt-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400">Training dataset:</span>
+                      <span className="text-indigo-400 font-semibold">12,456 examples</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
