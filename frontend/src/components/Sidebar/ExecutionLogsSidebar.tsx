@@ -59,7 +59,7 @@ export function ExecutionLogsSidebar() {
         'flex flex-col glass-strong border-l border-white/10 w-80 transition-all',
         chatInterfaceOpen 
           ? 'fixed right-0 top-0 bottom-[624px] z-30' // Position above chat when open
-          : 'h-full' // Full height when chat is closed
+          : 'fixed right-0 top-0 bottom-0 z-30' // Full height when chat is closed
       )}
     >
       {/* Header */}
@@ -87,7 +87,7 @@ export function ExecutionLogsSidebar() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-white/10 flex-shrink-0">
+      <div className="flex border-b border-white/10 flex-shrink-0 overflow-x-auto scrollbar-hide">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
@@ -95,8 +95,8 @@ export function ExecutionLogsSidebar() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'flex-1 px-4 py-2.5 text-xs font-medium transition-colors relative',
-                'hover:bg-white/5 flex items-center justify-center gap-1.5',
+                'flex-1 px-4 py-2.5 text-xs font-medium transition-colors relative flex-shrink-0',
+                'hover:bg-white/5 flex items-center justify-center gap-1.5 whitespace-nowrap',
                 activeTab === tab.id
                   ? 'text-blue-400'
                   : 'text-slate-400 hover:text-slate-300'
@@ -114,7 +114,7 @@ export function ExecutionLogsSidebar() {
 
       {/* Content - Scrollable */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
-        <div className="p-4">
+        <div className="p-4 space-y-4">
           {activeTab === 'summary' && <ExecutionSummary />}
           {activeTab === 'logs' && <ExecutionLogs />}
           {activeTab === 'cost' && <CostIntelligence />}

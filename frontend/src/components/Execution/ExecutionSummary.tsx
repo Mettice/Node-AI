@@ -59,6 +59,24 @@ export function ExecutionSummary() {
         outputPreview = result.output;
       } else if (result.output.text) {
         outputPreview = result.output.text;
+      } else if (result.output.response) {
+        // Chat node returns { response: "..." }
+        outputPreview = typeof result.output.response === 'string' 
+          ? result.output.response 
+          : JSON.stringify(result.output.response, null, 2);
+      } else if (result.output.message) {
+        // Some nodes return { message: "..." }
+        outputPreview = typeof result.output.message === 'string'
+          ? result.output.message
+          : JSON.stringify(result.output.message, null, 2);
+      } else if (result.output.content) {
+        // Some nodes return { content: "..." }
+        outputPreview = typeof result.output.content === 'string'
+          ? result.output.content
+          : JSON.stringify(result.output.content, null, 2);
+      } else if (typeof result.output === 'object') {
+        // Fallback: stringify the entire output object
+        outputPreview = JSON.stringify(result.output, null, 2);
       }
     }
     
