@@ -5,8 +5,9 @@ Provides endpoints for retrieving and analyzing RAG query traces.
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
+from backend.core.security import limiter
 from backend.core.query_tracer import QueryTracer
 from backend.utils.logger import get_logger
 
@@ -16,7 +17,8 @@ router = APIRouter(prefix="/api/v1", tags=["Query Tracer"])
 
 
 @router.get("/traces/{execution_id}")
-async def get_trace(execution_id: str):
+@limiter.limit("30/minute")
+async def get_trace(execution_id: str, request: Request):
     """
     Get a complete query trace by execution ID.
     
@@ -30,7 +32,8 @@ async def get_trace(execution_id: str):
 
 
 @router.get("/traces/{execution_id}/summary")
-async def get_trace_summary(execution_id: str):
+@limiter.limit("30/minute")
+async def get_trace_summary(execution_id: str, request: Request):
     """
     Get a summary of a query trace.
     
@@ -44,7 +47,8 @@ async def get_trace_summary(execution_id: str):
 
 
 @router.get("/traces")
-async def list_traces(workflow_id: Optional[str] = None, limit: int = 100):
+@limiter.limit("30/minute")
+async def list_traces(request: Request, workflow_id: Optional[str] = None, limit: int = 100):
     """
     List query traces.
     

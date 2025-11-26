@@ -15,6 +15,7 @@ from fastapi import APIRouter, HTTPException, Header, Request, Body
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+from backend.core.security import limiter
 from backend.core.webhooks import (
     Webhook,
     save_webhook,
@@ -76,8 +77,10 @@ class WebhookResponse(BaseModel):
 
 
 @router.post("/webhooks", response_model=WebhookResponse)
+@limiter.limit("20/minute")
 async def create_webhook(
-    request: WebhookCreateRequest,
+    request_body: WebhookCreateRequest,
+    request: Request,
     base_url: str = Header(None, alias="X-Base-URL", description="Base URL for webhook (optional)"),
 ) -> WebhookResponse:
     """
@@ -86,31 +89,31 @@ async def create_webhook(
     Returns the webhook URL that can be used to trigger the workflow.
     """
     # Verify workflow exists
-    workflow = _load_workflow(request.workflow_id)
+    workflow = _load_workflow(request_body.workflow_id)
     if not workflow:
-        raise HTTPException(status_code=404, detail=f"Workflow {request.workflow_id} not found")
+        raise HTTPException(status_code=404, detail=f"Workflow {request_body.workflow_id} not found")
     
     # Generate webhook ID and secret
     webhook_id = generate_webhook_id()
-    secret = request.secret or generate_webhook_secret()
+    secret = request_body.secret or generate_webhook_secret()
     
     # Create webhook
     webhook = Webhook(
         id=str(uuid.uuid4()),
-        workflow_id=request.workflow_id,
-        name=request.name,
+        workflow_id=request_body.workflow_id,
+        name=request_body.name,
         webhook_id=webhook_id,
         secret=secret,
         enabled=True,
         created_at=datetime.now(),
         updated_at=datetime.now(),
-        method=request.method,
-        headers_required=request.headers_required,
-        payload_mapping=request.payload_mapping,
+        method=request_body.method,
+        headers_required=request_body.headers_required,
+        payload_mapping=request_body.payload_mapping,
     )
     
     save_webhook(webhook)
-    logger.info(f"Created webhook {webhook_id} for workflow {request.workflow_id}")
+    logger.info(f"Created webhook {webhook_id} for workflow {request_body.workflow_id}")
     
     # Generate webhook URL
     # Default to localhost if base_url not provided
@@ -135,7 +138,9 @@ async def create_webhook(
 
 
 @router.get("/webhooks", response_model=List[WebhookResponse])
+@limiter.limit("30/minute")
 async def list_webhooks_endpoint(
+    request: Request,
     workflow_id: Optional[str] = None,
     base_url: str = Header(None, alias="X-Base-URL"),
 ) -> List[WebhookResponse]:
@@ -165,8 +170,10 @@ async def list_webhooks_endpoint(
 
 
 @router.get("/webhooks/{webhook_id}", response_model=WebhookResponse)
+@limiter.limit("30/minute")
 async def get_webhook(
     webhook_id: str,
+    request: Request,
     base_url: str = Header(None, alias="X-Base-URL"),
 ) -> WebhookResponse:
     """Get a webhook by ID."""
@@ -196,9 +203,11 @@ async def get_webhook(
 
 
 @router.put("/webhooks/{webhook_id}", response_model=WebhookResponse)
+@limiter.limit("20/minute")
 async def update_webhook(
     webhook_id: str,
-    request: WebhookUpdateRequest,
+    request_body: WebhookUpdateRequest,
+    request: Request,
     base_url: str = Header(None, alias="X-Base-URL"),
 ) -> WebhookResponse:
     """Update a webhook."""
@@ -209,18 +218,18 @@ async def update_webhook(
         raise HTTPException(status_code=404, detail=f"Webhook {webhook_id} not found")
     
     # Update fields
-    if request.name is not None:
-        webhook.name = request.name
-    if request.enabled is not None:
-        webhook.enabled = request.enabled
-    if request.secret is not None:
-        webhook.secret = request.secret
-    if request.method is not None:
-        webhook.method = request.method
-    if request.headers_required is not None:
-        webhook.headers_required = request.headers_required
-    if request.payload_mapping is not None:
-        webhook.payload_mapping = request.payload_mapping
+    if request_body.name is not None:
+        webhook.name = request_body.name
+    if request_body.enabled is not None:
+        webhook.enabled = request_body.enabled
+    if request_body.secret is not None:
+        webhook.secret = request_body.secret
+    if request_body.method is not None:
+        webhook.method = request_body.method
+    if request_body.headers_required is not None:
+        webhook.headers_required = request_body.headers_required
+    if request_body.payload_mapping is not None:
+        webhook.payload_mapping = request_body.payload_mapping
     
     webhook.updated_at = datetime.now()
     save_webhook(webhook)
@@ -245,7 +254,8 @@ async def update_webhook(
 
 
 @router.delete("/webhooks/{webhook_id}")
-async def delete_webhook_endpoint(webhook_id: str) -> Dict[str, str]:
+@limiter.limit("10/minute")
+async def delete_webhook_endpoint(webhook_id: str, request: Request) -> Dict[str, str]:
     """Delete a webhook."""
     # Find webhook by webhook_id (the URL identifier, not the internal id)
     webhooks = list_webhooks()
@@ -262,6 +272,7 @@ async def delete_webhook_endpoint(webhook_id: str) -> Dict[str, str]:
 
 
 @router.post("/webhooks/{webhook_id}/trigger")
+@limiter.limit("10/minute")
 async def trigger_webhook(
     webhook_id: str,
     request: Request,
@@ -418,7 +429,9 @@ async def trigger_webhook(
 
 
 @router.get("/workflows/{workflow_id}/webhooks", response_model=List[WebhookResponse])
+@limiter.limit("30/minute")
 async def get_workflow_webhooks(
+    request: Request,
     workflow_id: str,
     base_url: str = Header(None, alias="X-Base-URL"),
 ) -> List[WebhookResponse]:

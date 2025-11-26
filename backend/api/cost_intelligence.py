@@ -14,9 +14,10 @@ from typing import Any, Dict, List, Optional
 from datetime import datetime, timedelta
 from collections import defaultdict
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
+from backend.core.security import limiter
 from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -181,7 +182,8 @@ class OptimizationSuggestion(BaseModel):
 
 
 @router.get("/cost/analyze/{execution_id}", response_model=CostAnalysis)
-async def analyze_execution_cost(execution_id: str) -> CostAnalysis:
+@limiter.limit("30/minute")
+async def analyze_execution_cost(execution_id: str, request: Request) -> CostAnalysis:
     """
     Analyze cost for a specific execution.
     
@@ -247,7 +249,9 @@ async def analyze_execution_cost(execution_id: str) -> CostAnalysis:
 
 
 @router.get("/cost/predict", response_model=CostPrediction)
+@limiter.limit("30/minute")
 async def predict_workflow_cost(
+    request: Request,
     execution_id: Optional[str] = Query(None, description="Use historical execution for prediction"),
     workflow_id: Optional[str] = Query(None, description="Use workflow ID for prediction"),
     num_runs: int = Query(100, description="Number of runs to predict for"),
@@ -325,8 +329,10 @@ async def predict_workflow_cost(
 
 
 @router.get("/cost/forecast/{workflow_id}", response_model=CostForecast)
+@limiter.limit("30/minute")
 async def get_cost_forecast(
     workflow_id: str,
+    request: Request,
     days: int = Query(30, description="Number of days to forecast")
 ) -> CostForecast:
     """
@@ -419,14 +425,16 @@ async def get_cost_forecast(
 
 
 @router.post("/cost/budget", response_model=BudgetConfig)
-async def set_budget(config: BudgetConfig) -> BudgetConfig:
+@limiter.limit("20/minute")
+async def set_budget(config: BudgetConfig, request: Request) -> BudgetConfig:
     """Set budget for a workflow."""
     _budgets[config.workflow_id] = config.dict()
     return config
 
 
 @router.get("/cost/budget/{workflow_id}", response_model=BudgetStatus)
-async def get_budget_status(workflow_id: str) -> BudgetStatus:
+@limiter.limit("30/minute")
+async def get_budget_status(workflow_id: str, request: Request) -> BudgetStatus:
     """Get current budget status for a workflow."""
     budget = _budgets.get(workflow_id)
     if not budget:
@@ -513,8 +521,10 @@ async def get_budget_status(workflow_id: str) -> BudgetStatus:
 
 
 @router.post("/cost/roi", response_model=ROICalculation)
+@limiter.limit("20/minute")
 async def calculate_roi(
     workflow_id: str,
+    request: Request,
     time_saved_hours: Optional[float] = None,
     hourly_rate: Optional[float] = None,
     value_generated: Optional[float] = None,
@@ -590,7 +600,8 @@ async def calculate_roi(
 
 
 @router.get("/cost/optimize/{execution_id}", response_model=List[OptimizationSuggestion])
-async def get_cost_optimizations(execution_id: str) -> List[OptimizationSuggestion]:
+@limiter.limit("30/minute")
+async def get_cost_optimizations(execution_id: str, request: Request) -> List[OptimizationSuggestion]:
     """
     Get cost optimization suggestions for an execution.
     
@@ -645,10 +656,12 @@ async def get_cost_optimizations(execution_id: str) -> List[OptimizationSuggesti
 
 
 @router.post("/cost/record")
+@limiter.limit("100/minute")
 async def record_execution_costs(
     execution_id: str,
     workflow_id: str,
     costs: List[Dict],
+    request: Request,
 ) -> Dict[str, str]:
     """
     Record costs for an execution (called by engine after execution).

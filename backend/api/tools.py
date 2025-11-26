@@ -5,9 +5,10 @@ Tools API endpoints for testing connections and managing tool configurations.
 from typing import Optional
 import httpx
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from backend.core.security import limiter
 from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -32,43 +33,44 @@ class TestConnectionResponse(BaseModel):
 
 
 @router.post("/test-connection", response_model=TestConnectionResponse)
-async def test_connection(request: TestConnectionRequest) -> TestConnectionResponse:
+@limiter.limit("10/minute")
+async def test_connection(request_body: TestConnectionRequest, request: Request) -> TestConnectionResponse:
     """
     Test an API key connection for a service.
     
     This endpoint validates API keys by making a test request to the service.
     """
     try:
-        if request.service == "web_search":
-            if not request.api_key:
+        if request_body.service == "web_search":
+            if not request_body.api_key:
                 return TestConnectionResponse(
                     connected=False,
                     message="API key is required for web search connection test"
                 )
-            return await _test_web_search_connection(request.provider, request.api_key)
-        elif request.service == "database":
-            if not request.connection_string:
+            return await _test_web_search_connection(request_body.provider, request_body.api_key)
+        elif request_body.service == "database":
+            if not request_body.connection_string:
                 return TestConnectionResponse(
                     connected=False,
                     message="Connection string is required for database connection test"
                 )
-            return await _test_database_connection(request.provider, request.connection_string)
-        elif request.service == "llm":
-            if not request.api_key:
+            return await _test_database_connection(request_body.provider, request_body.connection_string)
+        elif request_body.service == "llm":
+            if not request_body.api_key:
                 return TestConnectionResponse(
                     connected=False,
                     message="API key is required for LLM connection test"
                 )
-            return await _test_llm_connection(request.provider, request.api_key)
-        elif request.service == "email":
-            if not request.api_key:
+            return await _test_llm_connection(request_body.provider, request_body.api_key)
+        elif request_body.service == "email":
+            if not request_body.api_key:
                 return TestConnectionResponse(
                     connected=False,
                     message="API key is required for email connection test"
                 )
-            return await _test_email_connection(request.provider, request.api_key)
-        elif request.service == "s3" or request.service == "storage":
-            if not request.api_key:
+            return await _test_email_connection(request_body.provider, request_body.api_key)
+        elif request_body.service == "s3" or request_body.service == "storage":
+            if not request_body.api_key:
                 return TestConnectionResponse(
                     connected=False,
                     message="AWS credentials are required for S3 connection test"
@@ -76,11 +78,11 @@ async def test_connection(request: TestConnectionRequest) -> TestConnectionRespo
             # For S3, we need access_key_id and secret_access_key
             # The api_key field will contain access_key_id, and we'll need secret_access_key
             # For now, we'll use a simplified test - in practice, you'd pass both
-            return await _test_s3_connection(request.api_key, request.connection_string)
+            return await _test_s3_connection(request_body.api_key, request_body.connection_string)
         else:
             return TestConnectionResponse(
                 connected=False,
-                message=f"Service '{request.service}' connection testing not yet implemented"
+                message=f"Service '{request_body.service}' connection testing not yet implemented"
             )
     except Exception as e:
         logger.error(f"Connection test failed: {e}", exc_info=True)

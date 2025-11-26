@@ -9,9 +9,10 @@ import os
 from typing import Dict, List, Optional
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from backend.core.security import limiter
 from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -43,7 +44,8 @@ class FineTuneJobStatus(BaseModel):
 
 
 @router.get("/finetune/{job_id}/status", response_model=FineTuneJobStatus)
-async def get_finetune_status(job_id: str) -> FineTuneJobStatus:
+@limiter.limit("30/minute")
+async def get_finetune_status(job_id: str, request: Request) -> FineTuneJobStatus:
     """
     Get status of a fine-tuning job.
     
@@ -87,7 +89,9 @@ async def get_finetune_status(job_id: str) -> FineTuneJobStatus:
 
 
 @router.get("/finetune/jobs", response_model=List[FineTuneJobStatus])
+@limiter.limit("30/minute")
 async def list_finetune_jobs(
+    request: Request,
     status: Optional[str] = None,
     provider: Optional[str] = None,
 ) -> List[FineTuneJobStatus]:
@@ -116,7 +120,8 @@ async def list_finetune_jobs(
 
 
 @router.post("/finetune/{job_id}/register")
-async def register_finetune_job(job_id: str, job_data: Dict) -> Dict:
+@limiter.limit("20/minute")
+async def register_finetune_job(job_id: str, job_data: Dict, request: Request) -> Dict:
     """
     Register a fine-tuning job (called by FineTuneNode after starting job).
     

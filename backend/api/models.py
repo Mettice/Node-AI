@@ -13,9 +13,10 @@ import uuid
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
+from backend.core.security import limiter
 from backend.core.finetune_models import FineTunedModel, ModelVersion, ModelUsage
 from backend.utils.logger import get_logger
 
@@ -55,7 +56,9 @@ class UpdateModelRequest(BaseModel):
 
 
 @router.get("/models", response_model=List[FineTunedModel])
+@limiter.limit("30/minute")
 async def list_models(
+    request: Request,
     status: Optional[str] = Query(None, description="Filter by status"),
     provider: Optional[str] = Query(None, description="Filter by provider"),
     base_model: Optional[str] = Query(None, description="Filter by base model"),
@@ -100,7 +103,8 @@ async def list_models(
 
 
 @router.get("/models/{model_id}", response_model=FineTunedModel)
-async def get_model(model_id: str) -> FineTunedModel:
+@limiter.limit("30/minute")
+async def get_model(model_id: str, request: Request) -> FineTunedModel:
     """
     Get details of a specific model.
     
@@ -120,7 +124,8 @@ async def get_model(model_id: str) -> FineTunedModel:
 
 
 @router.post("/models", response_model=FineTunedModel)
-async def create_model(request: CreateModelRequest) -> FineTunedModel:
+@limiter.limit("20/minute")
+async def create_model(request_body: CreateModelRequest, request: Request) -> FineTunedModel:
     """
     Register a new fine-tuned model.
     
@@ -138,24 +143,24 @@ async def create_model(request: CreateModelRequest) -> FineTunedModel:
     
     model = FineTunedModel(
         id=model_id,
-        job_id=request.job_id,
-        model_id=request.model_id,
-        name=request.name,
-        description=request.description,
-        base_model=request.base_model,
-        provider=request.provider,
+        job_id=request_body.job_id,
+        model_id=request_body.model_id,
+        name=request_body.name,
+        description=request_body.description,
+        base_model=request_body.base_model,
+        provider=request_body.provider,
         status="ready",  # Assume ready when explicitly created
-        training_examples=request.training_examples,
-        validation_examples=request.validation_examples or 0,
-        epochs=request.epochs,
-        training_file_id=request.training_file_id,
-        validation_file_id=request.validation_file_id,
-        estimated_cost=request.estimated_cost,
-        actual_cost=request.actual_cost,
+        training_examples=request_body.training_examples,
+        validation_examples=request_body.validation_examples or 0,
+        epochs=request_body.epochs,
+        training_file_id=request_body.training_file_id,
+        validation_file_id=request_body.validation_file_id,
+        estimated_cost=request_body.estimated_cost,
+        actual_cost=request_body.actual_cost,
         usage_count=0,
         created_at=now,
         updated_at=now,
-        metadata=request.metadata or {},
+        metadata=request_body.metadata or {},
     )
     
     _models[model_id] = model
@@ -165,9 +170,11 @@ async def create_model(request: CreateModelRequest) -> FineTunedModel:
 
 
 @router.patch("/models/{model_id}", response_model=FineTunedModel)
+@limiter.limit("20/minute")
 async def update_model(
     model_id: str,
-    request: UpdateModelRequest,
+    request_body: UpdateModelRequest,
+    request: Request,
 ) -> FineTunedModel:
     """
     Update model metadata.
@@ -188,12 +195,12 @@ async def update_model(
     model = _models[model_id]
     
     # Update fields
-    if request.name is not None:
-        model.name = request.name
-    if request.description is not None:
-        model.description = request.description
-    if request.metadata is not None:
-        model.metadata = {**model.metadata, **request.metadata}
+    if request_body.name is not None:
+        model.name = request_body.name
+    if request_body.description is not None:
+        model.description = request_body.description
+    if request_body.metadata is not None:
+        model.metadata = {**model.metadata, **request_body.metadata}
     
     model.updated_at = datetime.now().isoformat()
     
@@ -203,8 +210,10 @@ async def update_model(
 
 
 @router.delete("/models/{model_id}")
+@limiter.limit("10/minute")
 async def delete_model(
     model_id: str,
+    request: Request,
     delete_from_provider: bool = Query(False, description="Also delete from provider (OpenAI, etc.)"),
 ) -> Dict[str, str]:
     """
@@ -253,8 +262,10 @@ async def delete_model(
 
 
 @router.post("/models/{model_id}/usage")
+@limiter.limit("100/minute")
 async def record_model_usage(
     model_id: str,
+    request: Request,
     node_type: Optional[str] = None,
     execution_id: Optional[str] = None,
     tokens_used: Optional[int] = None,
@@ -307,8 +318,10 @@ async def record_model_usage(
 
 
 @router.get("/models/{model_id}/usage", response_model=List[ModelUsage])
+@limiter.limit("30/minute")
 async def get_model_usage(
     model_id: str,
+    request: Request,
     limit: int = Query(50, description="Maximum number of usage entries to return"),
 ) -> List[ModelUsage]:
     """
@@ -332,7 +345,8 @@ async def get_model_usage(
 
 
 @router.get("/models/{model_id}/versions", response_model=List[ModelVersion])
-async def get_model_versions(model_id: str) -> List[ModelVersion]:
+@limiter.limit("30/minute")
+async def get_model_versions(model_id: str, request: Request) -> List[ModelVersion]:
     """
     Get version history for a model.
     
@@ -349,8 +363,10 @@ async def get_model_versions(model_id: str) -> List[ModelVersion]:
 
 
 @router.get("/models/available/{provider}", response_model=List[FineTunedModel])
+@limiter.limit("30/minute")
 async def get_available_models(
     provider: str,
+    request: Request,
     status: Optional[str] = Query("ready", description="Filter by status"),
 ) -> List[FineTunedModel]:
     """
@@ -379,8 +395,10 @@ async def get_available_models(
 
 
 @router.get("/models/base/{provider}")
+@limiter.limit("30/minute")
 async def get_base_models(
     provider: str,
+    request: Request,
     model_type: Optional[str] = Query("llm", description="Model type: llm, embedding, or reranking"),
 ) -> Dict[str, Any]:
     """

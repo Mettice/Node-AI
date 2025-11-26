@@ -12,9 +12,10 @@ from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime
 import uuid
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from backend.core.security import limiter
 from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -90,7 +91,8 @@ class ABTestResult(BaseModel):
 
 
 @router.post("/prompt/test", response_model=PromptTestResult)
-async def test_prompt(request: PromptTestRequest) -> PromptTestResult:
+@limiter.limit("20/minute")
+async def test_prompt(request_body: PromptTestRequest, request: Request) -> PromptTestResult:
     """
     Test a prompt with a single or multiple inputs.
     
@@ -104,50 +106,50 @@ async def test_prompt(request: PromptTestRequest) -> PromptTestResult:
     start_time = time.time()
     
     # Use first test input or empty string
-    test_input = request.test_inputs[0] if request.test_inputs and len(request.test_inputs) > 0 else ""
+    test_input = request_body.test_inputs[0] if request_body.test_inputs and len(request_body.test_inputs) > 0 else ""
     
     try:
         # Execute prompt based on provider
-        if request.provider == "openai":
+        if request_body.provider == "openai":
             output, tokens, cost = await _test_openai_prompt(
-                request.prompt,
+                request_body.prompt,
                 test_input,
-                request.model,
-                request.system_prompt,
-                request.temperature,
-                request.max_tokens,
+                request_body.model,
+                request_body.system_prompt,
+                request_body.temperature,
+                request_body.max_tokens,
             )
-        elif request.provider == "anthropic":
+        elif request_body.provider == "anthropic":
             output, tokens, cost = await _test_anthropic_prompt(
-                request.prompt,
+                request_body.prompt,
                 test_input,
-                request.model,
-                request.system_prompt,
-                request.temperature,
-                request.max_tokens,
+                request_body.model,
+                request_body.system_prompt,
+                request_body.temperature,
+                request_body.max_tokens,
             )
-        elif request.provider == "gemini" or request.provider == "google":
+        elif request_body.provider == "gemini" or request_body.provider == "google":
             output, tokens, cost = await _test_gemini_prompt(
-                request.prompt,
+                request_body.prompt,
                 test_input,
-                request.model,
-                request.system_prompt,
-                request.temperature,
-                request.max_tokens,
+                request_body.model,
+                request_body.system_prompt,
+                request_body.temperature,
+                request_body.max_tokens,
             )
         else:
             raise HTTPException(
                 status_code=400,
-                detail=f"Unsupported provider: {request.provider}"
+                detail=f"Unsupported provider: {request_body.provider}"
             )
         
         latency_ms = int((time.time() - start_time) * 1000)
         
         result = PromptTestResult(
             test_id=test_id,
-            prompt=request.prompt,
-            provider=request.provider,
-            model=request.model,
+            prompt=request_body.prompt,
+            provider=request_body.provider,
+            model=request_body.model,
             input_text=test_input,
             output=output,
             tokens_used=tokens,
@@ -169,36 +171,38 @@ async def test_prompt(request: PromptTestRequest) -> PromptTestResult:
 
 
 @router.post("/prompt/test/batch", response_model=List[PromptTestResult])
-async def test_prompt_batch(request: PromptTestRequest) -> List[PromptTestResult]:
+@limiter.limit("10/minute")
+async def test_prompt_batch(request_body: PromptTestRequest, request: Request) -> List[PromptTestResult]:
     """Test a prompt with multiple inputs."""
     results = []
     
-    if not request.test_inputs or len(request.test_inputs) == 0:
+    if not request_body.test_inputs or len(request_body.test_inputs) == 0:
         raise HTTPException(
             status_code=400,
             detail="test_inputs is required for batch testing"
         )
     
-    for test_input in request.test_inputs:
+    for test_input in request_body.test_inputs:
         # Create individual request
         single_request = PromptTestRequest(
-            prompt=request.prompt,
-            provider=request.provider,
-            model=request.model,
-            system_prompt=request.system_prompt,
-            temperature=request.temperature,
-            max_tokens=request.max_tokens,
+            prompt=request_body.prompt,
+            provider=request_body.provider,
+            model=request_body.model,
+            system_prompt=request_body.system_prompt,
+            temperature=request_body.temperature,
+            max_tokens=request_body.max_tokens,
             test_inputs=[test_input],
         )
         
-        result = await test_prompt(single_request)
+        result = await test_prompt(single_request, request)
         results.append(result)
     
     return results
 
 
 @router.post("/prompt/ab-test", response_model=ABTestResult)
-async def ab_test_prompts(request: ABTestRequest) -> ABTestResult:
+@limiter.limit("10/minute")
+async def ab_test_prompts(request_body: ABTestRequest, request: Request) -> ABTestResult:
     """Run A/B test between two prompts."""
     test_id = str(uuid.uuid4())
     
@@ -206,31 +210,31 @@ async def ab_test_prompts(request: ABTestRequest) -> ABTestResult:
     results_a = []
     results_b = []
     
-    for test_input in request.test_inputs:
+    for test_input in request_body.test_inputs:
         # Test prompt A
         request_a = PromptTestRequest(
-            prompt=request.prompt_a,
-            provider=request.provider,
-            model=request.model,
-            system_prompt=request.system_prompt,
-            temperature=request.temperature,
-            max_tokens=request.max_tokens,
+            prompt=request_body.prompt_a,
+            provider=request_body.provider,
+            model=request_body.model,
+            system_prompt=request_body.system_prompt,
+            temperature=request_body.temperature,
+            max_tokens=request_body.max_tokens,
             test_inputs=[test_input],
         )
-        result_a = await test_prompt(request_a)
+        result_a = await test_prompt(request_a, request)
         results_a.append(result_a)
         
         # Test prompt B
         request_b = PromptTestRequest(
-            prompt=request.prompt_b,
-            provider=request.provider,
-            model=request.model,
-            system_prompt=request.system_prompt,
-            temperature=request.temperature,
-            max_tokens=request.max_tokens,
+            prompt=request_body.prompt_b,
+            provider=request_body.provider,
+            model=request_body.model,
+            system_prompt=request_body.system_prompt,
+            temperature=request_body.temperature,
+            max_tokens=request_body.max_tokens,
             test_inputs=[test_input],
         )
-        result_b = await test_prompt(request_b)
+        result_b = await test_prompt(request_b, request)
         results_b.append(result_b)
     
     # Use first results for comparison
@@ -284,23 +288,24 @@ class PromptVersionRequest(BaseModel):
 
 
 @router.post("/prompt/version")
-async def create_prompt_version(request: PromptVersionRequest) -> Dict[str, str]:
+@limiter.limit("20/minute")
+async def create_prompt_version(request_body: PromptVersionRequest, request: Request) -> Dict[str, str]:
     """Create a new prompt version."""
     version_id = str(uuid.uuid4())
     
     version = PromptVersion(
         version_id=version_id,
-        prompt=request.prompt,
-        system_prompt=request.system_prompt,
-        provider=request.provider,
-        model=request.model,
-        temperature=request.temperature,
-        max_tokens=request.max_tokens,
+        prompt=request_body.prompt,
+        system_prompt=request_body.system_prompt,
+        provider=request_body.provider,
+        model=request_body.model,
+        temperature=request_body.temperature,
+        max_tokens=request_body.max_tokens,
         test_results=[],
         average_cost=0.0,
         average_latency_ms=0,
         created_at=datetime.now().isoformat(),
-        notes=request.notes,
+        notes=request_body.notes,
     )
     
     # Store by prompt hash or key (simplified: store by version_id)
@@ -315,14 +320,16 @@ async def create_prompt_version(request: PromptVersionRequest) -> Dict[str, str]
 
 
 @router.get("/prompt/versions", response_model=List[PromptVersion])
-async def list_prompt_versions() -> List[PromptVersion]:
+@limiter.limit("30/minute")
+async def list_prompt_versions(request: Request) -> List[PromptVersion]:
     """List all prompt versions."""
     versions = _prompt_versions.get("default", [])
     return [PromptVersion(**v) for v in versions]
 
 
 @router.get("/prompt/test/{test_id}", response_model=PromptTestResult)
-async def get_prompt_test(test_id: str) -> PromptTestResult:
+@limiter.limit("30/minute")
+async def get_prompt_test(test_id: str, request: Request) -> PromptTestResult:
     """Get a specific prompt test result."""
     if test_id not in _prompt_tests:
         raise HTTPException(status_code=404, detail=f"Test not found: {test_id}")

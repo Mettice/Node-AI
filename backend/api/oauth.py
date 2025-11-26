@@ -3,10 +3,11 @@ OAuth API endpoints for managing OAuth flows.
 """
 
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
+from backend.core.security import limiter
 from backend.core.oauth import OAuthManager
 from backend.utils.logger import get_logger
 
@@ -50,7 +51,8 @@ class OAuthCallbackResponse(BaseModel):
 
 
 @router.post("/init", response_model=OAuthInitResponse)
-async def init_oauth_flow(request: OAuthInitRequest) -> OAuthInitResponse:
+@limiter.limit("5/minute")
+async def init_oauth_flow(request_body: OAuthInitRequest, request: Request) -> OAuthInitResponse:
     """
     Initialize OAuth flow and get authorization URL.
     
@@ -59,12 +61,12 @@ async def init_oauth_flow(request: OAuthInitRequest) -> OAuthInitResponse:
     """
     try:
         result = OAuthManager.get_authorization_url(
-            service=request.service,
-            client_id=request.client_id,
-            redirect_uri=request.redirect_uri,
-            scopes=request.scopes,
-            user_id=request.user_id,
-            additional_params=request.additional_params,
+            service=request_body.service,
+            client_id=request_body.client_id,
+            redirect_uri=request_body.redirect_uri,
+            scopes=request_body.scopes,
+            user_id=request_body.user_id,
+            additional_params=request_body.additional_params,
         )
         
         return OAuthInitResponse(
@@ -77,7 +79,9 @@ async def init_oauth_flow(request: OAuthInitRequest) -> OAuthInitResponse:
 
 
 @router.get("/callback")
+@limiter.limit("5/minute")
 async def oauth_callback(
+    request: Request,
     service: str = Query(...),
     code: str = Query(...),
     state: str = Query(...),
@@ -111,7 +115,8 @@ async def oauth_callback(
 
 
 @router.post("/exchange", response_model=OAuthCallbackResponse)
-async def exchange_code_for_token(request: OAuthCallbackRequest) -> OAuthCallbackResponse:
+@limiter.limit("5/minute")
+async def exchange_code_for_token(request_body: OAuthCallbackRequest, request: Request) -> OAuthCallbackResponse:
     """
     Exchange OAuth authorization code for access token.
     
@@ -120,7 +125,7 @@ async def exchange_code_for_token(request: OAuthCallbackRequest) -> OAuthCallbac
     """
     try:
         # Validate state
-        if not OAuthManager.validate_state(request.state):
+        if not OAuthManager.validate_state(request_body.state):
             return OAuthCallbackResponse(
                 success=False,
                 message="Invalid or expired OAuth state",
@@ -128,17 +133,17 @@ async def exchange_code_for_token(request: OAuthCallbackRequest) -> OAuthCallbac
         
         # Exchange code for token (service-specific)
         token_data = await _exchange_code_for_token(
-            service=request.service,
-            code=request.code,
-            client_id=request.client_id,
-            client_secret=request.client_secret,
-            redirect_uri=request.redirect_uri,
+            service=request_body.service,
+            code=request_body.code,
+            client_id=request_body.client_id,
+            client_secret=request_body.client_secret,
+            redirect_uri=request_body.redirect_uri,
         )
         
         # Store token
         token_id = OAuthManager.store_token(
-            service=request.service,
-            user_id=request.user_id,
+            service=request_body.service,
+            user_id=request_body.user_id,
             access_token=token_data["access_token"],
             refresh_token=token_data.get("refresh_token"),
             expires_in=token_data.get("expires_in"),
@@ -269,7 +274,9 @@ async def _exchange_code_for_token(
 
 
 @router.get("/tokens")
+@limiter.limit("30/minute")
 async def list_oauth_tokens(
+    request: Request,
     service: Optional[str] = None,
     user_id: Optional[str] = None,
 ):
@@ -279,7 +286,8 @@ async def list_oauth_tokens(
 
 
 @router.delete("/tokens/{token_id}")
-async def delete_oauth_token(token_id: str):
+@limiter.limit("10/minute")
+async def delete_oauth_token(token_id: str, request: Request):
     """Delete an OAuth token."""
     success = OAuthManager.delete_token(token_id)
     if not success:

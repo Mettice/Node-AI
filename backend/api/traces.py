@@ -6,6 +6,7 @@ from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
+from backend.core.security import limiter
 from backend.core.observability import get_observability_manager
 from backend.core.user_context import get_user_id_from_request
 from backend.utils.logger import get_logger
@@ -48,6 +49,7 @@ class TraceDetailResponse(BaseModel):
 
 
 @router.get("/traces", response_model=List[TraceListItem])
+@limiter.limit("30/minute")
 async def list_traces(
     request: Request,
     workflow_id: Optional[str] = Query(None, description="Filter by workflow ID"),
@@ -92,6 +94,7 @@ async def list_traces(
 
 
 @router.get("/traces/{trace_id}", response_model=TraceDetailResponse)
+@limiter.limit("30/minute")
 async def get_trace(request: Request, trace_id: str):
     """
     Get detailed trace information including all spans.
@@ -132,6 +135,7 @@ async def get_trace(request: Request, trace_id: str):
 
 
 @router.get("/workflows/{workflow_id}/traces", response_model=List[TraceListItem])
+@limiter.limit("30/minute")
 async def get_workflow_traces(
     request: Request,
     workflow_id: str,

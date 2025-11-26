@@ -29,6 +29,13 @@ from backend.core.workflow_permissions import (
 )
 from backend.config import settings
 from backend.utils.logger import get_logger
+from backend.core.errors import (
+    APIError,
+    not_found_error,
+    validation_error,
+    workflow_execution_error,
+    ErrorCodes
+)
 
 logger = get_logger(__name__)
 
@@ -227,18 +234,46 @@ async def create_workflow(request: Request, workflow_request: WorkflowCreateRequ
         logger.info(f"Created workflow {workflow.id}: {workflow.name} for user {user_id or 'public'}")
         return workflow
         
+    except WorkflowValidationError as e:
+        logger.warning(f"Workflow validation failed: {e}")
+        raise validation_error(
+            message="Workflow validation failed",
+            details=str(e),
+            suggestions=[
+                "Check that all nodes are properly configured",
+                "Ensure all required connections are made",
+                "Verify node types are supported",
+                "Review the workflow structure for errors"
+            ]
+        )
+    except ValueError as e:
+        logger.warning(f"Invalid workflow data: {e}")
+        raise validation_error(
+            message="Invalid workflow data",
+            details=str(e),
+            suggestions=[
+                "Check the workflow JSON format",
+                "Ensure all required fields are provided",
+                "Verify data types are correct"
+            ]
+        )
     except Exception as e:
         logger.error(f"Error creating workflow: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "error": "Failed to create workflow",
-                "message": str(e),
-            },
+        raise APIError(
+            status_code=500,
+            error_code=ErrorCodes.INTERNAL_ERROR,
+            message="Failed to create workflow",
+            details="An unexpected error occurred while creating the workflow",
+            suggestions=[
+                "Try again in a few moments",
+                "Check that your request is properly formatted",
+                "Contact support if the issue persists"
+            ]
         )
 
 
 @router.get("/workflows", response_model=WorkflowListResponse)
+@limiter.limit("30/minute")
 async def list_workflows(
     request: Request,
     limit: int = Query(default=100, ge=1, le=1000),
@@ -318,6 +353,7 @@ async def list_workflows(
 
 
 @router.get("/workflows/{workflow_id}", response_model=Workflow)
+@limiter.limit("30/minute")
 async def get_workflow(workflow_id: str, request: Request) -> Workflow:
     """
     Get a workflow by ID.
@@ -334,9 +370,14 @@ async def get_workflow(workflow_id: str, request: Request) -> Workflow:
     """
     workflow = _load_workflow(workflow_id)
     if not workflow:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Workflow {workflow_id} not found",
+        raise not_found_error(
+            resource_type="workflow",
+            resource_id=workflow_id,
+            suggestions=[
+                "Check that the workflow ID is correct",
+                "Use the list workflows endpoint to see available workflows",
+                "Ensure you have permission to access this workflow"
+            ]
         )
     
     # Check permissions
@@ -386,9 +427,14 @@ async def update_workflow(
     
     workflow = _load_workflow(workflow_id)
     if not workflow:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Workflow {workflow_id} not found",
+        raise not_found_error(
+            resource_type="workflow",
+            resource_id=workflow_id,
+            suggestions=[
+                "Check that the workflow ID is correct",
+                "Use the list workflows endpoint to see available workflows",
+                "Ensure you have permission to access this workflow"
+            ]
         )
     
     # Check modification permission
@@ -453,9 +499,14 @@ async def delete_workflow(workflow_id: str, request: Request) -> Dict[str, str]:
     # Load workflow to check ownership
     workflow = _load_workflow(workflow_id)
     if not workflow:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Workflow {workflow_id} not found",
+        raise not_found_error(
+            resource_type="workflow",
+            resource_id=workflow_id,
+            suggestions=[
+                "Check that the workflow ID is correct",
+                "Use the list workflows endpoint to see available workflows",
+                "Ensure you have permission to access this workflow"
+            ]
         )
     
     # Check modification permission
@@ -483,7 +534,8 @@ async def delete_workflow(workflow_id: str, request: Request) -> Dict[str, str]:
 
 
 @router.post("/workflows/{workflow_id}/deploy", response_model=Workflow)
-async def deploy_workflow(workflow_id: str) -> Workflow:
+@limiter.limit("10/minute")
+async def deploy_workflow(workflow_id: str, request: Request) -> Workflow:
     """
     Deploy a workflow, making it available for queries.
     
@@ -498,9 +550,14 @@ async def deploy_workflow(workflow_id: str) -> Workflow:
     """
     workflow = _load_workflow(workflow_id)
     if not workflow:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Workflow {workflow_id} not found",
+        raise not_found_error(
+            resource_type="workflow",
+            resource_id=workflow_id,
+            suggestions=[
+                "Check that the workflow ID is correct",
+                "Use the list workflows endpoint to see available workflows",
+                "Ensure you have permission to access this workflow"
+            ]
         )
     
     try:
@@ -569,7 +626,8 @@ async def deploy_workflow(workflow_id: str) -> Workflow:
 
 
 @router.post("/workflows/{workflow_id}/undeploy", response_model=Workflow)
-async def undeploy_workflow(workflow_id: str) -> Workflow:
+@limiter.limit("10/minute")
+async def undeploy_workflow(workflow_id: str, request: Request) -> Workflow:
     """
     Undeploy a workflow, making it unavailable for queries.
     
@@ -584,9 +642,14 @@ async def undeploy_workflow(workflow_id: str) -> Workflow:
     """
     workflow = _load_workflow(workflow_id)
     if not workflow:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Workflow {workflow_id} not found",
+        raise not_found_error(
+            resource_type="workflow",
+            resource_id=workflow_id,
+            suggestions=[
+                "Check that the workflow ID is correct",
+                "Use the list workflows endpoint to see available workflows",
+                "Ensure you have permission to access this workflow"
+            ]
         )
     
     try:
@@ -617,7 +680,8 @@ async def undeploy_workflow(workflow_id: str) -> Workflow:
 
 
 @router.get("/workflows/{workflow_id}/deployments")
-async def list_deployment_versions(workflow_id: str) -> Dict[str, Any]:
+@limiter.limit("30/minute")
+async def list_deployment_versions(workflow_id: str, request: Request) -> Dict[str, Any]:
     """
     List all deployment versions for a workflow.
     
@@ -636,7 +700,8 @@ async def list_deployment_versions(workflow_id: str) -> Dict[str, Any]:
 
 
 @router.get("/workflows/{workflow_id}/deployments/{version_number}")
-async def get_deployment_version(workflow_id: str, version_number: int) -> Dict[str, Any]:
+@limiter.limit("30/minute")
+async def get_deployment_version(workflow_id: str, version_number: int, request: Request) -> Dict[str, Any]:
     """
     Get a specific deployment version.
     
@@ -657,7 +722,8 @@ async def get_deployment_version(workflow_id: str, version_number: int) -> Dict[
 
 
 @router.post("/workflows/{workflow_id}/deployments/{version_number}/rollback")
-async def rollback_deployment(workflow_id: str, version_number: int) -> Dict[str, Any]:
+@limiter.limit("10/minute")
+async def rollback_deployment(workflow_id: str, version_number: int, request: Request) -> Dict[str, Any]:
     """
     Rollback to a previous deployment version.
     
@@ -690,7 +756,8 @@ async def rollback_deployment(workflow_id: str, version_number: int) -> Dict[str
 
 
 @router.get("/workflows/{workflow_id}/deployments/health")
-async def get_deployment_health(workflow_id: str) -> Dict[str, Any]:
+@limiter.limit("30/minute")
+async def get_deployment_health(workflow_id: str, request: Request) -> Dict[str, Any]:
     """
     Get health metrics for the active deployment.
     
@@ -713,10 +780,11 @@ class WorkflowQueryRequest(BaseModel):
 
 
 @router.post("/workflows/{workflow_id}/query", response_model=ExecutionResponse)
+@limiter.limit("10/minute")
 async def query_workflow(
     workflow_id: str,
     query_request: WorkflowQueryRequest,
-    http_request: Request,
+    request: Request,
     x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
 ) -> ExecutionResponse:
     """
@@ -738,9 +806,14 @@ async def query_workflow(
     # Load workflow
     workflow = _load_workflow(workflow_id)
     if not workflow:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Workflow {workflow_id} not found",
+        raise not_found_error(
+            resource_type="workflow",
+            resource_id=workflow_id,
+            suggestions=[
+                "Check that the workflow ID is correct",
+                "Use the list workflows endpoint to see available workflows",
+                "Ensure you have permission to access this workflow"
+            ]
         )
     
     # Check if workflow is deployed
@@ -890,7 +963,7 @@ async def query_workflow(
         import uuid
         execution_id = str(uuid.uuid4())
         # Get user ID for observability
-        user_id = get_user_id_from_request(http_request)
+        user_id = get_user_id_from_request(request)
         
         execution = await engine.execute(
             workflow=query_workflow,

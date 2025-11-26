@@ -8,7 +8,9 @@ import { X, Search, FileText, Clock, Tag, Upload } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { listWorkflows, getWorkflow, createWorkflow, type WorkflowListItem } from '@/services/workflowManagement';
 import { useWorkflowStore } from '@/store/workflowStore';
-import toast from 'react-hot-toast';
+import { errorToast, successToast, loadingToast } from '@/components/common/ErrorToast';
+import { ErrorDisplay, LoadingError } from '@/components/common/ErrorDisplay';
+import { parseAPIError, type APIErrorResponse } from '@/utils/api';
 import type { Node as RFNode, Edge as RFEdge } from 'reactflow';
 
 interface WorkflowLoaderProps {
@@ -23,6 +25,7 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showTemplates, setShowTemplates] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [loadError, setLoadError] = useState<APIErrorResponse | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load workflows when modal opens
@@ -34,6 +37,8 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
 
   const loadWorkflows = async () => {
     setLoading(true);
+    setLoadError(null);
+    
     try {
       const response = await listWorkflows({
         limit: 100,
@@ -42,7 +47,22 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
       setWorkflows(response.workflows);
     } catch (error: any) {
       console.error('Error loading workflows:', error);
-      toast.error('Failed to load workflows');
+      const parsedError = parseAPIError(error);
+      setLoadError(parsedError);
+      
+      // Show toast with specific error handling
+      if (parsedError.error_code === 'AUTHENTICATION_REQUIRED') {
+        errorToast.auth();
+      } else if (parsedError.error_code === 'RATE_LIMIT_EXCEEDED') {
+        errorToast.rateLimit();
+      } else {
+        errorToast.show(parsedError, {
+          showSuggestions: true,
+          showRetry: true,
+          onRetry: loadWorkflows,
+          retryLabel: 'Reload Workflows'
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -94,11 +114,18 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
         setWorkflowId(workflow.id);
       }
 
-      toast.success(`Workflow "${workflow.name}" loaded`);
+      successToast.show(`Workflow "${workflow.name}" loaded successfully`);
       onClose();
     } catch (error: any) {
       console.error('Error loading workflow:', error);
-      toast.error('Failed to load workflow');
+      const parsedError = parseAPIError(error);
+      
+      errorToast.show(parsedError, {
+        showSuggestions: true,
+        showRetry: true,
+        onRetry: () => handleLoadWorkflow(workflowId),
+        retryLabel: 'Try Loading Again'
+      });
     }
   };
 
@@ -267,7 +294,14 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
 
         {/* Workflow List */}
         <div className="flex-1 overflow-y-auto p-4">
-          {loading ? (
+          {loadError ? (
+            <LoadingError 
+              error={loadError} 
+              onRetry={loadWorkflows}
+              retryLabel="Reload Workflows"
+              className="py-8"
+            />
+          ) : loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-slate-400">Loading workflows...</div>
             </div>
@@ -275,6 +309,9 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
             <div className="flex flex-col items-center justify-center py-12 text-slate-400">
               <FileText className="w-12 h-12 mb-4 opacity-50" />
               <p>No workflows found</p>
+              {searchQuery && (
+                <p className="text-sm mt-2">Try adjusting your search or clearing filters</p>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

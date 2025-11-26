@@ -12,6 +12,12 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from backend.core.security import validate_file_name, limiter
 from backend.utils.logger import get_logger
+from backend.core.errors import (
+    APIError,
+    file_validation_error,
+    not_found_error,
+    ErrorCodes
+)
 
 logger = get_logger(__name__)
 
@@ -52,9 +58,9 @@ async def upload_file(request: Request, file: UploadFile = File(...)) -> JSONRes
     """
     # Validate file name
     if not file.filename or not validate_file_name(file.filename):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid file name. File name contains invalid characters or path traversal attempts."
+        raise file_validation_error(
+            filename=file.filename or "unnamed",
+            issue="Invalid file name - contains invalid characters or path traversal attempts"
         )
     
     # Validate file size (max 50MB)
@@ -66,9 +72,11 @@ async def upload_file(request: Request, file: UploadFile = File(...)) -> JSONRes
         file_size = len(content)
         
         if file_size > MAX_FILE_SIZE:
-            raise HTTPException(
-                status_code=413,
-                detail=f"File too large. Maximum size is {MAX_FILE_SIZE / (1024*1024):.0f}MB"
+            max_mb = int(MAX_FILE_SIZE / (1024*1024))
+            raise file_validation_error(
+                filename=file.filename,
+                issue=f"File size {file_size / (1024*1024):.1f}MB exceeds maximum of {max_mb}MB",
+                max_size_mb=max_mb
             )
         
         # Reset file pointer
@@ -146,7 +154,8 @@ async def upload_file(request: Request, file: UploadFile = File(...)) -> JSONRes
 
 
 @router.get("/list")
-async def list_files() -> FileListResponse:
+@limiter.limit("30/minute")
+async def list_files(request: Request) -> FileListResponse:
     """List all uploaded files."""
     files = []
     for file_id, metadata in _uploaded_files.items():
@@ -174,7 +183,8 @@ async def list_files() -> FileListResponse:
 
 
 @router.get("/{file_id}")
-async def get_file_info(file_id: str) -> FileInfo:
+@limiter.limit("30/minute")
+async def get_file_info(file_id: str, request: Request) -> FileInfo:
     """Get file metadata."""
     if file_id not in _uploaded_files:
         raise HTTPException(status_code=404, detail="File not found")
@@ -198,7 +208,8 @@ async def get_file_info(file_id: str) -> FileInfo:
 
 
 @router.delete("/{file_id}")
-async def delete_file(file_id: str) -> JSONResponse:
+@limiter.limit("10/minute")
+async def delete_file(file_id: str, request: Request) -> JSONResponse:
     """Delete an uploaded file."""
     if file_id not in _uploaded_files:
         raise HTTPException(status_code=404, detail="File not found")
@@ -220,7 +231,8 @@ async def delete_file(file_id: str) -> JSONResponse:
 
 
 @router.get("/{file_id}/text")
-async def get_file_text(file_id: str) -> JSONResponse:
+@limiter.limit("30/minute")
+async def get_file_text(file_id: str, request: Request) -> JSONResponse:
     """Get extracted text from file."""
     if file_id not in _uploaded_files:
         raise HTTPException(status_code=404, detail="File not found")

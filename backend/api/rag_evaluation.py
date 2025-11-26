@@ -12,9 +12,10 @@ from datetime import datetime
 import uuid
 import time
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Query
+from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Request
 from pydantic import BaseModel
 
+from backend.core.security import limiter
 from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -72,8 +73,10 @@ class EvaluationSummary(BaseModel):
 
 
 @router.post("/rag-eval/dataset")
+@limiter.limit("20/minute")
 async def upload_test_dataset(
     file: UploadFile = File(...),
+    request: Request = None,
 ) -> Dict[str, str]:
     """
     Upload a test dataset (JSON or JSONL file with Q&A pairs).
@@ -147,7 +150,8 @@ async def upload_test_dataset(
 
 
 @router.get("/rag-eval/dataset/{dataset_id}")
-async def get_test_dataset(dataset_id: str) -> Dict:
+@limiter.limit("30/minute")
+async def get_test_dataset(dataset_id: str, request: Request) -> Dict:
     """Get a test dataset."""
     if dataset_id not in _test_datasets:
         raise HTTPException(status_code=404, detail=f"Dataset not found: {dataset_id}")
@@ -160,7 +164,8 @@ async def get_test_dataset(dataset_id: str) -> Dict:
 
 
 @router.post("/rag-eval/evaluate", response_model=EvaluationSummary)
-async def evaluate_rag_workflow(request: EvaluationRequest) -> EvaluationSummary:
+@limiter.limit("10/minute")
+async def evaluate_rag_workflow(request_body: EvaluationRequest, request: Request) -> EvaluationSummary:
     """
     Evaluate a RAG workflow with test Q&A pairs.
     
@@ -174,23 +179,23 @@ async def evaluate_rag_workflow(request: EvaluationRequest) -> EvaluationSummary
     from backend.core.models import Workflow, Node
     
     # Get test dataset
-    if request.test_dataset_id not in _test_datasets:
+    if request_body.test_dataset_id not in _test_datasets:
         raise HTTPException(
             status_code=404,
-            detail=f"Test dataset not found: {request.test_dataset_id}"
+            detail=f"Test dataset not found: {request_body.test_dataset_id}"
         )
     
-    test_pairs = _test_datasets[request.test_dataset_id]
+    test_pairs = _test_datasets[request_body.test_dataset_id]
     
     # Limit queries if specified
-    if request.max_queries:
-        test_pairs = test_pairs[:request.max_queries]
+    if request_body.max_queries:
+        test_pairs = test_pairs[:request_body.max_queries]
     
     evaluation_id = str(uuid.uuid4())
     
     # Parse workflow
     try:
-        workflow = Workflow(**request.workflow)
+        workflow = Workflow(**request_body.workflow)
     except Exception as e:
         raise HTTPException(
             status_code=400,
@@ -198,8 +203,8 @@ async def evaluate_rag_workflow(request: EvaluationRequest) -> EvaluationSummary
         )
     
     # Find input and output nodes
-    input_node_id = request.input_node_id
-    output_node_id = request.output_node_id
+    input_node_id = request_body.input_node_id
+    output_node_id = request_body.output_node_id
     
     if not input_node_id:
         # Find first text_input node
@@ -338,7 +343,7 @@ async def evaluate_rag_workflow(request: EvaluationRequest) -> EvaluationSummary
 
 
 @router.get("/rag-eval/{evaluation_id}", response_model=EvaluationSummary)
-async def get_evaluation(evaluation_id: str) -> EvaluationSummary:
+async def get_evaluation(evaluation_id: str, request: Request) -> EvaluationSummary:
     """Get evaluation results."""
     if evaluation_id not in _evaluations:
         raise HTTPException(
@@ -350,7 +355,9 @@ async def get_evaluation(evaluation_id: str) -> EvaluationSummary:
 
 
 @router.get("/rag-eval", response_model=List[EvaluationSummary])
+@limiter.limit("30/minute")
 async def list_evaluations(
+    request: Request,
     workflow_id: Optional[str] = None,
 ) -> List[EvaluationSummary]:
     """List all evaluations, optionally filtered by workflow."""
@@ -390,7 +397,8 @@ class ABTestResult(BaseModel):
 
 
 @router.post("/rag-eval/ab-test", response_model=ABTestResult)
-async def run_ab_test(request: ABTestRequest) -> ABTestResult:
+@limiter.limit("10/minute")
+async def run_ab_test(request_body: ABTestRequest, request: Request) -> ABTestResult:
     """
     Run an A/B test comparing two workflow configurations.
     
@@ -403,26 +411,26 @@ async def run_ab_test(request: ABTestRequest) -> ABTestResult:
     from backend.core.models import Workflow
     
     # Evaluate workflow A
-    workflow_a = Workflow(**request.workflow_a)
+    workflow_a = Workflow(**request_body.workflow_a)
     eval_request_a = EvaluationRequest(
-        workflow=request.workflow_a,
-        test_dataset_id=request.test_dataset_id,
-        max_queries=request.max_queries,
-        input_node_id=request.input_node_id,
-        output_node_id=request.output_node_id,
+        workflow=request_body.workflow_a,
+        test_dataset_id=request_body.test_dataset_id,
+        max_queries=request_body.max_queries,
+        input_node_id=request_body.input_node_id,
+        output_node_id=request_body.output_node_id,
     )
-    evaluation_a = await evaluate_rag_workflow(eval_request_a)
+    evaluation_a = await evaluate_rag_workflow(eval_request_a, request)
     
     # Evaluate workflow B
-    workflow_b = Workflow(**request.workflow_b)
+    workflow_b = Workflow(**request_body.workflow_b)
     eval_request_b = EvaluationRequest(
-        workflow=request.workflow_b,
-        test_dataset_id=request.test_dataset_id,
-        max_queries=request.max_queries,
-        input_node_id=request.input_node_id,
-        output_node_id=request.output_node_id,
+        workflow=request_body.workflow_b,
+        test_dataset_id=request_body.test_dataset_id,
+        max_queries=request_body.max_queries,
+        input_node_id=request_body.input_node_id,
+        output_node_id=request_body.output_node_id,
     )
-    evaluation_b = await evaluate_rag_workflow(eval_request_b)
+    evaluation_b = await evaluate_rag_workflow(eval_request_b, request)
     
     # Compare results
     comparison = {
@@ -478,7 +486,8 @@ async def run_ab_test(request: ABTestRequest) -> ABTestResult:
 
 
 @router.get("/rag-eval/ab-tests", response_model=List[ABTestResult])
-async def list_ab_tests() -> List[ABTestResult]:
+@limiter.limit("30/minute")
+async def list_ab_tests(request: Request) -> List[ABTestResult]:
     """List all A/B tests."""
     if not hasattr(run_ab_test, '_ab_tests'):
         return []
@@ -489,7 +498,9 @@ async def list_ab_tests() -> List[ABTestResult]:
 
 
 @router.get("/rag-eval/quality-trends")
+@limiter.limit("30/minute")
 async def get_quality_trends(
+    request: Request,
     workflow_id: Optional[str] = None,
     days: int = Query(30, ge=1, le=365, description="Number of days to look back"),
 ) -> Dict[str, Any]:

@@ -259,6 +259,21 @@ class Settings(BaseSettings):
         default=None,
         description="PostgreSQL database connection URL (for Supabase). Format: postgresql://postgres:[password]@db.xxx.supabase.co:5432/postgres",
     )
+    
+    # Database Connection Pool Configuration
+    db_pool_min_connections: int = Field(
+        default=5,
+        ge=1,
+        le=20,
+        description="Minimum database connections in pool"
+    )
+    
+    db_pool_max_connections: int = Field(
+        default=20,
+        ge=5,
+        le=50,
+        description="Maximum database connections in pool"
+    )
 
     # ============================================
     # Logging Configuration

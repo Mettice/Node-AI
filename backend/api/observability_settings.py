@@ -8,6 +8,7 @@ from typing import Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from backend.core.security import limiter
 from backend.core.db_settings import (
     get_observability_settings,
     update_observability_settings,
@@ -43,6 +44,7 @@ class ObservabilitySettingsResponse(BaseModel):
 
 
 @router.get("/observability/settings", response_model=ObservabilitySettingsResponse)
+@limiter.limit("30/minute")
 async def get_settings(request: Request):
     """
     Get current user's observability settings.
@@ -78,6 +80,7 @@ async def get_settings(request: Request):
 
 
 @router.put("/observability/settings", response_model=ObservabilitySettingsResponse)
+@limiter.limit("20/minute")
 async def update_settings(request: Request, settings: ObservabilitySettingsRequest):
     """
     Update current user's observability settings.

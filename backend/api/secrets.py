@@ -4,10 +4,11 @@ API endpoints for secrets vault management.
 
 from typing import List, Optional
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from backend.core.user_context import require_user_context
+from backend.core.security import limiter
 from backend.core.db_secrets import (
     create_secret,
     get_secret,
@@ -61,8 +62,10 @@ class SecretResponse(BaseModel):
 
 
 @router.post("", response_model=SecretResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/minute")
 async def create_secret_endpoint(
     secret: SecretCreate,
+    request: Request,
     user_context: dict = Depends(require_user_context),
 ):
     """Create a new secret."""
@@ -91,7 +94,9 @@ async def create_secret_endpoint(
 
 
 @router.get("", response_model=List[SecretResponse])
+@limiter.limit("30/minute")
 async def list_secrets_endpoint(
+    request: Request,
     provider: Optional[str] = None,
     secret_type: Optional[str] = None,
     is_active: Optional[bool] = None,
@@ -116,8 +121,10 @@ async def list_secrets_endpoint(
 
 
 @router.get("/{secret_id}", response_model=SecretResponse)
+@limiter.limit("30/minute")
 async def get_secret_endpoint(
     secret_id: str,
+    request: Request,
     decrypt: bool = False,
     user_context: dict = Depends(require_user_context),
 ):
@@ -146,9 +153,11 @@ async def get_secret_endpoint(
 
 
 @router.put("/{secret_id}", response_model=SecretResponse)
+@limiter.limit("10/minute")
 async def update_secret_endpoint(
     secret_id: str,
     secret: SecretUpdate,
+    request: Request,
     user_context: dict = Depends(require_user_context),
 ):
     """Update a secret."""
@@ -180,8 +189,10 @@ async def update_secret_endpoint(
 
 
 @router.delete("/{secret_id}", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("10/minute")
 async def delete_secret_endpoint(
     secret_id: str,
+    request: Request,
     user_context: dict = Depends(require_user_context),
 ):
     """Delete a secret."""

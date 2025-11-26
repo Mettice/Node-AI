@@ -8,9 +8,10 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
+from backend.core.security import limiter
 from backend.core.knowledge_base import (
     KnowledgeBase,
     KnowledgeBaseVersion,
@@ -83,20 +84,21 @@ class ProcessKnowledgeBaseRequest(BaseModel):
 
 
 @router.post("", response_model=KnowledgeBase)
-async def create_knowledge_base(request: KnowledgeBaseCreateRequest) -> KnowledgeBase:
+@limiter.limit("20/minute")
+async def create_knowledge_base(request_body: KnowledgeBaseCreateRequest, request: Request) -> KnowledgeBase:
     """Create a new knowledge base."""
     try:
         kb = KnowledgeBase(
             id=str(uuid.uuid4()),
-            name=request.name,
-            description=request.description,
-            tags=request.tags,
-            is_shared=request.is_shared,
+            name=request_body.name,
+            description=request_body.description,
+            tags=request_body.tags,
+            is_shared=request_body.is_shared,
             created_at=datetime.now(),
             updated_at=datetime.now(),
-            default_chunk_config=request.default_chunk_config or ChunkConfig(),
-            default_embed_config=request.default_embed_config or EmbedConfig(),
-            default_vector_store_config=request.default_vector_store_config or VectorStoreConfig(),
+            default_chunk_config=request_body.default_chunk_config or ChunkConfig(),
+            default_embed_config=request_body.default_embed_config or EmbedConfig(),
+            default_vector_store_config=request_body.default_vector_store_config or VectorStoreConfig(),
         )
         
         save_knowledge_base(kb)
@@ -108,7 +110,8 @@ async def create_knowledge_base(request: KnowledgeBaseCreateRequest) -> Knowledg
 
 
 @router.get("", response_model=KnowledgeBaseListResponse)
-async def list_knowledge_bases_endpoint() -> KnowledgeBaseListResponse:
+@limiter.limit("30/minute")
+async def list_knowledge_bases_endpoint(request: Request) -> KnowledgeBaseListResponse:
     """List all knowledge bases."""
     try:
         kbs = list_knowledge_bases()
@@ -151,7 +154,8 @@ async def list_knowledge_bases_endpoint() -> KnowledgeBaseListResponse:
 
 
 @router.get("/{kb_id}", response_model=KnowledgeBase)
-async def get_knowledge_base(kb_id: str) -> KnowledgeBase:
+@limiter.limit("30/minute")
+async def get_knowledge_base(kb_id: str, request: Request) -> KnowledgeBase:
     """Get a knowledge base by ID."""
     kb = load_knowledge_base(kb_id)
     if not kb:
@@ -160,9 +164,11 @@ async def get_knowledge_base(kb_id: str) -> KnowledgeBase:
 
 
 @router.put("/{kb_id}", response_model=KnowledgeBase)
+@limiter.limit("20/minute")
 async def update_knowledge_base(
     kb_id: str,
-    request: KnowledgeBaseUpdateRequest,
+    request_body: KnowledgeBaseUpdateRequest,
+    request: Request,
 ) -> KnowledgeBase:
     """Update a knowledge base."""
     kb = load_knowledge_base(kb_id)
@@ -170,20 +176,20 @@ async def update_knowledge_base(
         raise HTTPException(status_code=404, detail=f"Knowledge base {kb_id} not found")
     
     try:
-        if request.name is not None:
-            kb.name = request.name
-        if request.description is not None:
-            kb.description = request.description
-        if request.tags is not None:
-            kb.tags = request.tags
-        if request.is_shared is not None:
-            kb.is_shared = request.is_shared
-        if request.default_chunk_config is not None:
-            kb.default_chunk_config = request.default_chunk_config
-        if request.default_embed_config is not None:
-            kb.default_embed_config = request.default_embed_config
-        if request.default_vector_store_config is not None:
-            kb.default_vector_store_config = request.default_vector_store_config
+        if request_body.name is not None:
+            kb.name = request_body.name
+        if request_body.description is not None:
+            kb.description = request_body.description
+        if request_body.tags is not None:
+            kb.tags = request_body.tags
+        if request_body.is_shared is not None:
+            kb.is_shared = request_body.is_shared
+        if request_body.default_chunk_config is not None:
+            kb.default_chunk_config = request_body.default_chunk_config
+        if request_body.default_embed_config is not None:
+            kb.default_embed_config = request_body.default_embed_config
+        if request_body.default_vector_store_config is not None:
+            kb.default_vector_store_config = request_body.default_vector_store_config
         
         kb.updated_at = datetime.now()
         save_knowledge_base(kb)
@@ -196,7 +202,8 @@ async def update_knowledge_base(
 
 
 @router.delete("/{kb_id}")
-async def delete_knowledge_base_endpoint(kb_id: str) -> Dict[str, str]:
+@limiter.limit("10/minute")
+async def delete_knowledge_base_endpoint(kb_id: str, request: Request) -> Dict[str, str]:
     """Delete a knowledge base."""
     kb = load_knowledge_base(kb_id)
     if not kb:
@@ -213,9 +220,11 @@ async def delete_knowledge_base_endpoint(kb_id: str) -> Dict[str, str]:
 
 
 @router.post("/{kb_id}/process", response_model=KnowledgeBaseVersion)
+@limiter.limit("10/minute")
 async def process_knowledge_base(
     kb_id: str,
-    request: ProcessKnowledgeBaseRequest,
+    request_body: ProcessKnowledgeBaseRequest,
+    request: Request,
 ) -> KnowledgeBaseVersion:
     """
     Process files in a knowledge base (chunk, embed, store).
@@ -228,7 +237,7 @@ async def process_knowledge_base(
     
     try:
         # Determine version number
-        if request.create_new_version:
+        if request_body.create_new_version:
             new_version_number = kb.current_version + 1
         else:
             # Mark current version as deprecated
@@ -239,9 +248,9 @@ async def process_knowledge_base(
             new_version_number = kb.current_version
         
         # Use provided configs or defaults
-        chunk_config = request.chunk_config or kb.default_chunk_config
-        embed_config = request.embed_config or kb.default_embed_config
-        vector_store_config = request.vector_store_config or kb.default_vector_store_config
+        chunk_config = request_body.chunk_config or kb.default_chunk_config
+        embed_config = request_body.embed_config or kb.default_embed_config
+        vector_store_config = request_body.vector_store_config or kb.default_vector_store_config
         
         # Generate vector store ID
         vector_store_id = f"kb_{kb_id}_v{new_version_number}"
@@ -252,7 +261,7 @@ async def process_knowledge_base(
             kb_id=kb_id,
             version_number=new_version_number,
             created_at=datetime.now(),
-            file_ids=request.file_ids,
+            file_ids=request_body.file_ids,
             chunk_config=chunk_config,
             embed_config=embed_config,
             vector_store_config=vector_store_config,
@@ -282,7 +291,8 @@ async def process_knowledge_base(
 
 
 @router.get("/{kb_id}/versions", response_model=List[KnowledgeBaseVersion])
-async def list_knowledge_base_versions(kb_id: str) -> List[KnowledgeBaseVersion]:
+@limiter.limit("30/minute")
+async def list_knowledge_base_versions(kb_id: str, request: Request) -> List[KnowledgeBaseVersion]:
     """List all versions of a knowledge base."""
     kb = load_knowledge_base(kb_id)
     if not kb:
@@ -292,9 +302,11 @@ async def list_knowledge_base_versions(kb_id: str) -> List[KnowledgeBaseVersion]
 
 
 @router.get("/{kb_id}/versions/{version_number}", response_model=KnowledgeBaseVersion)
+@limiter.limit("30/minute")
 async def get_knowledge_base_version(
     kb_id: str,
     version_number: int,
+    request: Request,
 ) -> KnowledgeBaseVersion:
     """Get a specific version of a knowledge base."""
     kb = load_knowledge_base(kb_id)
@@ -322,8 +334,10 @@ class VersionComparisonResponse(BaseModel):
 
 
 @router.get("/{kb_id}/versions/compare")
+@limiter.limit("30/minute")
 async def compare_versions(
     kb_id: str,
+    request: Request,
     version1: int = Query(..., description="First version number"),
     version2: int = Query(..., description="Second version number"),
 ) -> VersionComparisonResponse:
@@ -402,9 +416,11 @@ async def compare_versions(
 
 
 @router.post("/{kb_id}/versions/{version_number}/rollback")
+@limiter.limit("10/minute")
 async def rollback_to_version(
     kb_id: str,
     version_number: int,
+    request: Request,
 ) -> KnowledgeBase:
     """
     Rollback knowledge base to a specific version.

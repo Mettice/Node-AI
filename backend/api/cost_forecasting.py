@@ -6,6 +6,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
+from backend.core.security import limiter
 from backend.core.cost_forecasting import get_cost_forecaster
 from backend.core.user_context import get_user_id_from_request
 from backend.utils.logger import get_logger
@@ -37,6 +38,7 @@ class CostForecastResponse(BaseModel):
 
 
 @router.post("/cost-forecast", response_model=CostForecastResponse)
+@limiter.limit("20/minute")
 async def forecast_cost(request: Request, forecast_request: CostForecastRequest):
     """
     Forecast cost for a workflow based on historical data.
@@ -60,6 +62,7 @@ async def forecast_cost(request: Request, forecast_request: CostForecastRequest)
 
 
 @router.get("/cost-forecast/{workflow_id}/trends")
+@limiter.limit("30/minute")
 async def get_cost_trends(
     request: Request,
     workflow_id: str,
@@ -86,6 +89,7 @@ async def get_cost_trends(
 
 
 @router.get("/cost-forecast/{workflow_id}/breakdown")
+@limiter.limit("30/minute")
 async def get_cost_breakdown(
     request: Request,
     workflow_id: str,

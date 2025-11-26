@@ -6,9 +6,10 @@ Provides CRUD operations for API keys, usage tracking, and validation.
 
 from datetime import datetime
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Depends, Header
+from fastapi import APIRouter, HTTPException, Depends, Header, Request
 from pydantic import BaseModel, Field
 
+from backend.core.security import limiter
 from backend.core.api_keys import (
     create_api_key,
     load_api_key,
@@ -97,7 +98,8 @@ def api_key_to_response(api_key: APIKey) -> APIKeyResponse:
 # ============================================
 
 @router.post("/api-keys", response_model=APIKeyCreateResponse)
-async def create_new_api_key(request: APIKeyCreateRequest) -> APIKeyCreateResponse:
+@limiter.limit("5/minute")
+async def create_new_api_key(request_body: APIKeyCreateRequest, request: Request) -> APIKeyCreateResponse:
     """
     Create a new API key.
     
@@ -105,10 +107,10 @@ async def create_new_api_key(request: APIKeyCreateRequest) -> APIKeyCreateRespon
     """
     try:
         plain_key, api_key = create_api_key(
-            workflow_id=request.workflow_id,
-            name=request.name,
-            rate_limit=request.rate_limit,
-            cost_limit=request.cost_limit,
+            workflow_id=request_body.workflow_id,
+            name=request_body.name,
+            rate_limit=request_body.rate_limit,
+            cost_limit=request_body.cost_limit,
         )
         
         return APIKeyCreateResponse(
@@ -129,7 +131,8 @@ async def create_new_api_key(request: APIKeyCreateRequest) -> APIKeyCreateRespon
 
 
 @router.get("/api-keys", response_model=List[APIKeyResponse])
-async def list_api_keys(workflow_id: Optional[str] = None) -> List[APIKeyResponse]:
+@limiter.limit("30/minute")
+async def list_api_keys(request: Request, workflow_id: Optional[str] = None) -> List[APIKeyResponse]:
     """List all API keys, optionally filtered by workflow_id."""
     try:
         all_keys = load_all_api_keys()
@@ -148,7 +151,8 @@ async def list_api_keys(workflow_id: Optional[str] = None) -> List[APIKeyRespons
 
 
 @router.get("/api-keys/{key_id}", response_model=APIKeyResponse)
-async def get_api_key(key_id: str) -> APIKeyResponse:
+@limiter.limit("30/minute")
+async def get_api_key(key_id: str, request: Request) -> APIKeyResponse:
     """Get an API key by ID."""
     api_key = load_api_key(key_id)
     if not api_key:
@@ -160,7 +164,8 @@ async def get_api_key(key_id: str) -> APIKeyResponse:
 
 
 @router.put("/api-keys/{key_id}", response_model=APIKeyResponse)
-async def update_api_key(key_id: str, request: APIKeyUpdateRequest) -> APIKeyResponse:
+@limiter.limit("20/minute")
+async def update_api_key(key_id: str, request_body: APIKeyUpdateRequest, request: Request) -> APIKeyResponse:
     """Update an API key (name, active status, limits)."""
     api_key = load_api_key(key_id)
     if not api_key:
@@ -171,14 +176,14 @@ async def update_api_key(key_id: str, request: APIKeyUpdateRequest) -> APIKeyRes
     
     try:
         # Update fields
-        if request.name is not None:
-            api_key.name = request.name
-        if request.is_active is not None:
-            api_key.is_active = request.is_active
-        if request.rate_limit is not None:
-            api_key.rate_limit = request.rate_limit
-        if request.cost_limit is not None:
-            api_key.cost_limit = request.cost_limit
+        if request_body.name is not None:
+            api_key.name = request_body.name
+        if request_body.is_active is not None:
+            api_key.is_active = request_body.is_active
+        if request_body.rate_limit is not None:
+            api_key.rate_limit = request_body.rate_limit
+        if request_body.cost_limit is not None:
+            api_key.cost_limit = request_body.cost_limit
         
         # Save updated key
         from backend.core.api_keys import save_api_key
@@ -194,7 +199,8 @@ async def update_api_key(key_id: str, request: APIKeyUpdateRequest) -> APIKeyRes
 
 
 @router.delete("/api-keys/{key_id}")
-async def delete_api_key_endpoint(key_id: str) -> dict:
+@limiter.limit("10/minute")
+async def delete_api_key_endpoint(key_id: str, request: Request) -> dict:
     """Delete an API key."""
     if not delete_api_key(key_id):
         raise HTTPException(
@@ -205,7 +211,8 @@ async def delete_api_key_endpoint(key_id: str) -> dict:
 
 
 @router.get("/api-keys/{key_id}/usage", response_model=UsageStats)
-async def get_api_key_usage(key_id: str) -> UsageStats:
+@limiter.limit("30/minute")
+async def get_api_key_usage(key_id: str, request: Request) -> UsageStats:
     """Get usage statistics for an API key."""
     api_key = load_api_key(key_id)
     if not api_key:

@@ -1,0 +1,75 @@
+{
+  "id": "0b29f725-cf2a-4697-85b7-04290a110d2d",
+  "name": "CrewAI Research & Write Workflow",
+  "description": "Template: CrewAI Research & Write Workflow",
+  "nodes": [
+    {
+      "id": "text-input-1",
+      "type": "text_input",
+      "position": {
+        "x": 100.0,
+        "y": 200.0
+      },
+      "data": {
+        "text": "Research the latest AI trends in 2025 and write a comprehensive report"
+      }
+    },
+    {
+      "id": "crewai-agent-1",
+      "type": "crewai_agent",
+      "position": {
+        "x": 400.0,
+        "y": 200.0
+      },
+      "data": {
+        "provider": "openai",
+        "openai_model": "gpt-4",
+        "temperature": 0.7,
+        "max_iterations": 3,
+        "process": "sequential",
+        "task": "Research the latest AI trends in 2025 and write a comprehensive report",
+        "agents": [
+          {
+            "role": "Researcher",
+            "goal": "Research the topic thoroughly and gather comprehensive information",
+            "backstory": "You are an expert researcher with 10 years of experience in technology and AI. You excel at finding accurate, up-to-date information and synthesizing complex topics."
+          },
+          {
+            "role": "Writer",
+            "goal": "Write a clear, comprehensive, and well-structured report based on research findings",
+            "backstory": "You are a skilled technical writer who creates engaging, informative content. You excel at organizing information logically and presenting it in an accessible way."
+          }
+        ],
+        "tasks": [
+          {
+            "description": "Research the latest AI trends in 2025, including key developments, breakthroughs, and industry impacts",
+            "agent": "Researcher"
+          },
+          {
+            "description": "Write a comprehensive report based on the research findings, including an executive summary, key trends, and future outlook",
+            "agent": "Writer"
+          }
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "text-input-1",
+      "target": "crewai-agent-1",
+      "sourceHandle": null,
+      "targetHandle": null
+    }
+  ],
+  "created_at": "2025-11-25T09:38:07.331916",
+  "updated_at": "2025-11-25T09:38:07.331916",
+  "tags": [
+    "template",
+    "imported"
+  ],
+  "is_template": true,
+  "is_deployed": false,
+  "deployed_at": null,
+  "owner_id": null
+}

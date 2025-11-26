@@ -147,7 +147,8 @@ async def execute_workflow(request: Request, execution_request: ExecutionRequest
 
 
 @router.get("/executions/{execution_id}", response_model=Execution)
-async def get_execution(execution_id: str) -> Execution:
+@limiter.limit("30/minute")
+async def get_execution(execution_id: str, request: Request) -> Execution:
     """
     Get execution details by ID.
     
@@ -170,7 +171,8 @@ async def get_execution(execution_id: str) -> Execution:
 
 
 @router.get("/executions/{execution_id}/trace")
-async def get_execution_trace(execution_id: str) -> Dict:
+@limiter.limit("30/minute")
+async def get_execution_trace(execution_id: str, request: Request) -> Dict:
     """
     Get execution trace (step-by-step timeline).
     
@@ -201,7 +203,8 @@ async def get_execution_trace(execution_id: str) -> Dict:
 
 
 @router.get("/executions")
-async def list_executions(limit: int = 10, offset: int = 0) -> Dict:
+@limiter.limit("30/minute")
+async def list_executions(request: Request, limit: int = 10, offset: int = 0) -> Dict:
     """
     List all executions.
     
@@ -229,7 +232,8 @@ async def list_executions(limit: int = 10, offset: int = 0) -> Dict:
 
 
 @router.get("/executions/{execution_id}/stream")
-async def stream_execution(execution_id: str):
+@limiter.limit("30/minute")
+async def stream_execution(execution_id: str, request: Request):
     """
     Stream execution events using Server-Sent Events (SSE).
     

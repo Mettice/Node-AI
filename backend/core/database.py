@@ -129,14 +129,14 @@ def initialize_database(settings: Settings) -> None:
                 test_conn.close()
                 logger.info("✓ Database connection test successful")
                 
-                # Create connection pool
-                # minconn=1, maxconn=10 connections
+                # Create connection pool with configurable size
+                # Use settings from environment variables (defaults: min=5, max=20)
                 _connection_pool = ThreadedConnectionPool(
-                    minconn=1,
-                    maxconn=10,
+                    minconn=settings.db_pool_min_connections,
+                    maxconn=settings.db_pool_max_connections,
                     dsn=db_url
                 )
-                logger.info("✓ Database connection pool initialized successfully")
+                logger.info(f"✓ Database connection pool initialized successfully (min: {settings.db_pool_min_connections}, max: {settings.db_pool_max_connections})")
             except psycopg2.OperationalError as e:
                 error_msg = str(e)
                 logger.error(f"✗ Failed to connect to database (OperationalError): {error_msg}")
@@ -236,6 +236,7 @@ def get_db_connection():
         )
     
     conn = _connection_pool.getconn()
+    logger.debug(f"Got connection from pool (max: {_connection_pool.maxconn})")
     try:
         yield conn
         conn.commit()
@@ -244,6 +245,7 @@ def get_db_connection():
         raise
     finally:
         _connection_pool.putconn(conn)
+        logger.debug("Returned connection to pool")
 
 
 def close_database() -> None:
@@ -273,6 +275,42 @@ def is_supabase_configured() -> bool:
         True if Supabase client is initialized, False otherwise
     """
     return _supabase_client is not None and _settings is not None and _settings.supabase_url is not None
+
+
+def get_pool_stats() -> dict:
+    """
+    Get database connection pool statistics.
+    
+    Returns:
+        Dictionary with pool statistics or None if pool not initialized
+    """
+    if _connection_pool is None:
+        return {"status": "not_initialized", "error": "Connection pool not initialized"}
+    
+    try:
+        # Get basic pool info
+        min_conn = _connection_pool.minconn
+        max_conn = _connection_pool.maxconn
+        closed = _connection_pool.closed
+        
+        # Try to get used connections safely
+        try:
+            used_conn = len(_connection_pool._used) if hasattr(_connection_pool._used, '__len__') else _connection_pool._used
+        except:
+            used_conn = 0  # Fallback if we can't determine used connections
+        
+        available_conn = max_conn - used_conn if isinstance(used_conn, int) else "unknown"
+        
+        return {
+            "status": "active",
+            "min_connections": min_conn,
+            "max_connections": max_conn,
+            "used_connections": used_conn,
+            "available_connections": available_conn,
+            "closed": closed,
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
 
 
 def execute_query(query: str, params: Optional[tuple] = None) -> list:

@@ -10,9 +10,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
+from backend.core.security import limiter
 from backend.core.models import Execution, ExecutionStatus
 from backend.utils.logger import get_logger
 
@@ -120,9 +121,11 @@ def _list_execution_records(workflow_id: Optional[str] = None, hours: int = 24) 
 
 
 @router.post("/executions/{execution_id}/record")
+@limiter.limit("100/minute")
 async def record_execution(
     execution_id: str,
     execution: Execution,
+    request: Request,
     workflow_version: Optional[str] = None,
     cost_breakdown: Optional[Dict[str, float]] = None,
     metadata: Optional[Dict[str, Any]] = None,
@@ -180,8 +183,10 @@ async def record_execution(
 
 
 @router.get("/workflows/{workflow_id}/metrics", response_model=MetricsResponse)
+@limiter.limit("30/minute")
 async def get_workflow_metrics(
     workflow_id: str,
+    request: Request,
     hours: int = Query(24, ge=1, le=720, description="Time range in hours (1-720)"),
 ) -> MetricsResponse:
     """
@@ -328,8 +333,10 @@ async def get_workflow_metrics(
 
 
 @router.get("/workflows/{workflow_id}/versions/compare", response_model=VersionComparison)
+@limiter.limit("30/minute")
 async def compare_workflow_versions(
     workflow_id: str,
+    request: Request,
     current_version: str = Query(..., description="Current version identifier"),
     previous_version: Optional[str] = Query(None, description="Previous version identifier"),
     hours: int = Query(24, ge=1, le=720, description="Time range in hours"),

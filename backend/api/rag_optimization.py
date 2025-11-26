@@ -11,9 +11,10 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 import uuid
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from backend.core.security import limiter
 from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -54,7 +55,8 @@ class OptimizationRequest(BaseModel):
 
 
 @router.post("/rag-optimize/analyze", response_model=RAGOptimizationAnalysis)
-async def analyze_rag_workflow(request: OptimizationRequest) -> RAGOptimizationAnalysis:
+@limiter.limit("10/minute")
+async def analyze_rag_workflow(request_body: OptimizationRequest, request: Request) -> RAGOptimizationAnalysis:
     """
     Analyze a RAG workflow and generate optimization suggestions.
     
@@ -69,7 +71,7 @@ async def analyze_rag_workflow(request: OptimizationRequest) -> RAGOptimizationA
     
     # Parse workflow
     try:
-        workflow = Workflow(**request.workflow)
+        workflow = Workflow(**request_body.workflow)
     except Exception as e:
         raise HTTPException(
             status_code=400,
@@ -134,10 +136,10 @@ async def analyze_rag_workflow(request: OptimizationRequest) -> RAGOptimizationA
         suggestions.extend(search_suggestions)
     
     # If we have evaluation results, use them for more accurate suggestions
-    if request.evaluation_id:
+    if request_body.evaluation_id:
         try:
             from backend.api.rag_evaluation import _evaluations
-            evaluation = _evaluations.get(request.evaluation_id)
+            evaluation = _evaluations.get(request_body.evaluation_id)
             if evaluation:
                 # Use evaluation metrics to refine suggestions
                 accuracy = evaluation.get("accuracy", 0.0)
@@ -156,7 +158,7 @@ async def analyze_rag_workflow(request: OptimizationRequest) -> RAGOptimizationA
     analysis = RAGOptimizationAnalysis(
         analysis_id=analysis_id,
         workflow_id=workflow.id or "unknown",
-        execution_id=request.execution_id,
+        execution_id=request_body.execution_id,
         suggestions=suggestions,
         current_metrics=current_metrics,
         created_at=datetime.now().isoformat(),

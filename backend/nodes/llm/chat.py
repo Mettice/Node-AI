@@ -22,10 +22,18 @@ from backend.core.node_registry import NodeRegistry
 from backend.core.secret_resolver import resolve_api_key
 from backend.nodes.base import BaseNode
 from backend.utils.logger import get_logger
+from backend.core.errors import external_service_error, APIError, ErrorCodes
 from backend.utils.model_pricing import (
     calculate_llm_cost,
     get_available_models,
     ModelType,
+)
+from backend.utils.retry import (
+    retry_with_backoff,
+    RetryableError,
+    NonRetryableError,
+    classify_openai_error,
+    classify_anthropic_error,
 )
 
 logger = get_logger(__name__)
@@ -198,13 +206,28 @@ class ChatNode(BaseNode):
         await self.stream_progress(node_id, 0.3, "Sending request to OpenAI...")
         
         try:
-            # Use streaming for real-time updates
-            stream = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                stream=True,  # Enable streaming
+            # Create a retry-wrapped function for the OpenAI API call
+            async def make_openai_request():
+                try:
+                    return client.chat.completions.create(
+                        model=model,
+                        messages=messages,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        stream=True,  # Enable streaming
+                    )
+                except Exception as e:
+                    # Classify the error and raise appropriate retry exception
+                    classified_error = classify_openai_error(e)
+                    logger.warning(f"OpenAI API error classified: {type(classified_error).__name__}: {e}")
+                    raise classified_error
+            
+            # Use retry logic with exponential backoff
+            stream = await retry_with_backoff(
+                make_openai_request,
+                max_retries=3,
+                initial_delay=1.0,
+                max_delay=30.0
             )
             
             # Collect streaming response
@@ -290,7 +313,39 @@ class ChatNode(BaseNode):
             return result_data
         except Exception as e:
             logger.error(f"OpenAI chat error: {e}")
-            raise
+            error_message = str(e).lower()
+            
+            # Check for specific OpenAI error types
+            if "rate limit" in error_message or "rate_limit" in error_message:
+                raise external_service_error(
+                    service_name="OpenAI",
+                    error_message=f"Rate limit exceeded: {str(e)}",
+                    is_retryable=True
+                )
+            elif "api key" in error_message or "unauthorized" in error_message:
+                raise external_service_error(
+                    service_name="OpenAI", 
+                    error_message=f"Invalid API key: {str(e)}",
+                    is_retryable=False
+                )
+            elif "model" in error_message and "not found" in error_message:
+                raise APIError(
+                    status_code=400,
+                    error_code=ErrorCodes.INVALID_INPUT,
+                    message="Invalid OpenAI model",
+                    details=f"The specified model is not available: {str(e)}",
+                    suggestions=[
+                        "Check that the model name is correct",
+                        "Verify you have access to the requested model",
+                        "Use the models endpoint to see available models"
+                    ]
+                )
+            else:
+                raise external_service_error(
+                    service_name="OpenAI",
+                    error_message=str(e),
+                    is_retryable=True
+                )
 
     async def _chat_azure_openai(
         self,
@@ -487,16 +542,34 @@ class ChatNode(BaseNode):
         await self.stream_progress(node_id, 0.3, "Sending request to Anthropic...")
         
         try:
+            # Create a retry-wrapped function for the Anthropic API call
+            async def make_anthropic_request():
+                try:
+                    return client.messages.stream(
+                        model=model,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        system=system_prompt if system_prompt else None,
+                        messages=[
+                            {"role": "user", "content": user_prompt}
+                        ],
+                    )
+                except Exception as e:
+                    # Classify the error and raise appropriate retry exception
+                    classified_error = classify_anthropic_error(e)
+                    logger.warning(f"Anthropic API error classified: {type(classified_error).__name__}: {e}")
+                    raise classified_error
+            
+            # Use retry logic with exponential backoff
+            stream_context = await retry_with_backoff(
+                make_anthropic_request,
+                max_retries=3,
+                initial_delay=1.0,
+                max_delay=30.0
+            )
+            
             # Use streaming for real-time updates
-            with client.messages.stream(
-                model=model,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                system=system_prompt if system_prompt else None,
-                messages=[
-                    {"role": "user", "content": user_prompt}
-                ],
-            ) as stream:
+            with stream_context as stream:
                 result_chunks = []
                 result = ""
                 
@@ -536,7 +609,39 @@ class ChatNode(BaseNode):
             }
         except Exception as e:
             logger.error(f"Anthropic chat error: {e}")
-            raise
+            error_message = str(e).lower()
+            
+            # Check for specific Anthropic error types
+            if "rate limit" in error_message:
+                raise external_service_error(
+                    service_name="Anthropic",
+                    error_message=f"Rate limit exceeded: {str(e)}",
+                    is_retryable=True
+                )
+            elif "api key" in error_message or "unauthorized" in error_message:
+                raise external_service_error(
+                    service_name="Anthropic",
+                    error_message=f"Invalid API key: {str(e)}",
+                    is_retryable=False
+                )
+            elif "model" in error_message and ("not found" in error_message or "unavailable" in error_message):
+                raise APIError(
+                    status_code=400,
+                    error_code=ErrorCodes.INVALID_INPUT,
+                    message="Invalid Anthropic model",
+                    details=f"The specified model is not available: {str(e)}",
+                    suggestions=[
+                        "Check that the model name is correct",
+                        "Verify you have access to the requested model",
+                        "Use a supported Claude model (claude-3-sonnet, claude-3-haiku, etc.)"
+                    ]
+                )
+            else:
+                raise external_service_error(
+                    service_name="Anthropic",
+                    error_message=str(e),
+                    is_retryable=True
+                )
     
     async def _chat_gemini(
         self,

@@ -13,7 +13,7 @@ import sys
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Any
 
 # Add parent directory to path to allow imports when running from backend/
 # This must be done BEFORE any backend imports
@@ -27,15 +27,20 @@ if _backend_dir.name == "backend" and str(_project_root) not in sys.path:
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler, Limiter
 from slowapi.errors import RateLimitExceeded
-from backend.core.security import add_security_headers, sanitize_dict
+from slowapi.middleware import _find_route_handler
+from starlette.applications import Starlette
+from starlette.responses import Response as StarletteResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+import inspect
+from backend.core.security import add_security_headers, sanitize_dict, limiter
 
 from backend.config import settings
 from backend.utils.logger import get_logger
 from backend.core.database import initialize_database, close_database, is_database_configured, is_supabase_configured
 from backend.middleware.auth import AuthMiddleware
+from backend.core.error_middleware import ErrorHandlingMiddleware, RequestIDMiddleware
 
 # Initialize logger first
 logger = get_logger(__name__)
@@ -69,8 +74,7 @@ else:
 # Import API routers
 from backend.api import execution, nodes, files, workflows, metrics, knowledge_base, api_keys, tools, oauth, query_tracer, secrets, observability_settings, cost_forecasting, traces
 
-# Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
+# Note: limiter is imported from backend.core.security to ensure all API files use the same instance
 
 
 @asynccontextmanager
@@ -147,9 +151,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Add rate limiter to app state
+# Add rate limiter to app state (must be set before adding middleware)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Add error handling middleware (should be early in the chain)
+app.add_middleware(ErrorHandlingMiddleware, debug=settings.debug)
+
+# Add request ID middleware 
+app.add_middleware(RequestIDMiddleware)
 
 # Add authentication middleware
 app.add_middleware(AuthMiddleware)
@@ -304,11 +314,15 @@ try:
 except ImportError:
     logger.warning("Webhooks API not available")
 
+# Add SlowAPI middleware for rate limiting (MUST be added AFTER routers for route detection)
+from slowapi.middleware import SlowAPIMiddleware
+app.add_middleware(SlowAPIMiddleware)
+
 # ============================================
 # Health Check Endpoint
 # ============================================
 @app.get("/api/v1/health", tags=["Health"])
-async def health_check() -> Dict[str, str]:
+async def health_check() -> Dict[str, Any]:
     """
     Health check endpoint.
     
@@ -316,14 +330,26 @@ async def health_check() -> Dict[str, str]:
     This endpoint can be used by monitoring tools to check if the API is running.
     
     Returns:
-        Dictionary with status, version, and app name
+        Dictionary with status, version, app name, and database pool stats
     """
-    return {
+    from backend.core.database import get_pool_stats, is_database_configured, is_supabase_configured
+    
+    health_data = {
         "status": "healthy",
         "app_name": settings.app_name,
         "version": settings.app_version,
         "message": "NodeAI API is running",
+        "database": {
+            "pool_configured": is_database_configured(),
+            "supabase_configured": is_supabase_configured(),
+        }
     }
+    
+    # Add pool stats if available
+    if is_database_configured():
+        health_data["database"]["pool_stats"] = get_pool_stats()
+    
+    return health_data
 
 
 @app.get("/", tags=["Root"])

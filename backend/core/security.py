@@ -1,5 +1,5 @@
 """
-Security utilities and middleware for NodeAI backend.
+Security utilities and middleware for NodAI backend.
 
 Includes:
 - Rate limiting
@@ -18,7 +18,11 @@ import re
 import html
 
 # Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
+# headers_enabled=True is required for rate limiting to work properly
+# auto_check=True to enable automatic rate limit checking
+# storage_uri="memory://" uses in-memory storage for rate limiting (default)
+limiter = Limiter(key_func=get_remote_address, headers_enabled=True, auto_check=True, storage_uri="memory://")
+
 
 
 def sanitize_string(value: str, max_length: Optional[int] = None) -> str:
