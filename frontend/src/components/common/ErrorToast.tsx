@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import toast, { Toast } from 'react-hot-toast';
+import toast, { type Toast } from 'react-hot-toast';
 import { AlertCircle, X, RefreshCw, Info, CheckCircle, AlertTriangle } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import type { APIErrorResponse } from './ErrorDisplay';

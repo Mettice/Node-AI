@@ -138,7 +138,7 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
     if (!file) return;
 
     if (!file.name.endsWith('.json')) {
-      toast.error('Please upload a JSON file');
+      errorToast.show('Please upload a JSON file');
       return;
     }
 
@@ -149,7 +149,7 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
 
       // Validate required fields
       if (!workflowData.name || !workflowData.nodes || !workflowData.edges) {
-        toast.error('Invalid workflow file. Missing required fields (name, nodes, edges)');
+        errorToast.show('Invalid workflow file. Missing required fields (name, nodes, edges)');
         return;
       }
 
@@ -199,7 +199,7 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
         is_template: true,
       });
 
-      toast.success(`Template "${newWorkflow.name}" uploaded successfully`);
+      successToast.show(`Template "${newWorkflow.name}" uploaded successfully`);
       loadWorkflows(); // Refresh the list
       
       // Reset file input
@@ -209,9 +209,9 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
     } catch (error: any) {
       console.error('Error uploading template:', error);
       if (error instanceof SyntaxError) {
-        toast.error('Invalid JSON file. Please check the file format.');
+        errorToast.show('Invalid JSON file. Please check the file format.');
       } else {
-        toast.error(error.response?.data?.detail?.message || error.message || 'Failed to upload template');
+        errorToast.show(error.response?.data?.detail?.message || error.message || 'Failed to upload template');
       }
     } finally {
       setUploading(false);

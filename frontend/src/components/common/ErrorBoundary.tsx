@@ -5,7 +5,7 @@
  * logs them, and displays a fallback UI instead of the component tree that crashed.
  */
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Bug, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 
@@ -185,7 +185,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
               <div className="flex space-x-3">
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   onClick={this.handleGoBack}
                   className="flex-1 flex items-center justify-center"
                 >
@@ -194,7 +194,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 </Button>
 
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   onClick={this.handleReload}
                   className="flex-1"
                 >
