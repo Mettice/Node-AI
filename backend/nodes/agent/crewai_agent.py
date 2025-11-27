@@ -1008,25 +1008,41 @@ class CrewAINode(BaseNode):
         }
 
 
-# Register the node
+# Register the node with detailed diagnostics
 try:
     # Check if CrewAI is available before registering
     try:
         import crewai
+        crewai_version = getattr(crewai, '__version__', 'unknown')
+        logger.info(f"CrewAI package found, version: {crewai_version}")
+        
+        # Try importing specific components
+        from crewai import Agent, Task, Crew, Process
+        logger.info("CrewAI core components imported successfully")
+        
         CREWAI_AVAILABLE = True
-    except ImportError:
+        
+    except ImportError as e:
         CREWAI_AVAILABLE = False
-        logger.warning("CrewAI not installed. CrewAI node will not be available. Install with: pip install crewai[tools]")
+        logger.warning(f"CrewAI not available - ImportError: {e}")
+        logger.warning("CrewAI node will not be available. Install with: pip install crewai[tools]")
+    except Exception as e:
+        CREWAI_AVAILABLE = False
+        logger.error(f"Unexpected error importing CrewAI: {e}", exc_info=True)
     
     if CREWAI_AVAILABLE:
-        NodeRegistry.register(
-            CrewAINode.node_type,
-            CrewAINode,
-            CrewAINode().get_metadata(),
-        )
-        logger.info("CrewAI node registered successfully")
+        try:
+            NodeRegistry.register(
+                CrewAINode.node_type,
+                CrewAINode,
+                CrewAINode().get_metadata(),
+            )
+            logger.info("✅ CrewAI node registered successfully")
+        except Exception as e:
+            logger.error(f"Failed to register CrewAI node after successful import: {e}", exc_info=True)
     else:
-        logger.warning("CrewAI node not registered - CrewAI package not installed")
+        logger.warning("❌ CrewAI node not registered - CrewAI package not available")
+        
 except Exception as e:
-    logger.error(f"Failed to register CrewAI node: {e}", exc_info=True)
+    logger.error(f"Unexpected error during CrewAI node registration: {e}", exc_info=True)
 

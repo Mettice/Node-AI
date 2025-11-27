@@ -966,15 +966,79 @@ async def get_available_node_types(request: Request) -> Dict[str, Any]:
     # Check which expected types are missing
     missing_types = [t for t in expected_types if t not in registered_types]
     
+    # Check package availability with detailed diagnostics
+    package_status = {}
+    test_packages = {
+        'crewai': 'CrewAI multi-agent framework',
+        'neo4j': 'Neo4j graph database driver', 
+        'cohere': 'Cohere API client',
+        'sentence_transformers': 'Sentence transformers for reranking',
+        'openai': 'OpenAI API client',
+        'anthropic': 'Anthropic API client',
+        'langchain': 'LangChain framework',
+        'faiss': 'Facebook AI Similarity Search',
+        'langchain_community': 'LangChain Community tools',
+        'pydantic': 'Pydantic data validation'
+    }
+    
+    for package, description in test_packages.items():
+        try:
+            imported_module = __import__(package)
+            version = getattr(imported_module, '__version__', 'unknown')
+            package_status[package] = {
+                "available": True, 
+                "description": description,
+                "version": version,
+                "location": getattr(imported_module, '__file__', 'unknown')
+            }
+        except ImportError as e:
+            package_status[package] = {
+                "available": False, 
+                "description": description, 
+                "error": str(e),
+                "error_type": type(e).__name__
+            }
+        except Exception as e:
+            package_status[package] = {
+                "available": False,
+                "description": description,
+                "error": f"Unexpected error: {str(e)}",
+                "error_type": type(e).__name__
+            }
+    
+    # Special check for CrewAI import issues
+    crewai_details = {}
+    if not package_status.get('crewai', {}).get('available'):
+        try:
+            # Try importing specific CrewAI components
+            crewai_components = ['crewai.agent', 'crewai.task', 'crewai.crew', 'crewai.process']
+            for component in crewai_components:
+                try:
+                    __import__(component)
+                    crewai_details[component] = "Available"
+                except ImportError as e:
+                    crewai_details[component] = f"Error: {str(e)}"
+        except Exception as e:
+            crewai_details['general_error'] = str(e)
+    
     return {
         "registered_node_types": sorted(registered_types),
         "total_registered": len(registered_types),
         "missing_common_types": missing_types,
+        "package_status": package_status,
+        "crewai_diagnostic": crewai_details,
         "diagnostic_info": {
             "core_nodes_available": all(t in registered_types for t in ['file_loader', 'chunk', 'embed', 'vector_store', 'chat']),
             "crewai_available": 'crewai_agent' in registered_types,
             "knowledge_graph_available": 'knowledge_graph' in registered_types,
             "rerank_available": 'rerank' in registered_types,
+            "packages_installed": sum(1 for status in package_status.values() if status["available"]),
+            "packages_missing": sum(1 for status in package_status.values() if not status["available"]),
+        },
+        "environment_info": {
+            "python_path": __import__('sys').path[:5],  # First 5 paths to avoid too much data
+            "working_directory": __import__('os').getcwd(),
+            "deployment_platform": __import__('os').getenv('RAILWAY_ENVIRONMENT', 'local')
         }
     }
 
