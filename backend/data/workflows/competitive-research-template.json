@@ -29,28 +29,33 @@
     },
     {
       "id": "web_search_1",
-      "type": "web_search",
+      "type": "tool",
       "position": { "x": 400, "y": 100 },
       "data": {
         "label": "🌐 Find Company Info",
         "config": {
-          "search_provider": "google",
-          "max_results": 5,
-          "search_query": "{competitor_name} company website features pricing"
+          "tool_type": "web_search",
+          "tool_name": "Company Search",
+          "tool_description": "Search for company information and website details",
+          "web_search_provider": "duckduckgo",
+          "web_search_max_results": 5
         }
       }
     },
     {
       "id": "web_scraping_1", 
-      "type": "web_scraping",
+      "type": "tool",
       "position": { "x": 700, "y": 100 },
       "data": {
         "label": "📄 Scrape Website",
         "config": {
-          "max_pages": 3,
-          "include_links": true,
-          "extract_text": true,
-          "timeout": 30
+          "tool_type": "web_scraping",
+          "tool_name": "Website Scraper",
+          "tool_description": "Scrape and extract content from web pages",
+          "web_scraping_max_pages": 3,
+          "web_scraping_include_links": true,
+          "web_scraping_extract_text": true,
+          "web_scraping_timeout": 30
         }
       }
     },
@@ -71,14 +76,16 @@
     },
     {
       "id": "web_search_pricing",
-      "type": "web_search",
+      "type": "tool",
       "position": { "x": 400, "y": 300 },
       "data": {
         "label": "💰 Find Pricing Info",
         "config": {
-          "search_provider": "google", 
-          "max_results": 3,
-          "search_query": "{competitor_name} pricing plans costs subscription"
+          "tool_type": "web_search",
+          "tool_name": "Pricing Search",
+          "tool_description": "Search for competitor pricing information",
+          "web_search_provider": "duckduckgo", 
+          "web_search_max_results": 3
         }
       }
     },

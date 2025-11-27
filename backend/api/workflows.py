@@ -185,6 +185,18 @@ def _list_workflows() -> List[Workflow]:
     return workflows
 
 
+def _check_template_compatibility(workflow: Workflow) -> tuple[bool, List[str]]:
+    """Check if a template has all required node types available."""
+    from backend.core.node_registry import NodeRegistry
+    
+    missing_nodes = []
+    for node in workflow.nodes:
+        if not NodeRegistry.is_registered(node.type):
+            missing_nodes.append(node.type)
+    
+    return len(missing_nodes) == 0, missing_nodes
+
+
 @router.post("/workflows", response_model=Workflow)
 @limiter.limit("20/minute")
 async def create_workflow(request: Request, workflow_request: WorkflowCreateRequest) -> Workflow:
@@ -315,6 +327,22 @@ async def list_workflows(
         # Filter by template status if specified
         if is_template is not None:
             all_workflows = [w for w in all_workflows if w.is_template == is_template]
+        
+        # Filter out incompatible templates (templates with missing node types)
+        # This prevents users from seeing templates they can't actually use
+        compatible_workflows = []
+        for workflow in all_workflows:
+            if workflow.is_template:
+                is_compatible, missing_nodes = _check_template_compatibility(workflow)
+                if is_compatible:
+                    compatible_workflows.append(workflow)
+                else:
+                    logger.debug(f"Filtering out template {workflow.name} due to missing nodes: {missing_nodes}")
+            else:
+                # Non-templates always shown (user workflows)
+                compatible_workflows.append(workflow)
+        
+        all_workflows = compatible_workflows
         
         # Sort by updated_at (newest first)
         all_workflows.sort(key=lambda w: w.updated_at or w.created_at or datetime.min, reverse=True)
@@ -769,6 +797,139 @@ async def get_deployment_health(workflow_id: str, request: Request) -> Dict[str,
     """
     health = DeploymentManager.get_deployment_health(workflow_id)
     return health
+
+
+@router.post("/workflows/validate")
+@limiter.limit("30/minute")
+async def validate_workflow_template(request: Request, workflow_data: WorkflowCreateRequest) -> Dict[str, Any]:
+    """
+    Validate a workflow template before creation.
+    
+    This endpoint checks if all required node types are available
+    without actually creating the workflow.
+    
+    Args:
+        workflow_data: Workflow data to validate
+        
+    Returns:
+        Validation result with compatibility information
+    """
+    try:
+        # Convert dicts to Node objects for validation
+        nodes = [Node(**node) for node in workflow_data.nodes]
+        edges = [Edge(**edge) for edge in workflow_data.edges]
+        
+        # Create temporary workflow for validation
+        temp_workflow = Workflow(
+            id="temp-validation",
+            name=workflow_data.name,
+            description=workflow_data.description,
+            nodes=nodes,
+            edges=edges,
+            tags=workflow_data.tags,
+            is_template=workflow_data.is_template,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        
+        # Check template compatibility
+        is_compatible, missing_nodes = _check_template_compatibility(temp_workflow)
+        
+        if is_compatible:
+            # Also run full workflow validation
+            try:
+                engine._validate_workflow(temp_workflow)
+                return {
+                    "valid": True,
+                    "compatible": True,
+                    "message": "Workflow is valid and all node types are available",
+                    "missing_nodes": []
+                }
+            except WorkflowValidationError as e:
+                return {
+                    "valid": False,
+                    "compatible": True,
+                    "message": f"Workflow structure is invalid: {str(e)}",
+                    "errors": e.errors if hasattr(e, 'errors') else [str(e)],
+                    "missing_nodes": []
+                }
+        else:
+            # Provide helpful suggestions for missing nodes
+            suggestions = []
+            for node_type in missing_nodes:
+                if node_type in ['crewai_agent']:
+                    suggestions.append(f"Install CrewAI: pip install crewai")
+                elif node_type in ['knowledge_graph']:
+                    suggestions.append(f"Install Neo4j: pip install neo4j")
+                elif node_type in ['rerank']:
+                    suggestions.append(f"Install reranking packages: pip install cohere sentence-transformers")
+                else:
+                    suggestions.append(f"Check documentation for '{node_type}' dependencies")
+            
+            return {
+                "valid": False,
+                "compatible": False,
+                "message": f"Template uses unavailable node types: {', '.join(missing_nodes)}",
+                "missing_nodes": missing_nodes,
+                "suggestions": suggestions
+            }
+            
+    except ValueError as e:
+        return {
+            "valid": False,
+            "compatible": False,
+            "message": f"Invalid workflow data: {str(e)}",
+            "missing_nodes": [],
+            "suggestions": ["Check the workflow JSON format", "Ensure all required fields are provided"]
+        }
+    except Exception as e:
+        logger.error(f"Error validating workflow template: {e}", exc_info=True)
+        return {
+            "valid": False,
+            "compatible": False,
+            "message": f"Validation error: {str(e)}",
+            "missing_nodes": [],
+            "suggestions": ["Try again", "Contact support if the issue persists"]
+        }
+
+
+@router.get("/workflows/node-types")
+@limiter.limit("30/minute")
+async def get_available_node_types(request: Request) -> Dict[str, Any]:
+    """
+    Get all available node types and their registration status.
+    
+    Useful for debugging template compatibility issues.
+    
+    Returns:
+        Dictionary with registered node types and diagnostic info
+    """
+    from backend.core.node_registry import NodeRegistry
+    
+    # Get all registered node types
+    registered_types = NodeRegistry.list_all()
+    
+    # Common node types that might be expected
+    expected_types = [
+        'text_input', 'file_loader', 'chunk', 'embed', 'vector_store', 'vector_search', 'chat',
+        'crewai_agent', 'knowledge_graph', 'tool', 'rerank', 'advanced_nlp', 'data_to_text',
+        'hybrid_retrieval', 'memory', 'email', 'slack', 'database'
+    ]
+    
+    # Check which expected types are missing
+    missing_types = [t for t in expected_types if t not in registered_types]
+    
+    return {
+        "registered_node_types": sorted(registered_types),
+        "total_registered": len(registered_types),
+        "missing_common_types": missing_types,
+        "diagnostic_info": {
+            "core_nodes_available": all(t in registered_types for t in ['file_loader', 'chunk', 'embed', 'vector_store', 'chat']),
+            "crewai_available": 'crewai_agent' in registered_types,
+            "knowledge_graph_available": 'knowledge_graph' in registered_types,
+            "rerank_available": 'rerank' in registered_types,
+        }
+    }
 
 
 class WorkflowQueryRequest(BaseModel):

@@ -189,7 +189,65 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
         targetHandle: edge.targetHandle || undefined,
       }));
 
-      // Create workflow as template
+      // Validate template before creation
+      const validationData = {
+        name: workflowData.name,
+        description: workflowData.description || `Template: ${workflowData.name}`,
+        nodes: nodes.map(node => ({
+          id: node.id,
+          type: node.type,
+          position: node.position,
+          data: node.data
+        })),
+        edges: edges.map(edge => ({
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          sourceHandle: edge.sourceHandle,
+          targetHandle: edge.targetHandle
+        })),
+        tags: workflowData.tags || ['template', 'imported'],
+        is_template: true,
+      };
+
+      // First validate the workflow
+      const validationResponse = await fetch('/api/v1/workflows/validate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(validationData),
+      });
+
+      const validationResult = await validationResponse.json();
+
+      if (!validationResult.compatible) {
+        // Template has missing node types
+        const missingNodes = validationResult.missing_nodes || [];
+        const suggestions = validationResult.suggestions || [];
+        
+        let errorMessage = `Template cannot be uploaded: ${validationResult.message}`;
+        if (suggestions.length > 0) {
+          errorMessage += `\n\nTo use this template:\n${suggestions.map(s => `• ${s}`).join('\n')}`;
+        }
+        
+        errorToast.show(errorMessage);
+        return;
+      }
+
+      if (!validationResult.valid) {
+        // Template structure is invalid
+        const errors = validationResult.errors || [];
+        let errorMessage = `Template validation failed: ${validationResult.message}`;
+        if (errors.length > 0) {
+          errorMessage += `\n\nIssues found:\n${errors.map(e => `• ${e}`).join('\n')}`;
+        }
+        
+        errorToast.show(errorMessage);
+        return;
+      }
+
+      // Create workflow as template (validation passed)
       const newWorkflow = await createWorkflow({
         name: workflowData.name,
         description: workflowData.description || `Template: ${workflowData.name}`,
@@ -211,7 +269,26 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
       if (error instanceof SyntaxError) {
         errorToast.show('Invalid JSON file. Please check the file format.');
       } else {
-        errorToast.show(error.response?.data?.detail?.message || error.message || 'Failed to upload template');
+        // Check if it's a validation error from the API
+        const errorResponse = error.response?.data;
+        if (errorResponse?.error_code === 'VALIDATION_ERROR') {
+          const details = errorResponse.details || error.message || 'Unknown validation error';
+          const suggestions = errorResponse.suggestions || [];
+          
+          let errorMessage = `Template upload failed: ${errorResponse.message || details}`;
+          if (suggestions.length > 0) {
+            errorMessage += `\n\nSuggestions:\n${suggestions.map((s: string) => `• ${s}`).join('\n')}`;
+          }
+          
+          errorToast.show(errorMessage, {
+            duration: 8000,
+            showSuggestions: true
+          });
+        } else {
+          // Generic error handling
+          const message = errorResponse?.message || errorResponse?.detail?.message || error.message || 'Failed to upload template';
+          errorToast.show(message);
+        }
       }
     } finally {
       setUploading(false);

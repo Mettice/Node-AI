@@ -331,10 +331,29 @@ class WorkflowEngine:
         if not workflow.nodes:
             errors.append("Workflow must have at least one node")
 
-        # Check node types are registered
+        # Check node types are registered with helpful error messages
+        missing_nodes = []
         for node in workflow.nodes:
             if not NodeRegistry.is_registered(node.type):
-                errors.append(f"Node type '{node.type}' is not registered")
+                missing_nodes.append(node.type)
+        
+        if missing_nodes:
+            # Provide helpful suggestions for common missing node types
+            suggestions = []
+            for node_type in missing_nodes:
+                if node_type in ['crewai_agent']:
+                    suggestions.append(f"'{node_type}' requires CrewAI package: pip install crewai")
+                elif node_type in ['knowledge_graph']:
+                    suggestions.append(f"'{node_type}' requires Neo4j package: pip install neo4j")
+                elif node_type in ['rerank']:
+                    suggestions.append(f"'{node_type}' requires additional packages: pip install cohere sentence-transformers")
+                else:
+                    suggestions.append(f"'{node_type}' may require additional dependencies")
+            
+            error_msg = f"Node types not available: {', '.join(missing_nodes)}"
+            if suggestions:
+                error_msg += f". Installation hints: {' | '.join(suggestions)}"
+            errors.append(error_msg)
 
         # Check edges reference valid nodes
         node_ids = {node.id for node in workflow.nodes}
