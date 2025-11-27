@@ -352,20 +352,42 @@ async def list_workflows(
         
         # Filter out incompatible templates (templates with missing node types)
         # This prevents users from seeing templates they can't actually use
+        # However, we log which templates are filtered so admins can see what's missing
         compatible_workflows = []
+        filtered_templates = []
         for workflow in all_workflows:
             if workflow.is_template:
                 is_compatible, missing_nodes = _check_template_compatibility(workflow)
                 if is_compatible:
                     compatible_workflows.append(workflow)
-                    logger.debug(f"Template {workflow.name} is compatible")
+                    logger.debug(f"Template '{workflow.name}' is compatible")
                 else:
-                    logger.warning(f"Filtering out template '{workflow.name}' (id: {workflow.id}) due to missing nodes: {missing_nodes}")
+                    filtered_templates.append({
+                        "name": workflow.name,
+                        "id": workflow.id,
+                        "missing_nodes": missing_nodes
+                    })
+                    logger.warning(
+                        f"Filtering out template '{workflow.name}' (id: {workflow.id}) "
+                        f"due to missing nodes: {missing_nodes}. "
+                        f"Install required packages to enable this template."
+                    )
             else:
                 # Non-templates always shown (user workflows)
                 compatible_workflows.append(workflow)
         
-        logger.info(f"Template compatibility check: {len(all_workflows)} total workflows, {len(compatible_workflows)} compatible (filtered {len(all_workflows) - len(compatible_workflows)})")
+        if filtered_templates:
+            logger.info(
+                f"Template compatibility check: {len(all_workflows)} total workflows, "
+                f"{len(compatible_workflows)} compatible, "
+                f"{len(filtered_templates)} filtered out. "
+                f"Filtered templates: {[t['name'] for t in filtered_templates]}"
+            )
+        else:
+            logger.info(
+                f"Template compatibility check: {len(all_workflows)} total workflows, "
+                f"{len(compatible_workflows)} compatible (none filtered)"
+            )
         
         all_workflows = compatible_workflows
         

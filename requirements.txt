@@ -42,8 +42,9 @@ langchain-community
 langchain-openai
 langchain-anthropic
 
-# CrewAI
-crewai
+# CrewAI (for multi-agent coordination)
+# Note: This is required for CrewAI agent node templates
+crewai[tools]
 
 # Observability (Optional)
 langsmith  # Uncomment to enable LangSmith

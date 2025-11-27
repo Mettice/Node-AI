@@ -38,8 +38,9 @@ langchain-anthropic
 # ============================================
 # CrewAI (for multi-agent coordination)
 # ============================================
-# Install crewai - it will pull compatible langchain versions
-crewai
+# Install crewai with tools support - it will pull compatible langchain versions
+# Note: [tools] includes additional dependencies for tool integration
+crewai[tools]
 
 # ============================================
 # Document Processing
