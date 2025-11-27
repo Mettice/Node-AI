@@ -526,6 +526,19 @@ class WorkflowEngine:
                     inputs["query"] = source_outputs["text"]
                 if "index_id" in source_outputs:
                     inputs["index_id"] = source_outputs["index_id"]
+                
+                # Extract text from common output formats for text-processing nodes
+                # This helps nodes like advanced_nlp, chat, etc. find text from agent outputs
+                if "text" not in inputs:
+                    # Check for common text output fields
+                    if "output" in source_outputs and isinstance(source_outputs["output"], str):
+                        inputs["text"] = source_outputs["output"]
+                    elif "report" in source_outputs and isinstance(source_outputs["report"], str):
+                        inputs["text"] = source_outputs["report"]
+                    elif "response" in source_outputs and isinstance(source_outputs["response"], str):
+                        inputs["text"] = source_outputs["response"]
+                    elif "content" in source_outputs and isinstance(source_outputs["content"], str):
+                        inputs["text"] = source_outputs["content"]
 
         return inputs
 

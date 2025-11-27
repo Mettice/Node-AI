@@ -26,9 +26,10 @@ router = APIRouter(prefix="/api/v1/files", tags=["files"])
 # Store uploaded files metadata
 _uploaded_files: dict[str, dict] = {}
 
-# Upload directory
-UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(exist_ok=True)
+# Upload directory - use config for consistent path resolution
+from backend.config import settings
+UPLOAD_DIR = settings.uploads_dir
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class FileInfo(BaseModel):

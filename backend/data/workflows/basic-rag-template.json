@@ -2,17 +2,23 @@
   "id": "basic-rag-template",
   "name": "📚 Basic RAG - Document Q&A",
   "description": "Simple document upload and question-answering workflow. Perfect for getting started with RAG.",
-  "is_template": true,
-  "tags": ["rag", "beginner", "document-qa", "template"],
   "nodes": [
     {
       "id": "file_input_1",
       "type": "file_loader",
-      "position": { "x": 100, "y": 100 },
+      "position": {
+        "x": 100.0,
+        "y": 100.0
+      },
       "data": {
         "label": "📁 Upload Documents",
         "config": {
-          "accepted_types": [".pdf", ".txt", ".docx", ".md"],
+          "accepted_types": [
+            ".pdf",
+            ".txt",
+            ".docx",
+            ".md"
+          ],
           "max_size_mb": 10,
           "description": "Upload your documents here"
         }
@@ -21,7 +27,10 @@
     {
       "id": "chunk_1",
       "type": "chunk",
-      "position": { "x": 400, "y": 100 },
+      "position": {
+        "x": 400.0,
+        "y": 100.0
+      },
       "data": {
         "label": "✂️ Split Text",
         "config": {
@@ -34,7 +43,10 @@
     {
       "id": "embed_1",
       "type": "embed",
-      "position": { "x": 700, "y": 100 },
+      "position": {
+        "x": 700.0,
+        "y": 100.0
+      },
       "data": {
         "label": "🧠 Create Embeddings",
         "config": {
@@ -46,7 +58,10 @@
     {
       "id": "vector_store_1",
       "type": "vector_store",
-      "position": { "x": 1000, "y": 100 },
+      "position": {
+        "x": 1000.0,
+        "y": 100.0
+      },
       "data": {
         "label": "💾 Store Vectors",
         "config": {
@@ -58,7 +73,10 @@
     {
       "id": "text_input_1",
       "type": "text_input",
-      "position": { "x": 100, "y": 300 },
+      "position": {
+        "x": 100.0,
+        "y": 300.0
+      },
       "data": {
         "label": "❓ Your Question",
         "config": {
@@ -69,7 +87,10 @@
     {
       "id": "vector_search_1",
       "type": "vector_search",
-      "position": { "x": 400, "y": 300 },
+      "position": {
+        "x": 400.0,
+        "y": 300.0
+      },
       "data": {
         "label": "🔍 Search Documents",
         "config": {
@@ -81,7 +102,10 @@
     {
       "id": "chat_1",
       "type": "chat",
-      "position": { "x": 700, "y": 300 },
+      "position": {
+        "x": 700.0,
+        "y": 300.0
+      },
       "data": {
         "label": "💬 Generate Answer",
         "config": {
@@ -94,11 +118,59 @@
     }
   ],
   "edges": [
-    { "id": "e1-2", "source": "file_input_1", "target": "chunk_1" },
-    { "id": "e2-3", "source": "chunk_1", "target": "embed_1" },
-    { "id": "e3-4", "source": "embed_1", "target": "vector_store_1" },
-    { "id": "e5-6", "source": "text_input_1", "target": "vector_search_1" },
-    { "id": "e6-7", "source": "vector_search_1", "target": "chat_1" },
-    { "id": "e4-6", "source": "vector_store_1", "target": "vector_search_1" }
-  ]
+    {
+      "id": "e1-2",
+      "source": "file_input_1",
+      "target": "chunk_1",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "e2-3",
+      "source": "chunk_1",
+      "target": "embed_1",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "e3-4",
+      "source": "embed_1",
+      "target": "vector_store_1",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "e5-6",
+      "source": "text_input_1",
+      "target": "vector_search_1",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "e6-7",
+      "source": "vector_search_1",
+      "target": "chat_1",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "e4-6",
+      "source": "vector_store_1",
+      "target": "vector_search_1",
+      "sourceHandle": null,
+      "targetHandle": null
+    }
+  ],
+  "created_at": null,
+  "updated_at": "2025-11-27T04:08:57.227337",
+  "tags": [
+    "rag",
+    "beginner",
+    "document-qa",
+    "template"
+  ],
+  "is_template": true,
+  "is_deployed": true,
+  "deployed_at": "2025-11-27T04:08:57.227337",
+  "owner_id": null
 }

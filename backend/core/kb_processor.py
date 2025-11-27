@@ -88,8 +88,11 @@ class KnowledgeBaseProcessor:
                     file_result = await self.file_loader.execute(file_inputs, file_config)
                     text = file_result.get("text", "")
                     
-                    if not text:
-                        logger.warning(f"No text extracted from file {file_id}")
+                    if not text or not text.strip():
+                        error_msg = f"No text extracted from file {file_id}. "
+                        error_msg += "The file may be empty, corrupted, or in an unsupported format."
+                        logger.warning(error_msg)
+                        version.processing_log = f"Warning: {error_msg}"
                         continue
                     
                     # Step 2: Chunk text
@@ -130,7 +133,12 @@ class KnowledgeBaseProcessor:
                     continue
             
             if not all_chunks:
-                raise ValueError("No chunks created from any files")
+                error_msg = "No chunks created from any files. This usually means:\n"
+                error_msg += "1. Files were empty or couldn't be read\n"
+                error_msg += "2. Text extraction failed (check file format)\n"
+                error_msg += "3. Chunking produced no valid chunks\n"
+                error_msg += f"Processed {len(version.file_ids)} file(s) but no text was extracted."
+                raise ValueError(error_msg)
             
             # Step 3: Create embeddings
             logger.info(f"Creating embeddings for {len(all_chunks)} chunks")
@@ -138,7 +146,16 @@ class KnowledgeBaseProcessor:
             
             # Extract text from chunks for embedding
             chunk_texts = [chunk["text"] for chunk in all_chunks]
-            embed_inputs = {"texts": chunk_texts}
+            
+            # Double-check we have text to embed
+            if not chunk_texts or not any(chunk_texts):
+                raise ValueError("No text or chunks provided in inputs - all chunks are empty")
+            
+            logger.info(f"Preparing to embed {len(chunk_texts)} chunks, first chunk length: {len(chunk_texts[0]) if chunk_texts else 0}")
+            
+            # Embed node expects "text" or "chunks" key, not "texts"
+            # Use "chunks" since we have a list of text chunks
+            embed_inputs = {"chunks": chunk_texts}
             embed_config = {
                 "provider": version.embed_config.provider,
                 "model": version.embed_config.model,
@@ -147,6 +164,9 @@ class KnowledgeBaseProcessor:
                 "finetuned_model_id": version.embed_config.finetuned_model_id,
                 "_node_id": "embed_kb",
             }
+            
+            logger.info(f"Embed config: provider={embed_config['provider']}, model={embed_config['model']}, batch_size={embed_config['batch_size']}")
+            logger.debug(f"Embed inputs keys: {list(embed_inputs.keys())}, chunks count: {len(embed_inputs['chunks'])}")
             
             embed_result = await self.embed_node.execute(embed_inputs, embed_config)
             all_embeddings = embed_result.get("embeddings", [])

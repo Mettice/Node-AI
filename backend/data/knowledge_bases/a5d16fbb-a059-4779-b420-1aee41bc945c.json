@@ -1,0 +1,155 @@
+{
+  "id": "a5d16fbb-a059-4779-b420-1aee41bc945c",
+  "name": "ddd",
+  "description": null,
+  "created_at": "2025-11-27T13:35:05.845163",
+  "updated_at": "2025-11-27T13:54:26.315282",
+  "current_version": 4,
+  "default_chunk_config": {
+    "strategy": "recursive",
+    "chunk_size": 512,
+    "chunk_overlap": 50,
+    "separators": [],
+    "min_chunk_size": 100,
+    "max_chunk_size": 1000,
+    "overlap_sentences": 1
+  },
+  "default_embed_config": {
+    "provider": "openai",
+    "model": "text-embedding-3-small",
+    "dimensions": null,
+    "batch_size": 100,
+    "use_finetuned_model": false,
+    "finetuned_model_id": null
+  },
+  "default_vector_store_config": {
+    "provider": "faiss",
+    "index_type": "flat",
+    "persist": true,
+    "file_path": null
+  },
+  "tags": [],
+  "is_shared": false,
+  "versions": [
+    {
+      "id": "65d5bca9-6690-435c-9b4e-d45876128800",
+      "kb_id": "a5d16fbb-a059-4779-b420-1aee41bc945c",
+      "version_number": 2,
+      "created_at": "2025-11-27T13:35:27.101563",
+      "file_ids": [
+        "aa778713-feb6-4db5-9d01-2bddc95da728"
+      ],
+      "chunk_config": {
+        "strategy": "recursive",
+        "chunk_size": 512,
+        "chunk_overlap": 50,
+        "separators": [],
+        "min_chunk_size": 100,
+        "max_chunk_size": 1000,
+        "overlap_sentences": 1
+      },
+      "embed_config": {
+        "provider": "openai",
+        "model": "text-embedding-3-small",
+        "dimensions": null,
+        "batch_size": 100,
+        "use_finetuned_model": false,
+        "finetuned_model_id": null
+      },
+      "vector_store_config": {
+        "provider": "faiss",
+        "index_type": "flat",
+        "persist": true,
+        "file_path": null
+      },
+      "vector_store_id": "kb_a5d16fbb-a059-4779-b420-1aee41bc945c_v2",
+      "vector_store_path": null,
+      "vector_count": 0,
+      "status": "failed",
+      "processing_log": "Processing failed: No text or chunks provided in inputs",
+      "processing_duration_ms": 14,
+      "total_cost": 0.0,
+      "created_by": null
+    },
+    {
+      "id": "e9f6a02d-6672-4cc1-a187-b01d83f3ea41",
+      "kb_id": "a5d16fbb-a059-4779-b420-1aee41bc945c",
+      "version_number": 3,
+      "created_at": "2025-11-27T13:48:08.178261",
+      "file_ids": [
+        "6e4c5133-6645-481d-b2b2-a9434d1d859f"
+      ],
+      "chunk_config": {
+        "strategy": "recursive",
+        "chunk_size": 512,
+        "chunk_overlap": 50,
+        "separators": [],
+        "min_chunk_size": 100,
+        "max_chunk_size": 1000,
+        "overlap_sentences": 1
+      },
+      "embed_config": {
+        "provider": "openai",
+        "model": "text-embedding-3-small",
+        "dimensions": null,
+        "batch_size": 100,
+        "use_finetuned_model": false,
+        "finetuned_model_id": null
+      },
+      "vector_store_config": {
+        "provider": "faiss",
+        "index_type": "flat",
+        "persist": true,
+        "file_path": null
+      },
+      "vector_store_id": "kb_a5d16fbb-a059-4779-b420-1aee41bc945c_v3",
+      "vector_store_path": null,
+      "vector_count": 0,
+      "status": "failed",
+      "processing_log": "Processing failed: No text or chunks provided in inputs",
+      "processing_duration_ms": 336,
+      "total_cost": 0.0,
+      "created_by": null
+    },
+    {
+      "id": "d8d7e4bd-f7e4-4fe4-a014-72df99481701",
+      "kb_id": "a5d16fbb-a059-4779-b420-1aee41bc945c",
+      "version_number": 4,
+      "created_at": "2025-11-27T13:54:24.874422",
+      "file_ids": [
+        "c896383a-e958-44a2-93cf-19814920b62c"
+      ],
+      "chunk_config": {
+        "strategy": "recursive",
+        "chunk_size": 512,
+        "chunk_overlap": 50,
+        "separators": [],
+        "min_chunk_size": 100,
+        "max_chunk_size": 1000,
+        "overlap_sentences": 1
+      },
+      "embed_config": {
+        "provider": "openai",
+        "model": "text-embedding-3-small",
+        "dimensions": null,
+        "batch_size": 100,
+        "use_finetuned_model": false,
+        "finetuned_model_id": null
+      },
+      "vector_store_config": {
+        "provider": "faiss",
+        "index_type": "flat",
+        "persist": true,
+        "file_path": null
+      },
+      "vector_store_id": "kb_a5d16fbb-a059-4779-b420-1aee41bc945c_v4",
+      "vector_store_path": "backend\\data\\vectors\\kb_a5d16fbb-a059-4779-b420-1aee41bc945c_v4.faiss",
+      "vector_count": 11,
+      "status": "completed",
+      "processing_log": "Successfully processed 1 files, created 11 chunks, stored 11 vectors",
+      "processing_duration_ms": 1434,
+      "total_cost": 0.0,
+      "created_by": null
+    }
+  ]
+}

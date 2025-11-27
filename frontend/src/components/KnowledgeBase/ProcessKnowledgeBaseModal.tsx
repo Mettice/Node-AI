@@ -4,10 +4,10 @@
  * Allows selecting files and configuring processing options
  */
 
-import { useState, useEffect } from 'react';
-import { X, Upload, FileText, Loader2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { listFiles } from '@/services/files';
+import { useState, useEffect, useRef } from 'react';
+import { X, Upload, FileText, Loader2, Plus } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { listFiles, uploadFile } from '@/services/files';
 import {
   processKnowledgeBase,
   getKnowledgeBase,
@@ -32,11 +32,15 @@ export function ProcessKnowledgeBaseModal({
   const [createNewVersion, setCreateNewVersion] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [useCustomConfig, setUseCustomConfig] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
 
   const { data: files } = useQuery({
     queryKey: ['files'],
     queryFn: listFiles,
   });
+
 
   const { data: kb } = useQuery({
     queryKey: ['knowledge-base', kbId],
@@ -50,8 +54,31 @@ export function ProcessKnowledgeBaseModal({
       setCreateNewVersion(true);
       setUseCustomConfig(false);
       setProcessing(false);
+      setUploading(false);
     }
   }, [isOpen]);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      await uploadFile(file);
+      toast.success(`File "${file.name}" uploaded successfully!`);
+      // Refresh file list
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error: any) {
+      console.error('Error uploading file:', error);
+      toast.error(error.response?.data?.detail || error.message || 'Failed to upload file');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleProcess = async () => {
     if (selectedFileIds.length === 0) {
@@ -130,12 +157,39 @@ export function ProcessKnowledgeBaseModal({
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* File Selection */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-3">
-                Select Files to Process
-              </label>
+              <div className="flex items-center justify-between mb-3">
+                <label className="block text-sm font-medium text-slate-300">
+                  Select Files to Process
+                </label>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-3.5 h-3.5" />
+                      Upload File
+                    </>
+                  )}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  accept=".pdf,.docx,.txt,.md,.doc,.jpg,.jpeg,.png,.gif,.webp,.bmp,.mp3,.wav,.m4a,.ogg,.flac,.mp4,.avi,.mov,.mkv,.webm,.csv,.xlsx,.json,.parquet"
+                />
+              </div>
               {!files || (files.files?.length || 0) === 0 ? (
                 <div className="text-sm text-slate-400 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                  <p className="mb-2">No files available. Upload files first.</p>
+                  <p className="mb-2">No files available. Click "Upload File" above to add documents.</p>
+                  <p className="text-xs">Supported formats: PDF, DOCX, TXT, MD, images, audio, video, and data files.</p>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-48 overflow-y-auto">

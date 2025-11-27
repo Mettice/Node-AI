@@ -46,27 +46,103 @@ export function KnowledgeBaseDetail({ kbId, onClose, onRefresh }: KnowledgeBaseD
   const [expandedVersions, setExpandedVersions] = useState<Set<number>>(new Set());
   const [loadingComparison, setLoadingComparison] = useState(false);
 
-  useEffect(() => {
-    loadKB();
-    const interval = setInterval(loadKB, 2000); // Refresh every 2 seconds to check processing status
-    return () => clearInterval(interval);
-  }, [kbId]);
-
-  const loadKB = async () => {
+  const loadKB = async (showErrors = true) => {
     try {
       const [kbData, versionsData] = await Promise.all([
         getKnowledgeBase(kbId),
         listKnowledgeBaseVersions(kbId),
       ]);
       setKb(kbData);
-      setVersions(versionsData.sort((a, b) => b.version_number - a.version_number));
+      const sortedVersions = versionsData.sort((a, b) => b.version_number - a.version_number);
+      setVersions(sortedVersions);
       if (loading) setLoading(false);
+      return sortedVersions;
     } catch (error: any) {
+      // Handle rate limiting gracefully - don't show errors for 429
+      if (error.response?.status === 429) {
+        console.warn('Rate limited when loading KB details, will retry');
+        // Don't update state on rate limit - keep showing last known state
+        return null; // Return null to indicate failure
+      }
       console.error('Error loading knowledge base:', error);
-      toast.error('Failed to load knowledge base details');
-      if (loading) setLoading(false);
+      if (showErrors && loading) {
+        toast.error('Failed to load knowledge base details');
+        setLoading(false);
+      }
+      return null; // Return null on error
     }
   };
+
+  useEffect(() => {
+    let pollInterval: NodeJS.Timeout | null = null;
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
+    let isMounted = true;
+    
+    const loadKBWithRetry = async () => {
+      if (!isMounted) return;
+      
+      const sortedVersions = await loadKB(false); // Don't show errors during polling
+      if (!isMounted) return;
+      
+      if (!sortedVersions) {
+        // Rate limited or error - use exponential backoff
+        retryCount++;
+        if (retryCount <= MAX_RETRIES) {
+          const backoffDelay = 5000 * Math.pow(2, retryCount - 1);
+          console.warn(`Rate limited, retrying in ${backoffDelay}ms (attempt ${retryCount}/${MAX_RETRIES})`);
+          setTimeout(loadKBWithRetry, backoffDelay);
+        } else {
+          console.warn('Rate limited, stopping polling temporarily');
+          // Stop polling for a while, then resume
+          setTimeout(() => {
+            if (isMounted) {
+              retryCount = 0;
+              loadKBWithRetry();
+            }
+          }, 60000); // Wait 1 minute before retrying
+        }
+        return;
+      }
+      
+      retryCount = 0; // Reset on success
+      
+      // Smart polling: only poll when there's a version that's processing or pending
+      const needsPolling = sortedVersions.some(v => 
+        v.status === 'processing' || v.status === 'pending'
+      );
+      
+      // Clear existing interval
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+      
+      if (needsPolling && isMounted) {
+        // Poll every 15 seconds when processing (reduced from 10s to avoid rate limits)
+        pollInterval = setInterval(loadKBWithRetry, 15000);
+      } else if (isMounted) {
+        // Poll every 60 seconds when not processing (reduced frequency)
+        pollInterval = setInterval(loadKBWithRetry, 60000);
+      }
+    };
+    
+    // Initial load
+    loadKB(true).then(() => {
+      if (isMounted) {
+        // Start polling after initial load with a delay
+        setTimeout(loadKBWithRetry, 3000);
+      }
+    });
+    
+    return () => {
+      isMounted = false;
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+    };
+  }, [kbId]); // Only depend on kbId, not versions
+
 
   const handleCompare = async () => {
     if (!selectedVersion1 || !selectedVersion2) {

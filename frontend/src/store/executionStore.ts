@@ -97,23 +97,44 @@ export const useExecutionStore = create<ExecutionState>((set) => ({
       // Don't override SSE statuses with polling results if execution is still running
       // Only update status from polling if:
       // 1. No SSE status exists for this node, OR
-      // 2. Execution is completed/failed (final state)
+      // 2. Execution is completed/failed (final state), OR
+      // 3. Polling result is 'completed' and SSE status is not 'completed' (finalize completed status)
       const currentSSEStatus = state.nodeStatuses[nodeId];
       const shouldUpdateStatus = !currentSSEStatus || 
                                  state.status === 'completed' || 
                                  state.status === 'failed' ||
-                                 (result.status === 'completed' && currentSSEStatus !== 'running');
+                                 (result.status === 'completed' && currentSSEStatus !== 'completed' && currentSSEStatus !== 'failed');
+      
+      // Determine final status: prefer completed over failed, prefer backend result over SSE if execution is done
+      // Convert 'idle' to 'pending' for consistency
+      const normalizedSSEStatus = (currentSSEStatus === 'idle' ? 'pending' : currentSSEStatus) as 'pending' | 'running' | 'completed' | 'failed';
+      let finalStatus: 'pending' | 'running' | 'completed' | 'failed' = result.status || normalizedSSEStatus || 'pending';
+      if (state.status === 'completed' || state.status === 'failed') {
+        // When execution is done, trust backend results
+        finalStatus = result.status || normalizedSSEStatus || 'pending';
+        // But never allow failed to overwrite completed
+        if (normalizedSSEStatus === 'completed' && result.status === 'failed') {
+          finalStatus = 'completed';
+        }
+      } else if (normalizedSSEStatus === 'completed' && result.status === 'failed') {
+        // Never allow failed to overwrite completed (even during execution)
+        finalStatus = 'completed';
+      } else if (shouldUpdateStatus) {
+        finalStatus = result.status || normalizedSSEStatus || 'pending';
+      } else {
+        finalStatus = normalizedSSEStatus || 'pending';
+      }
       
       return {
         results: {
           ...state.results,
           [nodeId]: result,
         },
-        // Only update status if SSE hasn't set it, or execution is done
-        nodeStatuses: shouldUpdateStatus ? {
+        // Update status based on logic above
+        nodeStatuses: {
           ...state.nodeStatuses,
-          [nodeId]: result.status || state.nodeStatuses[nodeId] || 'idle',
-        } : state.nodeStatuses,
+          [nodeId]: finalStatus,
+        },
       };
     }),
 
@@ -168,9 +189,16 @@ export const useExecutionStore = create<ExecutionState>((set) => ({
         });
         
         // Set to completed immediately - animations will handle the visual feedback
+        // IMPORTANT: Don't allow failed to overwrite completed (completed is final state)
         updatedStatuses[nodeId] = 'completed';
       } else if (event.event_type === 'node_failed') {
-        updatedStatuses[nodeId] = 'failed';
+        // Only set to failed if node is not already completed
+        // This prevents failed events from overwriting completed status
+        const currentStatus = state.nodeStatuses[nodeId];
+        if (currentStatus !== 'completed') {
+          updatedStatuses[nodeId] = 'failed';
+        }
+        // If already completed, preserve completed status (don't overwrite)
       } else if (event.event_type === 'node_progress') {
         // Progress events always mean the node is running
         // Set to running regardless of current status (unless already completed/failed)

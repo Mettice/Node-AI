@@ -130,10 +130,141 @@ export function KnowledgeBaseManager() {
   const [processingKBId, setProcessingKBId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadKnowledgeBases(true); // Initial load with loading indicator
-    // Auto-refresh every 3 seconds to check processing status (silent)
-    const interval = setInterval(() => loadKnowledgeBases(false), 3000);
-    return () => clearInterval(interval);
+    let pollInterval: NodeJS.Timeout | null = null;
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
+    let isMounted = true;
+    
+    const loadWithRetry = async (showLoading = false) => {
+      if (!isMounted) return;
+      
+      if (showLoading) setLoading(true);
+      try {
+        const response = await listKnowledgeBases();
+        if (!isMounted) return;
+        
+        const safeKnowledgeBases = (response?.knowledge_bases || []);
+        setKnowledgeBases(safeKnowledgeBases);
+        
+        // Fetch statuses for all knowledge bases (but only if we have some)
+        if (safeKnowledgeBases.length > 0) {
+          const statusPromises = safeKnowledgeBases.map(async (kb) => {
+            try {
+              const fullKB = await getKnowledgeBase(kb.id);
+              const versions = fullKB?.versions || [];
+              const currentVersion = (versions || []).find((v) => v.version_number === fullKB?.current_version);
+              return { id: kb.id, status: currentVersion?.status || null };
+            } catch (error: any) {
+              // Don't fail on rate limits for individual KBs
+              if (error.response?.status === 429) {
+                return { id: kb.id, status: null };
+              }
+              return { id: kb.id, status: null };
+            }
+          });
+          
+          const statusResults = await Promise.all(statusPromises);
+          if (!isMounted) return;
+          
+          const statusMap: Record<string, ProcessingStatus | null> = {};
+          (statusResults || []).forEach(({ id, status }) => {
+            statusMap[id] = status;
+          });
+          setKbStatuses(statusMap);
+        }
+        
+        retryCount = 0; // Reset on success
+        
+        // Smart polling: only poll frequently if there are KBs being processed
+        // Use the statusMap we already built above
+        const statusMap: Record<string, ProcessingStatus | null> = {};
+        if (safeKnowledgeBases.length > 0) {
+          // We already fetched statuses above, so build the map from what we have
+          // But we need to check if statuses were fetched successfully
+          const statusPromises = safeKnowledgeBases.map(async (kb) => {
+            try {
+              const fullKB = await getKnowledgeBase(kb.id);
+              const versions = fullKB?.versions || [];
+              const currentVersion = (versions || []).find((v) => v.version_number === fullKB?.current_version);
+              return { id: kb.id, status: currentVersion?.status || null };
+            } catch (error: any) {
+              // Don't fail on rate limits for individual KBs
+              if (error.response?.status === 429) {
+                return { id: kb.id, status: null };
+              }
+              return { id: kb.id, status: null };
+            }
+          });
+          
+          const statusResults = await Promise.all(statusPromises);
+          if (!isMounted) return;
+          
+          (statusResults || []).forEach(({ id, status }) => {
+            statusMap[id] = status;
+          });
+        }
+        
+        const hasProcessing = safeKnowledgeBases.some(kb => {
+          const status = statusMap[kb.id];
+          return status === 'processing' || status === 'pending';
+        });
+        
+        // Clear existing interval
+        if (pollInterval) {
+          clearInterval(pollInterval);
+          pollInterval = null;
+        }
+        
+        if (hasProcessing && isMounted) {
+          // Poll every 15 seconds when processing
+          pollInterval = setInterval(() => loadWithRetry(false), 15000);
+        } else if (isMounted) {
+          // Poll every 60 seconds when not processing
+          pollInterval = setInterval(() => loadWithRetry(false), 60000);
+        }
+      } catch (error: any) {
+        if (!isMounted) return;
+        
+        // Handle rate limiting gracefully
+        if (error.response?.status === 429) {
+          retryCount++;
+          if (retryCount <= MAX_RETRIES) {
+            const backoffDelay = 5000 * Math.pow(2, retryCount - 1);
+            console.warn(`Rate limited, retrying in ${backoffDelay}ms (attempt ${retryCount}/${MAX_RETRIES})`);
+            setTimeout(() => loadWithRetry(showLoading), backoffDelay);
+          } else {
+            console.warn('Rate limited, stopping polling temporarily');
+            setTimeout(() => {
+              if (isMounted) {
+                retryCount = 0;
+                loadWithRetry(false);
+              }
+            }, 60000);
+          }
+          if (showLoading) setLoading(false);
+          return;
+        }
+        
+        console.error('Error loading knowledge bases:', error);
+        setKnowledgeBases([]);
+        if (showLoading) {
+          toast.error('Failed to load knowledge bases');
+          setLoading(false);
+        }
+      } finally {
+        if (isMounted && showLoading) setLoading(false);
+      }
+    };
+    
+    // Initial load
+    loadWithRetry(true);
+    
+    return () => {
+      isMounted = false;
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+    };
   }, []);
 
   const loadKnowledgeBases = async (showLoading = false) => {

@@ -27,6 +27,7 @@ from backend.core.node_registry import NodeRegistry
 from backend.nodes.base import BaseNode
 from backend.utils.logger import get_logger
 from backend.core.cache import get_cache
+from backend.core.secret_resolver import resolve_api_key
 
 logger = get_logger(__name__)
 
@@ -64,7 +65,16 @@ class AdvancedNLPNode(BaseNode):
         cache_ttl = config.get("cache_ttl_seconds", 3600)  # Default 1 hour
         
         # Get input text - support both single text and batch
-        text_input = inputs.get("text") or inputs.get("input") or inputs.get("content") or ""
+        # Check multiple common output field names from different node types
+        text_input = (
+            inputs.get("text") or 
+            inputs.get("input") or 
+            inputs.get("content") or 
+            inputs.get("output") or  # From CrewAI, LangChain agents, etc.
+            inputs.get("report") or  # From CrewAI agents
+            inputs.get("response") or  # From chat nodes
+            ""
+        )
         texts = inputs.get("texts") or inputs.get("batch") or []
         
         # Determine if batch processing

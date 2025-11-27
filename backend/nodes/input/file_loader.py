@@ -21,8 +21,9 @@ from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Upload directory
-UPLOAD_DIR = Path("uploads")
+# Upload directory - use config if available, otherwise fallback to relative path
+from backend.config import settings
+UPLOAD_DIR = settings.uploads_dir if hasattr(settings, 'uploads_dir') else Path("uploads")
 
 
 class FileLoaderNode(BaseNode):

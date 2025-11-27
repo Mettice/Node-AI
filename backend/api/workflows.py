@@ -166,7 +166,19 @@ def _save_workflow(workflow: Workflow) -> None:
 def _list_workflows() -> List[Workflow]:
     """List all workflows from disk."""
     workflows = []
-    for workflow_file in WORKFLOWS_DIR.glob("*.json"):
+    
+    # Log the directory being searched
+    logger.debug(f"Searching for workflows in: {WORKFLOWS_DIR.absolute()}")
+    
+    # Check if directory exists
+    if not WORKFLOWS_DIR.exists():
+        logger.warning(f"Workflows directory does not exist: {WORKFLOWS_DIR.absolute()}")
+        return workflows
+    
+    workflow_files = list(WORKFLOWS_DIR.glob("*.json"))
+    logger.debug(f"Found {len(workflow_files)} JSON files in workflows directory")
+    
+    for workflow_file in workflow_files:
         try:
             with open(workflow_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -180,14 +192,24 @@ def _list_workflows() -> List[Workflow]:
                 data["deployed_at"] = datetime.fromisoformat(data["deployed_at"].replace("Z", "+00:00"))
             
             workflows.append(Workflow(**data))
+            logger.debug(f"Loaded workflow: {workflow_file.name}")
         except Exception as e:
-            logger.error(f"Error loading workflow from {workflow_file}: {e}")
+            logger.error(f"Error loading workflow from {workflow_file}: {e}", exc_info=True)
+    
+    logger.info(f"Loaded {len(workflows)} workflows from {WORKFLOWS_DIR.absolute()}")
     return workflows
 
 
 def _check_template_compatibility(workflow: Workflow) -> tuple[bool, List[str]]:
     """Check if a template has all required node types available."""
     from backend.core.node_registry import NodeRegistry
+    
+    # Ensure nodes are imported and registered
+    # This is safe to call multiple times - imports are cached
+    try:
+        import backend.nodes  # noqa: F401
+    except Exception as e:
+        logger.warning(f"Failed to import nodes for compatibility check: {e}")
     
     missing_nodes = []
     for node in workflow.nodes:
@@ -336,11 +358,14 @@ async def list_workflows(
                 is_compatible, missing_nodes = _check_template_compatibility(workflow)
                 if is_compatible:
                     compatible_workflows.append(workflow)
+                    logger.debug(f"Template {workflow.name} is compatible")
                 else:
-                    logger.debug(f"Filtering out template {workflow.name} due to missing nodes: {missing_nodes}")
+                    logger.warning(f"Filtering out template '{workflow.name}' (id: {workflow.id}) due to missing nodes: {missing_nodes}")
             else:
                 # Non-templates always shown (user workflows)
                 compatible_workflows.append(workflow)
+        
+        logger.info(f"Template compatibility check: {len(all_workflows)} total workflows, {len(compatible_workflows)} compatible (filtered {len(all_workflows) - len(compatible_workflows)})")
         
         all_workflows = compatible_workflows
         

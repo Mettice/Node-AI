@@ -23,6 +23,30 @@ import html
 # storage_uri="memory://" uses in-memory storage for rate limiting (default)
 limiter = Limiter(key_func=get_remote_address, headers_enabled=True, auto_check=True, storage_uri="memory://")
 
+# Patch _inject_headers to safely handle non-Response objects
+# FastAPI sometimes passes Pydantic models before converting to Response
+# We need to patch the unbound method from the class, not the instance
+_original_inject_headers = Limiter._inject_headers
+
+def _safe_inject_headers(self, response, current_limit):
+    """Safely inject headers, skipping if response is not a Response object."""
+    from starlette.responses import Response as StarletteResponse
+    # Skip if response is not a Response object (FastAPI will convert it later)
+    if not isinstance(response, StarletteResponse):
+        return response
+    # Safe to inject headers - call original with self
+    try:
+        return _original_inject_headers(self, response, current_limit)
+    except (AttributeError, KeyError, TypeError, Exception) as e:
+        # If anything goes wrong, just return the response (middleware will handle it)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Failed to inject rate limit headers: {e}")
+        return response
+
+# Patch the class method so all instances use the safe version
+Limiter._inject_headers = _safe_inject_headers
+
 
 
 def sanitize_string(value: str, max_length: Optional[int] = None) -> str:

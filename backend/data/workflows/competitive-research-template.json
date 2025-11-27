@@ -1,9 +1,9 @@
 {
   "id": "competitive-research-template", 
   "name": "🔍 Competitive Intelligence Researcher",
-  "description": "Automatically research competitors by scraping websites and analyzing their content, features, and positioning.",
+  "description": "Automatically research competitors using AI agents with web search and scraping tools. Analyzes company info, pricing, and provides strategic insights.",
   "is_template": true,
-  "tags": ["competitive-analysis", "market-research", "business-intelligence", "web-scraping", "template"],
+  "tags": ["competitive-analysis", "market-research", "business-intelligence", "crewai", "web-scraping", "template"],
   "nodes": [
     {
       "id": "text_input_company",
@@ -28,30 +28,30 @@
       }
     },
     {
-      "id": "web_search_1",
+      "id": "tool_web_search",
       "type": "tool",
-      "position": { "x": 400, "y": 100 },
+      "position": { "x": 100, "y": 400 },
       "data": {
-        "label": "🌐 Find Company Info",
+        "label": "🌐 Web Search Tool",
         "config": {
           "tool_type": "web_search",
-          "tool_name": "Company Search",
-          "tool_description": "Search for company information and website details",
+          "tool_name": "Web Search",
+          "tool_description": "Search the web for company information, features, and pricing details",
           "web_search_provider": "duckduckgo",
           "web_search_max_results": 5
         }
       }
     },
     {
-      "id": "web_scraping_1", 
+      "id": "tool_web_scraping", 
       "type": "tool",
-      "position": { "x": 700, "y": 100 },
+      "position": { "x": 100, "y": 550 },
       "data": {
-        "label": "📄 Scrape Website",
+        "label": "📄 Web Scraping Tool",
         "config": {
           "tool_type": "web_scraping",
-          "tool_name": "Website Scraper",
-          "tool_description": "Scrape and extract content from web pages",
+          "tool_name": "Web Scraper",
+          "tool_description": "Scrape and extract content from competitor websites",
           "web_scraping_max_pages": 3,
           "web_scraping_include_links": true,
           "web_scraping_extract_text": true,
@@ -60,9 +60,41 @@
       }
     },
     {
+      "id": "crewai_research_agent",
+      "type": "crewai_agent",
+      "position": { "x": 500, "y": 250 },
+      "data": {
+        "label": "🔍 Research Agent",
+        "config": {
+          "provider": "openai",
+          "model": "gpt-4o",
+          "temperature": 0.3,
+          "process": "sequential",
+          "verbose": true,
+          "agents": [
+            {
+              "role": "Competitive Intelligence Researcher",
+              "goal": "Research and gather comprehensive information about competitors including company overview, products, features, and market positioning",
+              "backstory": "You are an expert competitive intelligence analyst with 10+ years of experience researching companies, analyzing market positioning, and identifying competitive advantages. You excel at finding reliable sources and extracting key information.",
+              "tools": ["web_search", "web_scraping"],
+              "allow_delegation": false,
+              "max_iter": 3
+            }
+          ],
+          "tasks": [
+            {
+              "description": "Research the competitor: {competitor_name} in the {industry} industry. Use web search to find: 1) Company website and official information, 2) Key products and services, 3) Recent news and developments, 4) Market positioning and messaging. Then use web scraping to extract detailed content from their main website pages.",
+              "agent": "Competitive Intelligence Researcher",
+              "expected_output": "A comprehensive research report with company overview, products, features, and market positioning based on web search and website scraping."
+            }
+          ]
+        }
+      }
+    },
+    {
       "id": "chat_analysis",
       "type": "chat",
-      "position": { "x": 1000, "y": 50 },
+      "position": { "x": 900, "y": 100 },
       "data": {
         "label": "📊 Company Analysis", 
         "config": {
@@ -70,61 +102,49 @@
           "model": "gpt-4o",
           "temperature": 0.3,
           "max_tokens": 1500,
-          "system_prompt": "Analyze this competitor based on the gathered information. Provide: 1) Company overview & positioning, 2) Key products/services, 3) Target market & customer segments, 4) Unique value proposition, 5) Strengths & weaknesses, 6) Recent news or developments."
-        }
-      }
-    },
-    {
-      "id": "web_search_pricing",
-      "type": "tool",
-      "position": { "x": 400, "y": 300 },
-      "data": {
-        "label": "💰 Find Pricing Info",
-        "config": {
-          "tool_type": "web_search",
-          "tool_name": "Pricing Search",
-          "tool_description": "Search for competitor pricing information",
-          "web_search_provider": "duckduckgo", 
-          "web_search_max_results": 3
+          "system_prompt": "Analyze this competitor research data and provide: 1) Company overview & positioning, 2) Key products/services, 3) Target market & customer segments, 4) Unique value proposition, 5) Strengths & weaknesses, 6) Recent news or developments. Format as a structured analysis report."
         }
       }
     },
     {
       "id": "chat_pricing",
       "type": "chat",
-      "position": { "x": 1000, "y": 200 },
+      "position": { "x": 900, "y": 300 },
       "data": {
-        "label": "💵 Pricing Strategy",
+        "label": "💵 Pricing Analysis",
         "config": {
           "provider": "openai",
           "model": "gpt-4o",
-          "temperature": 0.2, 
-          "system_prompt": "Extract and analyze pricing information: 1) Pricing tiers/plans, 2) Key features per tier, 3) Pricing strategy (freemium, subscription, etc.), 4) Value proposition per price point, 5) Comparison insights for competitive positioning."
+          "temperature": 0.2,
+          "max_tokens": 1000,
+          "system_prompt": "Extract and analyze pricing information from the research data: 1) Pricing tiers/plans, 2) Key features per tier, 3) Pricing strategy (freemium, subscription, etc.), 4) Value proposition per price point, 5) Comparison insights for competitive positioning."
         }
       }
     },
     {
       "id": "chat_recommendations",
       "type": "chat",
-      "position": { "x": 1000, "y": 350 },
+      "position": { "x": 900, "y": 500 },
       "data": {
         "label": "💡 Strategic Insights",
         "config": {
           "provider": "openai",
           "model": "gpt-4o",
           "temperature": 0.4,
-          "system_prompt": "Provide strategic recommendations based on this competitive analysis: 1) Market opportunities, 2) Differentiation strategies, 3) Potential partnerships or collaborations, 4) Threats to watch, 5) Areas for innovation or improvement."
+          "max_tokens": 1200,
+          "system_prompt": "Based on the competitive analysis, provide strategic recommendations: 1) Market opportunities, 2) Differentiation strategies, 3) Potential partnerships or collaborations, 4) Threats to watch, 5) Areas for innovation or improvement. Make recommendations actionable and specific."
         }
       }
     }
   ],
   "edges": [
-    { "id": "e1-3", "source": "text_input_company", "target": "web_search_1" },
-    { "id": "e3-4", "source": "web_search_1", "target": "web_scraping_1" },
-    { "id": "e4-5", "source": "web_scraping_1", "target": "chat_analysis" },
-    { "id": "e1-6", "source": "text_input_company", "target": "web_search_pricing" },
-    { "id": "e6-7", "source": "web_search_pricing", "target": "chat_pricing" },
-    { "id": "e5-8", "source": "chat_analysis", "target": "chat_recommendations" },
+    { "id": "e1-5", "source": "text_input_company", "target": "crewai_research_agent" },
+    { "id": "e2-5", "source": "text_input_industry", "target": "crewai_research_agent" },
+    { "id": "e3-5", "source": "tool_web_search", "target": "crewai_research_agent" },
+    { "id": "e4-5", "source": "tool_web_scraping", "target": "crewai_research_agent" },
+    { "id": "e5-6", "source": "crewai_research_agent", "target": "chat_analysis" },
+    { "id": "e5-7", "source": "crewai_research_agent", "target": "chat_pricing" },
+    { "id": "e6-8", "source": "chat_analysis", "target": "chat_recommendations" },
     { "id": "e7-8", "source": "chat_pricing", "target": "chat_recommendations" }
   ]
 }

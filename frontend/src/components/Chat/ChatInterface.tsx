@@ -139,20 +139,46 @@ export function ChatInterface({ isOpen, onClose }: ChatInterfaceProps) {
         edges: workflowEdges,
       });
 
+      // If execution is still running, poll for completion
+      let finalResult = result;
+      if (result.status === 'running' || result.status === 'pending') {
+        // Poll for completion (max 120 seconds = 60 polls at 2000ms interval)
+        // Using 2 second interval to avoid rate limiting (30 requests/minute limit)
+        const maxPolls = 60;
+        let pollCount = 0;
+        
+        while ((finalResult.status === 'running' || finalResult.status === 'pending') && pollCount < maxPolls) {
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+          
+          try {
+            const { getExecutionStatus } = await import('@/services/executions');
+            finalResult = await getExecutionStatus(result.execution_id);
+            pollCount++;
+          } catch (pollError) {
+            console.error('Error polling execution status:', pollError);
+            break;
+          }
+        }
+        
+        if (finalResult.status === 'running' || finalResult.status === 'pending') {
+          throw new Error('Execution timed out');
+        }
+      }
+
       // Mark vector store as ready after first successful execution
-      if (!vectorStoreReady && result.status === 'completed') {
+      if (!vectorStoreReady && finalResult.status === 'completed') {
         setVectorStoreReady(true);
         toast.success('Knowledge base ready!');
       }
 
-      if (result.status === 'completed') {
+      if (finalResult.status === 'completed') {
         // Extract chat response from results
-        const chatResult = result.results?.[chatNode.id];
-        const vectorSearchResult = result.results?.[vectorSearchNode.id];
+        const chatResult = finalResult.results?.[chatNode.id];
+        const vectorSearchResult = finalResult.results?.[vectorSearchNode.id];
         
         console.log('Chat result:', chatResult);
         console.log('Chat node ID:', chatNode.id);
-        console.log('All results:', result.results);
+        console.log('All results:', finalResult.results);
         
                // Handle different response formats
                const responseText = chatResult?.output?.response || chatResult?.output?.content || (chatResult?.output as any)?.response;
@@ -161,19 +187,19 @@ export function ChatInterface({ isOpen, onClose }: ChatInterfaceProps) {
           addMessage({
             role: 'assistant',
             content: responseText,
-            cost: result.total_cost,
+            cost: finalResult.total_cost,
             sources: vectorSearchResult?.output?.results || [],
           });
           
-          updateCost(result.total_cost);
-          updateDuration(result.duration_ms);
+          updateCost(finalResult.total_cost);
+          updateDuration(finalResult.duration_ms);
           updateStatus('completed');
         } else {
           console.error('Chat result structure:', JSON.stringify(chatResult, null, 2));
           throw new Error(`No response from chat node. Got: ${JSON.stringify(chatResult?.output || chatResult)}`);
         }
       } else {
-        throw new Error(result.status === 'failed' ? 'Execution failed' : 'Execution incomplete');
+        throw new Error(finalResult.status === 'failed' ? 'Execution failed' : 'Execution incomplete');
       }
     } catch (error) {
       console.error('Chat error:', error);

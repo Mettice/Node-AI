@@ -112,7 +112,7 @@ class CrewAINode(BaseNode):
         
         tasks = []
         for task_config in tasks_config:
-            task = self._create_task(task_config, agents)
+            task = self._create_task(task_config, agents, inputs)
             tasks.append(task)
         
         # Create crew with callbacks for streaming
@@ -536,7 +536,7 @@ class CrewAINode(BaseNode):
             verbose=True,
         )
 
-    def _create_task(self, task_config: Dict[str, Any], agents: List):
+    def _create_task(self, task_config: Dict[str, Any], agents: List, inputs: Dict[str, Any] = None):
         """Create a CrewAI Task from configuration."""
         try:
             from crewai import Task
@@ -546,6 +546,34 @@ class CrewAINode(BaseNode):
         description = task_config.get("description", "")
         agent_role = task_config.get("agent", "")
         expected_output = task_config.get("expected_output", "Complete the task successfully")
+        
+        # Substitute placeholders in description and expected_output with input values
+        # Common placeholders: {research_topic}, {text}, {task}, {input}
+        if inputs:
+            # Get the research topic/text from inputs
+            research_topic = (
+                inputs.get("text") or 
+                inputs.get("task") or 
+                inputs.get("input") or 
+                inputs.get("research_topic") or 
+                ""
+            )
+            
+            # Replace common placeholders
+            if "{research_topic}" in description:
+                description = description.replace("{research_topic}", research_topic)
+            if "{text}" in description:
+                description = description.replace("{text}", research_topic)
+            if "{task}" in description:
+                description = description.replace("{task}", research_topic)
+            if "{input}" in description:
+                description = description.replace("{input}", research_topic)
+            
+            # Also replace in expected_output
+            if "{research_topic}" in expected_output:
+                expected_output = expected_output.replace("{research_topic}", research_topic)
+            if "{text}" in expected_output:
+                expected_output = expected_output.replace("{text}", research_topic)
         
         # Find agent by role
         assigned_agent = None

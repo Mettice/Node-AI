@@ -193,13 +193,13 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
       const validationData = {
         name: workflowData.name,
         description: workflowData.description || `Template: ${workflowData.name}`,
-        nodes: nodes.map(node => ({
+        nodes: nodes.map((node: any) => ({
           id: node.id,
           type: node.type,
           position: node.position,
           data: node.data
         })),
-        edges: edges.map(edge => ({
+        edges: edges.map((edge: any) => ({
           id: edge.id,
           source: edge.source,
           target: edge.target,
@@ -228,7 +228,7 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
         
         let errorMessage = `Template cannot be uploaded: ${validationResult.message}`;
         if (suggestions.length > 0) {
-          errorMessage += `\n\nTo use this template:\n${suggestions.map(s => `• ${s}`).join('\n')}`;
+          errorMessage += `\n\nTo use this template:\n${suggestions.map((s: string) => `• ${s}`).join('\n')}`;
         }
         
         errorToast.show(errorMessage);
@@ -240,7 +240,7 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
         const errors = validationResult.errors || [];
         let errorMessage = `Template validation failed: ${validationResult.message}`;
         if (errors.length > 0) {
-          errorMessage += `\n\nIssues found:\n${errors.map(e => `• ${e}`).join('\n')}`;
+          errorMessage += `\n\nIssues found:\n${errors.map((e: string) => `• ${e}`).join('\n')}`;
         }
         
         errorToast.show(errorMessage);

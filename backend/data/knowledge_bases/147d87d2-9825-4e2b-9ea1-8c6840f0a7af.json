@@ -1,0 +1,115 @@
+{
+  "id": "147d87d2-9825-4e2b-9ea1-8c6840f0a7af",
+  "name": "dd",
+  "description": null,
+  "created_at": "2025-11-27T13:09:47.266178",
+  "updated_at": "2025-11-27T13:11:10.840700",
+  "current_version": 3,
+  "default_chunk_config": {
+    "strategy": "recursive",
+    "chunk_size": 512,
+    "chunk_overlap": 50,
+    "separators": [],
+    "min_chunk_size": 100,
+    "max_chunk_size": 1000,
+    "overlap_sentences": 1
+  },
+  "default_embed_config": {
+    "provider": "openai",
+    "model": "text-embedding-3-small",
+    "dimensions": null,
+    "batch_size": 100,
+    "use_finetuned_model": false,
+    "finetuned_model_id": null
+  },
+  "default_vector_store_config": {
+    "provider": "faiss",
+    "index_type": "flat",
+    "persist": true,
+    "file_path": null
+  },
+  "tags": [],
+  "is_shared": false,
+  "versions": [
+    {
+      "id": "4f78b485-d490-4ae3-9dba-a5bc8eb3ac3e",
+      "kb_id": "147d87d2-9825-4e2b-9ea1-8c6840f0a7af",
+      "version_number": 2,
+      "created_at": "2025-11-27T13:10:33.797909",
+      "file_ids": [
+        "aa778713-feb6-4db5-9d01-2bddc95da728"
+      ],
+      "chunk_config": {
+        "strategy": "recursive",
+        "chunk_size": 512,
+        "chunk_overlap": 50,
+        "separators": [],
+        "min_chunk_size": 100,
+        "max_chunk_size": 1000,
+        "overlap_sentences": 1
+      },
+      "embed_config": {
+        "provider": "openai",
+        "model": "text-embedding-3-small",
+        "dimensions": null,
+        "batch_size": 100,
+        "use_finetuned_model": false,
+        "finetuned_model_id": null
+      },
+      "vector_store_config": {
+        "provider": "faiss",
+        "index_type": "flat",
+        "persist": true,
+        "file_path": null
+      },
+      "vector_store_id": "kb_147d87d2-9825-4e2b-9ea1-8c6840f0a7af_v2",
+      "vector_store_path": null,
+      "vector_count": 0,
+      "status": "failed",
+      "processing_log": "Processing failed: No text or chunks provided in inputs",
+      "processing_duration_ms": 182,
+      "total_cost": 0.0,
+      "created_by": null
+    },
+    {
+      "id": "f8dc45da-63cd-4b92-988c-7ae1156ca969",
+      "kb_id": "147d87d2-9825-4e2b-9ea1-8c6840f0a7af",
+      "version_number": 3,
+      "created_at": "2025-11-27T13:11:10.818693",
+      "file_ids": [
+        "aa778713-feb6-4db5-9d01-2bddc95da728"
+      ],
+      "chunk_config": {
+        "strategy": "recursive",
+        "chunk_size": 512,
+        "chunk_overlap": 50,
+        "separators": [],
+        "min_chunk_size": 100,
+        "max_chunk_size": 1000,
+        "overlap_sentences": 1
+      },
+      "embed_config": {
+        "provider": "openai",
+        "model": "text-embedding-3-small",
+        "dimensions": null,
+        "batch_size": 100,
+        "use_finetuned_model": false,
+        "finetuned_model_id": null
+      },
+      "vector_store_config": {
+        "provider": "faiss",
+        "index_type": "flat",
+        "persist": true,
+        "file_path": null
+      },
+      "vector_store_id": "kb_147d87d2-9825-4e2b-9ea1-8c6840f0a7af_v3",
+      "vector_store_path": null,
+      "vector_count": 0,
+      "status": "failed",
+      "processing_log": "Processing failed: No text or chunks provided in inputs",
+      "processing_duration_ms": 20,
+      "total_cost": 0.0,
+      "created_by": null
+    }
+  ]
+}

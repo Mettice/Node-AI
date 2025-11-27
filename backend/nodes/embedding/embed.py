@@ -154,6 +154,9 @@ class EmbedNode(BaseNode):
                 logger.error(f"OpenAI embedding error: {e}")
                 raise
         
+        # Calculate cost using centralized pricing
+        cost = calculate_embedding_cost_from_texts("openai", model, texts, use_batch_pricing)
+        
         # Preserve chunks if they were in inputs (for downstream nodes)
         result = {
             "embeddings": all_embeddings,
@@ -161,6 +164,7 @@ class EmbedNode(BaseNode):
             "model": model,
             "count": len(all_embeddings),
             "dimension": len(all_embeddings[0]) if all_embeddings else 0,
+            "cost": cost,
         }
         
         # Add fine-tuned model info if used
@@ -172,7 +176,7 @@ class EmbedNode(BaseNode):
         if "chunks" in inputs:
             result["chunks"] = inputs["chunks"]
         
-        await self.stream_progress(node_id, 1.0, f"Created {len(all_embeddings)} embeddings")
+        await self.stream_progress(node_id, 1.0, f"Created {len(all_embeddings)} embeddings (cost: ${cost:.6f})")
         
         return result
 

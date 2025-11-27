@@ -81,13 +81,27 @@ async def execute_workflow(request: Request, execution_request: ExecutionRequest
                 logger.info(f"Execution {execution_id} completed successfully")
                 
                 # Record metrics asynchronously (don't block)
+                # Note: We can't call the endpoint directly from background task,
+                # so we'll use the internal function instead
                 try:
-                    from backend.api.metrics import record_execution
-                    await record_execution(
+                    from backend.api.metrics import _save_execution_record, ExecutionRecord
+                    from datetime import datetime
+                    
+                    # Create execution record for metrics
+                    record = ExecutionRecord(
                         execution_id=execution_id,
-                        execution=execution,
-                        workflow_version=None,  # TODO: Add version tracking
+                        workflow_id=execution.workflow_id,
+                        workflow_version=None,
+                        status=execution.status.value if hasattr(execution.status, 'value') else str(execution.status),
+                        started_at=execution.started_at.isoformat() if execution.started_at else datetime.now().isoformat(),
+                        completed_at=execution.completed_at.isoformat() if execution.completed_at else None,
+                        duration_ms=execution.duration_ms or 0,
+                        total_cost=execution.total_cost or 0.0,
+                        cost_breakdown={},  # Will be calculated if needed
+                        error=execution.error,
+                        metadata={},
                     )
+                    _save_execution_record(record)
                 except Exception as metrics_error:
                     logger.error(f"Failed to record metrics: {metrics_error}")
                     
@@ -147,7 +161,7 @@ async def execute_workflow(request: Request, execution_request: ExecutionRequest
 
 
 @router.get("/executions/{execution_id}", response_model=Execution)
-@limiter.limit("30/minute")
+@limiter.limit("60/minute")  # Increased for polling - allows 1 request per second
 async def get_execution(execution_id: str, request: Request) -> Execution:
     """
     Get execution details by ID.
@@ -171,7 +185,7 @@ async def get_execution(execution_id: str, request: Request) -> Execution:
 
 
 @router.get("/executions/{execution_id}/trace")
-@limiter.limit("30/minute")
+@limiter.limit("60/minute")  # Increased for polling - allows 1 request per second
 async def get_execution_trace(execution_id: str, request: Request) -> Dict:
     """
     Get execution trace (step-by-step timeline).

@@ -22,13 +22,6 @@ export function ExecutionSummary() {
     setExpandedNodes(prev => ({ ...prev, [nodeId]: !prev[nodeId] }));
   };
 
-  // Calculate statistics
-  const totalNodes = safeNodes.length;
-  const resultsArray = Object.values(safeResults);
-  const completedNodes = resultsArray.filter((r) => r?.status === 'completed').length;
-  const failedNodes = resultsArray.filter((r) => r?.status === 'failed').length;
-  const successRate = totalNodes > 0 ? Math.round((completedNodes / totalNodes) * 100) : 0;
-
   // Format duration
   const formatDuration = (ms: number) => {
     if (ms < 1000) return `${ms}ms`;
@@ -42,10 +35,15 @@ export function ExecutionSummary() {
     return `$${cost.toFixed(2)}`;
   };
 
-  // Get node breakdown
+  // Get node breakdown - use both results and nodeStatuses for accurate status
+  const { nodeStatuses } = useExecutionStore();
   const nodeBreakdown = safeNodes.map((node) => {
     const result = safeResults[node.id];
     const nodeType = node.data?.label || node.type || node.id;
+    
+    // Get status from results first, then fall back to nodeStatuses (SSE), then 'pending'
+    // This ensures we show the most accurate status
+    const nodeStatus = result?.status || nodeStatuses[node.id] || 'pending';
     
     // Extract output preview
     let outputPreview = '';
@@ -84,7 +82,7 @@ export function ExecutionSummary() {
       id: node.id,
       name: nodeType,
       type: node.type,
-      status: result?.status || 'pending',
+      status: nodeStatus, // Use combined status from results and SSE
       duration: result?.duration_ms || 0,
       cost: result?.cost || 0,
       error: result?.error,
@@ -92,6 +90,13 @@ export function ExecutionSummary() {
       outputPreview: outputPreview,
     };
   });
+
+  // Calculate statistics - use nodeBreakdown which has combined status from results + SSE
+  const totalNodes = safeNodes.length;
+  // Use nodeBreakdown status instead of just results, as it combines SSE and polling data
+  const completedNodes = nodeBreakdown.filter((n) => n.status === 'completed').length;
+  const failedNodes = nodeBreakdown.filter((n) => n.status === 'failed').length;
+  const successRate = totalNodes > 0 ? Math.round((completedNodes / totalNodes) * 100) : 0;
 
   // Get nodes with outputs for Results section
   const nodesWithOutputs = nodeBreakdown.filter(node => node.hasOutput && node.outputPreview);
@@ -175,8 +180,8 @@ export function ExecutionSummary() {
             </div>
           </div>
 
-          {/* Cost */}
-          {cost > 0 && (
+          {/* Cost - Always show when execution is complete/failed, even if 0 */}
+          {(cost > 0 || status === 'completed' || status === 'failed') && (
             <div className="glass rounded-lg p-3 border border-white/10">
               <div className="text-xs text-slate-400 mb-1 flex items-center gap-1">
                 <DollarSign className="w-3 h-3" />

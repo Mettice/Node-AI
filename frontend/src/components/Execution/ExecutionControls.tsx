@@ -169,15 +169,30 @@ export function ExecutionControls() {
         }
 
         if (statusResponse.status === 'running' || statusResponse.status === 'pending') {
-          // Continue polling
-          setTimeout(poll, 500);
+          // Continue polling (2 second interval to avoid rate limiting)
+          setTimeout(poll, 2000);
         } else {
-          // Execution completed or failed
+          // Execution completed or failed - ensure final results are updated
+          // Force update all node results from backend when execution is complete
+          if (statusResponse.results && typeof statusResponse.results === 'object') {
+            Object.entries(statusResponse.results).forEach(([nodeId, result]: [string, any]) => {
+              updateNodeResult(nodeId, {
+                node_id: nodeId,
+                status: result.status,
+                output: result.output,
+                error: result.error,
+                cost: result.cost,
+                duration_ms: result.duration_ms,
+              });
+            });
+          }
           isPolling = false;
         }
       } catch (error) {
         console.error('Polling error:', error);
-        updateStatus('failed');
+        // Don't set status to failed on network errors - just log and continue
+        // The execution might still be running or completed, we just couldn't poll
+        // Only stop polling, don't change status
         isPolling = false;
       }
     };

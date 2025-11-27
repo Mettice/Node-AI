@@ -154,7 +154,7 @@ async def list_knowledge_bases_endpoint(request: Request) -> KnowledgeBaseListRe
 
 
 @router.get("/{kb_id}", response_model=KnowledgeBase)
-@limiter.limit("30/minute")
+@limiter.limit("60/minute")  # Increased from 30 to handle detail view polling
 async def get_knowledge_base(kb_id: str, request: Request) -> KnowledgeBase:
     """Get a knowledge base by ID."""
     kb = load_knowledge_base(kb_id)

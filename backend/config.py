@@ -217,23 +217,23 @@ class Settings(BaseSettings):
     # Data Storage Directories
     # ============================================
     data_dir: Path = Field(
-        default=Path("./data"),
+        default=BACKEND_DIR / "data",
         description="Base directory for all data storage",
     )
     workflows_dir: Path = Field(
-        default=Path("./data/workflows"),
+        default=BACKEND_DIR / "data" / "workflows",
         description="Directory for saved workflows (JSON files)",
     )
     executions_dir: Path = Field(
-        default=Path("./data/executions"),
+        default=BACKEND_DIR / "data" / "executions",
         description="Directory for execution traces and history",
     )
     vectors_dir: Path = Field(
-        default=Path("./data/vectors"),
+        default=BACKEND_DIR / "data" / "vectors",
         description="Directory for vector indexes (FAISS)",
     )
     uploads_dir: Path = Field(
-        default=Path("./data/uploads"),
+        default=BACKEND_DIR / "data" / "uploads",
         description="Directory for uploaded files",
     )
 
