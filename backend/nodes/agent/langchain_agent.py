@@ -716,10 +716,18 @@ Thought: {agent_scratchpad}
         return self._calculate_cost(provider, model, int(estimated_tokens), int(estimated_output))
 
 
-# Register the node
-NodeRegistry.register(
-    LangChainAgentNode.node_type,
-    LangChainAgentNode,
-    LangChainAgentNode().get_metadata(),
-)
+# Register the node (only if LangChain is available)
+if LANGCHAIN_AVAILABLE:
+    try:
+        NodeRegistry.register(
+            LangChainAgentNode.node_type,
+            LangChainAgentNode,
+            LangChainAgentNode().get_metadata(),
+        )
+        logger.info("LangChain agent node registered successfully")
+    except Exception as e:
+        logger.warning(f"Failed to register LangChain agent node: {e}")
+        # Don't fail - node just won't be available
+else:
+    logger.debug("LangChain agent node not registered - LangChain not available")
 

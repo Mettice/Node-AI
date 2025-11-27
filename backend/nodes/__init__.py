@@ -215,15 +215,20 @@ except Exception as e:
     logger.error(f"Error importing Reddit node: {e}", exc_info=True)
 
 # Agent nodes
+# Import LangChain agent first (may fail if LangChain not available, but that's OK)
+# We catch all exceptions to prevent them from affecting CrewAI import
 try:
     from backend.nodes.agent.langchain_agent import LangChainAgentNode  # noqa: F401
-except ImportError:
-    # LangChain not available - node will be skipped
+except (ImportError, Exception) as e:
+    # LangChain not available - node will be skipped, but don't fail
+    # Don't log here - the langchain_agent module handles its own logging
     pass
 
+# Import CrewAI agent (should work independently of LangChain)
+# Import directly from the module file to avoid any import chain issues
 try:
-    # Import the module to trigger registration (registration happens at module level)
-    from backend.nodes.agent import crewai_agent  # noqa: F401
+    # Import the module directly to trigger registration (registration happens at module level)
+    import backend.nodes.agent.crewai_agent  # noqa: F401
     from backend.nodes.agent.crewai_agent import CrewAINode  # noqa: F401
     from backend.utils.logger import get_logger
     logger = get_logger(__name__)
@@ -232,12 +237,23 @@ except ImportError as e:
     # CrewAI not installed - this is expected if package not installed
     from backend.utils.logger import get_logger
     logger = get_logger(__name__)
-    logger.warning(f"CrewAI not available: {e}")
+    # Only log the actual error message, not the full exception which might include LangChain errors
+    error_msg = str(e)
+    if "LangChain" in error_msg:
+        # This is likely a LangChain error being caught - don't report it as CrewAI error
+        logger.debug(f"CrewAI import skipped (likely due to missing dependencies): {error_msg}")
+    else:
+        logger.warning(f"CrewAI not available (ImportError): {error_msg}")
 except Exception as e:
     # Other errors during import - log but don't fail
     from backend.utils.logger import get_logger
     logger = get_logger(__name__)
-    logger.error(f"Error importing CrewAI agent node: {e}", exc_info=True)
+    error_msg = str(e)
+    if "LangChain" in error_msg:
+        # This is likely a LangChain error being caught - don't report it as CrewAI error
+        logger.debug(f"CrewAI import skipped (likely due to missing dependencies): {error_msg}")
+    else:
+        logger.error(f"Error importing CrewAI agent node: {error_msg}", exc_info=True)
 
 # Tool nodes
 from backend.nodes.tools.tool_node import ToolNode  # noqa: F401
