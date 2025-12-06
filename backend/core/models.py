@@ -250,6 +250,10 @@ class ExecutionRequest(BaseModel):
         default=None,
         description="Execution timeout in seconds",
     )
+    use_intelligent_routing: Optional[bool] = Field(
+        default=None,
+        description="Use intelligent data routing (LLM-powered semantic mapping). If None, uses global setting.",
+    )
 
 
 class ExecutionResponse(BaseModel):

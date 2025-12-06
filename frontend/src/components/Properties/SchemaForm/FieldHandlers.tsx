@@ -30,6 +30,196 @@ interface FieldHandlerContext {
 export function getSpecialFieldHandler(context: FieldHandlerContext): React.ReactNode | null {
   const { key, fieldSchema, formValues, setValue, required, nodeType, isToolNode } = context;
 
+  // Special handling for Gemini File Search toggle
+  // Show for Chat nodes, but indicate it's Gemini-only
+  if (key === 'gemini_use_file_search' && nodeType === 'chat') {
+    const isGeminiProvider = formValues.provider === 'gemini' || formValues.provider === 'google';
+    
+    // If not Gemini provider, show disabled with explanation
+    if (!isGeminiProvider) {
+      return (
+        <div key={key} className="space-y-2">
+          <div className="p-3 bg-slate-500/10 border border-slate-500/30 rounded-lg opacity-60">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                disabled
+                checked={false}
+                className="w-4 h-4 text-blue-600 bg-white/5 border-white/20 rounded cursor-not-allowed"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-400">
+                    {fieldSchema.title || 'Use File Search'}
+                  </span>
+                  <span className="px-2 py-0.5 text-xs font-semibold bg-blue-500/20 text-blue-300 rounded border border-blue-500/30">
+                    GEMINI ONLY
+                  </span>
+                </div>
+                {fieldSchema.description && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    {fieldSchema.description}
+                  </p>
+                )}
+                <p className="text-xs text-yellow-400 mt-2">
+                  ⚠️ File Search is only available when using Gemini provider. Switch to Gemini to enable this feature.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Show enabled toggle when Gemini is selected
+    return (
+      <div key={key} className="space-y-2">
+        <label className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-lg cursor-pointer hover:bg-blue-500/15 transition-colors">
+          <input
+            type="checkbox"
+            checked={formValues[key] || false}
+            onChange={(e) => setValue(key, e.target.checked)}
+            className="w-4 h-4 text-blue-600 bg-white/5 border-white/20 rounded focus:ring-blue-500 focus:ring-2"
+          />
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-white">
+                {fieldSchema.title || 'Use File Search'}
+              </span>
+            </div>
+            {fieldSchema.description && (
+              <p className="text-xs text-slate-400 mt-1">
+                {fieldSchema.description}
+              </p>
+            )}
+          </div>
+        </label>
+      </div>
+    );
+  }
+
+  // Special handling for Gemini URL Context toggle
+  // Show for Chat nodes, but indicate it's Gemini-only
+  if (key === 'gemini_use_url_context' && nodeType === 'chat') {
+    const isGeminiProvider = formValues.provider === 'gemini' || formValues.provider === 'google';
+    
+    // If not Gemini provider, show disabled with explanation
+    if (!isGeminiProvider) {
+      return (
+        <div key={key} className="space-y-2">
+          <div className="p-3 bg-slate-500/10 border border-slate-500/30 rounded-lg opacity-60">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                disabled
+                checked={false}
+                className="w-4 h-4 text-blue-600 bg-white/5 border-white/20 rounded cursor-not-allowed"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-400">
+                    {fieldSchema.title || 'Enable URL Context'}
+                  </span>
+                  <span className="px-2 py-0.5 text-xs font-semibold bg-blue-500/20 text-blue-300 rounded border border-blue-500/30">
+                    GEMINI ONLY
+                  </span>
+                </div>
+                {fieldSchema.description && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    {fieldSchema.description}
+                  </p>
+                )}
+                <p className="text-xs text-yellow-400 mt-2">
+                  ⚠️ URL Context is only available when using Gemini provider. Switch to Gemini to enable this feature.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div key={key} className="space-y-2">
+        <label className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-lg cursor-pointer hover:bg-blue-500/15 transition-colors">
+          <input
+            type="checkbox"
+            checked={formValues[key] || false}
+            onChange={(e) => setValue(key, e.target.checked)}
+            className="w-4 h-4 text-blue-600 bg-white/5 border-white/20 rounded focus:ring-blue-500 focus:ring-2"
+          />
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-white">
+                {fieldSchema.title || 'Enable URL Context'}
+              </span>
+              <span className="px-2 py-0.5 text-xs font-semibold bg-blue-500/20 text-blue-300 rounded border border-blue-500/30">
+                NEW
+              </span>
+            </div>
+            {fieldSchema.description && (
+              <p className="text-xs text-slate-400 mt-1">
+                {fieldSchema.description}
+              </p>
+            )}
+          </div>
+        </label>
+        {formValues[key] && (
+          <div className="ml-7 p-2 bg-cyan-500/5 border border-cyan-500/20 rounded text-xs text-cyan-300">
+            <p className="font-semibold mb-1">🌐 URL Context Active</p>
+            <p className="text-cyan-400/80">
+              Gemini will automatically fetch and analyze URLs from your prompt. You can include up to 20 URLs per request.
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Special handling for Agent Lightning toggle
+  // Show for both CrewAI and LangChain agent nodes
+  if (key === 'enable_agent_lightning') {
+    const isAgentNode = nodeType === 'crewai_agent' || nodeType === 'langchain_agent';
+    
+    if (!isAgentNode) {
+      return null; // Don't show for non-agent nodes
+    }
+    return (
+      <div key={key} className="space-y-2">
+        <label className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/30 rounded-lg cursor-pointer hover:bg-purple-500/15 transition-colors">
+          <input
+            type="checkbox"
+            checked={formValues[key] || false}
+            onChange={(e) => setValue(key, e.target.checked)}
+            className="w-4 h-4 text-purple-600 bg-white/5 border-white/20 rounded focus:ring-purple-500 focus:ring-2"
+          />
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-white">
+                {fieldSchema.title || 'Enable Agent Lightning'}
+              </span>
+              <span className="px-2 py-0.5 text-xs font-semibold bg-purple-500/20 text-purple-300 rounded border border-purple-500/30">
+                NEW
+              </span>
+            </div>
+            {fieldSchema.description && (
+              <p className="text-xs text-slate-400 mt-1">
+                {fieldSchema.description}
+              </p>
+            )}
+          </div>
+        </label>
+        {formValues[key] && (
+          <div className="ml-7 p-2 bg-blue-500/5 border border-blue-500/20 rounded text-xs text-blue-300">
+            <p className="font-semibold mb-1">⚡ Agent Lightning Active</p>
+            <p className="text-blue-400/80">
+              Your agent will automatically optimize using reinforcement learning and prompt optimization.
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // Special handling for fine-tuned model selector
   if (key === 'finetuned_model_id' && formValues.use_finetuned_model) {
     const provider = formValues.provider || 'openai';
@@ -292,6 +482,37 @@ export function getSpecialFieldHandler(context: FieldHandlerContext): React.Reac
         description={fieldSchema.description}
         required={required.includes(key)}
       />
+    );
+  }
+
+  // Special handling for Gemini URL Context URLs array
+  if (key === 'gemini_url_context_urls' && nodeType === 'chat' && formValues.gemini_use_url_context) {
+    return (
+      <div key={key} className="space-y-2">
+        <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
+          {fieldSchema.title || 'URLs to Analyze'}
+          {required.includes(key) && <span className="text-red-400 ml-1">*</span>}
+        </label>
+        {fieldSchema.description && (
+          <p className="text-xs text-slate-400 -mt-1">{fieldSchema.description}</p>
+        )}
+        <div className="p-2 bg-blue-500/5 border border-blue-500/20 rounded text-xs text-blue-300 mb-2">
+          <p className="font-semibold mb-1">💡 Tip</p>
+          <p className="text-blue-400/80">
+            You can also include URLs directly in your prompt text. Gemini will automatically fetch them when URL Context is enabled.
+          </p>
+        </div>
+        <ArrayInput
+          value={formValues[key] || []}
+          onChange={(value) => setValue(key, value)}
+          placeholder="https://example.com/page"
+        />
+        {formValues[key] && formValues[key].length > 0 && (
+          <p className="text-xs text-slate-500">
+            {formValues[key].length} URL(s) added (max 20 per request)
+          </p>
+        )}
+      </div>
     );
   }
 

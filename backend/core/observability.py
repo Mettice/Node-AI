@@ -412,6 +412,10 @@ class ObservabilityManager:
         
         logger.debug(f"Completed span: {span_id} (duration: {span.duration_ms}ms, cost: ${span.cost:.4f})")
     
+    def get_span(self, span_id: str) -> Optional[Span]:
+        """Get a span by ID."""
+        return self._spans.get(span_id)
+    
     def fail_span(
         self,
         span_id: str,

@@ -1,0 +1,53 @@
+[
+  {
+    "question": "What is Nodeflow?",
+    "expected_answer": "Nodeflow is a GenAI workflow platform that allows users to build, deploy, and manage AI workflows using a visual node-based interface. It supports multiple AI providers, RAG pipelines, multi-agent orchestration, and provides observability and cost tracking.",
+    "context": "Nodeflow is a comprehensive platform for building generative AI applications."
+  },
+  {
+    "question": "How does RAG work in Nodeflow?",
+    "expected_answer": "RAG (Retrieval-Augmented Generation) in Nodeflow combines vector search, BM25 keyword search, and knowledge graph queries to retrieve relevant documents, then uses LLMs to generate answers based on the retrieved context. It supports hybrid retrieval combining semantic, keyword, and graph-based methods.",
+    "context": "RAG combines retrieval and generation for accurate AI responses."
+  },
+  {
+    "question": "What AI providers does Nodeflow support?",
+    "expected_answer": "Nodeflow supports multiple AI providers including OpenAI (GPT models), Anthropic (Claude), Google (Gemini), and other providers. Users can configure API keys and switch between providers easily.",
+    "context": "Nodeflow is provider-agnostic and supports multiple LLM providers."
+  },
+  {
+    "question": "Can I use multiple agents in a workflow?",
+    "expected_answer": "Yes, Nodeflow supports multi-agent orchestration using CrewAI. You can create workflows with multiple specialized agents that collaborate to complete complex tasks, with each agent having specific roles and tools.",
+    "context": "Multi-agent systems allow complex task decomposition and parallel processing."
+  },
+  {
+    "question": "How does cost tracking work?",
+    "expected_answer": "Nodeflow automatically tracks costs for all AI operations including LLM calls, embeddings, and vector searches. It provides real-time cost analytics, historical tracking, and breakdowns by workflow, node type, provider, and model.",
+    "context": "Cost tracking helps optimize AI spending and monitor usage."
+  },
+  {
+    "question": "What is intelligent routing?",
+    "expected_answer": "Intelligent routing uses LLM-powered semantic understanding to automatically map data between nodes in a workflow. Instead of manual data mapping, it intelligently routes outputs from one node to inputs of another based on semantic meaning.",
+    "context": "Intelligent routing eliminates manual data mapping between workflow nodes."
+  },
+  {
+    "question": "How do I deploy a workflow?",
+    "expected_answer": "Workflows can be deployed as API endpoints or embedded widgets. The deployment manager handles versioning, API key management, and provides endpoints for external access. You can also generate embeddable JavaScript widgets for websites.",
+    "context": "Deployment allows workflows to be accessed via API or embedded in websites."
+  },
+  {
+    "question": "What is hybrid retrieval?",
+    "expected_answer": "Hybrid retrieval combines three methods: vector search for semantic similarity, BM25 for keyword matching, and knowledge graph queries for structured relationships. This provides comprehensive retrieval that handles synonyms, exact terms, and relationships.",
+    "context": "Hybrid RAG combines multiple retrieval methods for better results."
+  },
+  {
+    "question": "Can I evaluate my RAG workflow?",
+    "expected_answer": "Yes, Nodeflow includes a RAG evaluation system. You can upload test Q&A pairs, run evaluations to measure accuracy, relevance, latency, and cost. It also supports A/B testing to compare different workflow configurations.",
+    "context": "Evaluation helps ensure workflows are accurate and cost-effective."
+  },
+  {
+    "question": "What observability features are available?",
+    "expected_answer": "Nodeflow provides comprehensive observability including execution traces, span-level evaluation, performance metrics, token usage tracking, and integration with LangSmith and Langfuse. You can monitor each node's performance and quality.",
+    "context": "Observability helps debug and optimize workflow performance."
+  }
+]
+

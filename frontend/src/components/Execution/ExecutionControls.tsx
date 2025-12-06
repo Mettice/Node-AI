@@ -3,7 +3,7 @@
  */
 
 import { useCallback, useState, useEffect } from 'react';
-import { Play, Square, RotateCcw } from 'lucide-react';
+import { Play, Square, RotateCcw, Sparkles } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { useWorkflowStore } from '@/store/workflowStore';
 import { useExecutionStore } from '@/store/executionStore';
@@ -18,6 +18,7 @@ export function ExecutionControls() {
   const { status, startExecution, stopExecution, clearExecution } = useExecutionStore();
   const { toggleExecutionLogs, executionLogsOpen } = useUIStore();
   const [isMobile, setIsMobile] = useState(false);
+  const [useIntelligentRouting, setUseIntelligentRouting] = useState(false);
 
   // Detect mobile screen size
   useEffect(() => {
@@ -93,8 +94,10 @@ export function ExecutionControls() {
       });
       updateNodeStatuses(initialStatuses);
       
-      // Execute workflow
-      const response = await executeWorkflow(workflow);
+      // Execute workflow with intelligent routing option
+      const response = await executeWorkflow(workflow, {
+        use_intelligent_routing: useIntelligentRouting,
+      });
       
       // Start execution tracking
       startExecution(response.execution_id);
@@ -221,6 +224,34 @@ export function ExecutionControls() {
 
   return (
     <div className={cn("flex items-center", isMobile ? "gap-2" : "gap-3")}>
+      {/* Intelligent Routing Toggle */}
+      {!isMobile && (
+        <label className="flex items-center gap-2 cursor-pointer group">
+          <input
+            type="checkbox"
+            checked={useIntelligentRouting}
+            onChange={(e) => setUseIntelligentRouting(e.target.checked)}
+            disabled={isRunning}
+            className="sr-only"
+          />
+          <div className={cn(
+            "flex items-center gap-1.5 px-2 py-1 rounded-md transition-all",
+            useIntelligentRouting
+              ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+              : "bg-slate-700/50 text-slate-400 border border-slate-600/50 hover:bg-slate-700/70",
+            isRunning && "opacity-50 cursor-not-allowed"
+          )}>
+            <Sparkles className={cn(
+              "w-3.5 h-3.5 transition-colors",
+              useIntelligentRouting ? "text-purple-300" : "text-slate-500"
+            )} />
+            <span className="text-xs font-medium">
+              Intelligent Routing
+            </span>
+          </div>
+        </label>
+      )}
+      
       <Button
         variant="primary"
         size={isMobile ? "xs" : "sm"}

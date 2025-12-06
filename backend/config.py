@@ -86,6 +86,22 @@ class Settings(BaseSettings):
     )
     
     # ============================================
+    # Intelligent Routing Configuration
+    # ============================================
+    enable_intelligent_routing: bool = Field(
+        default=False,
+        description="Enable intelligent data routing between nodes (uses LLM for semantic understanding)",
+    )
+    intelligent_router_provider: str = Field(
+        default="openai",
+        description="LLM provider for intelligent routing (openai, anthropic, gemini)",
+    )
+    intelligent_router_model: str = Field(
+        default="gpt-4o-mini",
+        description="LLM model for intelligent routing (e.g., gpt-4o-mini, claude-3-5-sonnet-20241022)",
+    )
+    
+    # ============================================
     # Supabase Configuration
     # ============================================
     supabase_url: Optional[str] = Field(

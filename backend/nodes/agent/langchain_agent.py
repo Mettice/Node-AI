@@ -26,6 +26,7 @@ from backend.core.node_registry import NodeRegistry
 from backend.config import settings
 from backend.core.secret_resolver import resolve_api_key
 from backend.utils.logger import get_logger
+from backend.core.agent_lightning import get_agent_lightning_wrapper, calculate_simple_reward
 from backend.utils.model_pricing import (
     calculate_llm_cost,
     get_available_models,
@@ -194,6 +195,22 @@ class LangChainAgentNode(BaseNode):
                         "total": input_tokens + output_tokens,
                     }
                     cost = self._calculate_cost(provider, model, input_tokens, output_tokens)
+            
+            # Agent Lightning integration (optional)
+            agl_wrapper = get_agent_lightning_wrapper(config)
+            if agl_wrapper.enabled:
+                try:
+                    # Calculate reward based on result quality
+                    reward = calculate_simple_reward(result, expected_output=None)
+                    agl_wrapper.emit_reward(reward, {
+                        "node_id": node_id,
+                        "provider": provider,
+                        "model": model,
+                        "tokens_used": tokens_used,
+                    })
+                    logger.info(f"Agent Lightning reward emitted: {reward}")
+                except Exception as e:
+                    logger.warning(f"Failed to emit Agent Lightning reward: {e}")
             
             return {
                 "output": result.get("output", ""),
@@ -647,6 +664,12 @@ Thought: {agent_scratchpad}
                     "default": True,
                     "title": "Verbose",
                     "description": "Show reasoning steps",
+                },
+                "enable_agent_lightning": {
+                    "type": "boolean",
+                    "default": False,
+                    "title": "Enable Agent Lightning",
+                    "description": "Enable Agent Lightning optimization (RL/APO) for automatic agent improvement. Requires agentlightning package.",
                 },
                 "task": {
                     "type": "string",

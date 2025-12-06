@@ -692,6 +692,10 @@ class ChatNode(BaseNode):
         await self.stream_progress(node_id, 0.3, "Sending request to Gemini...")
         
         try:
+            # Check if URL Context is enabled
+            use_url_context = config.get("gemini_use_url_context", False)
+            urls = config.get("gemini_url_context_urls", [])
+            
             # Build messages
             messages = []
             if system_prompt:
@@ -704,14 +708,25 @@ class ChatNode(BaseNode):
                 "max_output_tokens": max_tokens,
             }
             
+            # Import types for tools and config
+            from google.genai import types
+            
             # Add File Search tool if enabled
             use_file_search = config.get("gemini_use_file_search", False)
             file_search_stores = config.get("gemini_file_search_stores", [])
             metadata_filter = config.get("gemini_metadata_filter", "")
             
+            # Add URL Context tool if enabled
+            tools = []
+            
+            if use_url_context:
+                url_count = len(urls) if urls else 0
+                await self.stream_progress(node_id, 0.4, f"Enabling URL Context (can fetch up to 20 URLs)...")
+                # URL Context tool - URLs can be included directly in the prompt
+                tools.append(types.Tool(url_context={}))
+            
             if use_file_search and file_search_stores:
                 await self.stream_progress(node_id, 0.4, f"Enabling File Search with {len(file_search_stores)} store(s)...")
-                from google.genai import types
                 
                 file_search_config = types.FileSearch(
                     file_search_store_names=file_search_stores if isinstance(file_search_stores, list) else [file_search_stores],
@@ -720,15 +735,27 @@ class ChatNode(BaseNode):
                 if metadata_filter:
                     file_search_config.metadata_filter = metadata_filter
                 
-                gen_config["tools"] = [
-                    types.Tool(file_search=file_search_config)
-                ]
+                tools.append(types.Tool(file_search=file_search_config))
+            
+            # If URL Context is enabled, include URLs in the prompt
+            # Gemini will automatically fetch them when URL Context tool is enabled
+            if use_url_context and urls:
+                # URLs can be included directly in the prompt text
+                url_list = "\n".join([f"- {url}" for url in urls[:20]])  # Limit to 20 URLs
+                user_prompt = f"{user_prompt}\n\nPlease analyze the following URLs:\n{url_list}"
+                messages[-1]["parts"][0]["text"] = user_prompt
+            
+            # Create GenerateContentConfig
+            if tools:
+                gen_config["tools"] = tools
+            
+            generate_config = types.GenerateContentConfig(**gen_config)
             
             # Generate response
             response = client.models.generate_content(
                 model=model,
                 contents=messages,
-                config=gen_config,
+                config=generate_config,
             )
             
             result = response.text if hasattr(response, 'text') else str(response)
@@ -1012,6 +1039,23 @@ class ChatNode(BaseNode):
                     "title": "Metadata Filter (Optional)",
                     "description": "Filter documents by metadata (e.g., 'author=Robert Graves')",
                     "default": "",
+                },
+                # Gemini URL Context config
+                "gemini_use_url_context": {
+                    "type": "boolean",
+                    "title": "Enable URL Context",
+                    "description": "Enable Google's URL Context tool to extract data from URLs, PDFs, or images. Just include URLs in your prompt!",
+                    "default": False,
+                },
+                "gemini_url_context_urls": {
+                    "type": "array",
+                    "title": "URLs to Analyze",
+                    "description": "List of URLs to fetch and analyze (up to 20 URLs per request). URLs can also be included directly in the prompt.",
+                    "items": {
+                        "type": "string",
+                        "format": "uri",
+                    },
+                    "default": [],
                 },
                 # API Keys (optional - will use environment variables if not provided)
                 "openai_api_key": {

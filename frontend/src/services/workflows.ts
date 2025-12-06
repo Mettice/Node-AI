@@ -22,16 +22,26 @@ interface WorkflowPayload {
   }>;
 }
 
+interface ExecutionOptions {
+  use_intelligent_routing?: boolean;
+}
+
 /**
  * Execute a workflow with enhanced error handling and retry logic
  */
-export async function executeWorkflow(workflow: WorkflowPayload): Promise<ExecutionResponse> {
+export async function executeWorkflow(
+  workflow: WorkflowPayload,
+  options?: ExecutionOptions
+): Promise<ExecutionResponse> {
   return apiCall(
     async () => {
       // Wrap workflow in ExecutionRequest format expected by backend
       const payload = {
         workflow: workflow,
         async_execution: false,
+        ...(options?.use_intelligent_routing !== undefined && {
+          use_intelligent_routing: options.use_intelligent_routing,
+        }),
       };
       
       // Use longer timeout for workflow execution (120 seconds)

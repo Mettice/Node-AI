@@ -1,11 +1,16 @@
 """
 Hybrid Retrieval Node for NodeAI.
 
-This node combines vector search (semantic similarity) with knowledge graph
-queries (structured relationships) for comprehensive retrieval in Hybrid RAG systems.
+This node combines three retrieval methods for comprehensive Hybrid RAG:
+1. Vector search (semantic similarity) - handles synonyms, context, meaning
+2. BM25 search (keyword matching) - handles exact terms, technical terms, names
+3. Knowledge graph queries (structured relationships) - handles relationships, citations, networks
+
+True three-way hybrid search: Semantic + BM25 + Graph
 
 Based on the insight: "Author networks, citations, and institutional collaborations
 aren't semantic similarities. They're structured relationships that don't live in embeddings."
+And: "Exact keyword matching complements semantic search - BM25 excels at technical terms."
 """
 
 from typing import Any, Dict, List, Optional
@@ -23,13 +28,17 @@ class HybridRetrievalNode(BaseNode):
     """
     Hybrid Retrieval Node.
     
-    Combines vector search (semantic similarity) with knowledge graph queries
-    (structured relationships) and fuses the results intelligently.
+    Combines three retrieval methods:
+    1. Vector search (semantic similarity)
+    2. BM25 search (keyword matching)
+    3. Knowledge graph queries (structured relationships)
+    
+    Fuses results intelligently using Reciprocal Rank Fusion (RRF) or weighted combination.
     """
 
     node_type = "hybrid_retrieval"
     name = "Hybrid Retrieval"
-    description = "Combine vector search and knowledge graph queries for comprehensive retrieval"
+    description = "Combine vector search (semantic), BM25 (keyword), and knowledge graph queries for comprehensive retrieval"
     category = "retrieval"
 
     async def execute(
@@ -42,8 +51,9 @@ class HybridRetrievalNode(BaseNode):
         
         Combines results from:
         1. Vector search (semantic similarity)
-        2. Knowledge graph queries (structured relationships)
-        3. Fuses results using chosen method
+        2. BM25 search (keyword matching)
+        3. Knowledge graph queries (structured relationships)
+        4. Fuses results using chosen method
         """
         node_id = config.get("_node_id", "hybrid_retrieval")
         query = config.get("query") or inputs.get("query")
@@ -64,8 +74,9 @@ class HybridRetrievalNode(BaseNode):
         
         # Get fusion method and weights
         fusion_method = config.get("fusion_method", "reciprocal_rank")
-        vector_weight = config.get("vector_weight", 0.7)
-        graph_weight = config.get("graph_weight", 0.3)
+        vector_weight = config.get("vector_weight", 0.5)
+        bm25_weight = config.get("bm25_weight", 0.3)
+        graph_weight = config.get("graph_weight", 0.2)
         top_k = config.get("top_k", 10)
         
         # Validate fusion method
@@ -79,17 +90,18 @@ class HybridRetrievalNode(BaseNode):
         # Validate weights
         try:
             vector_weight = float(vector_weight)
+            bm25_weight = float(bm25_weight)
             graph_weight = float(graph_weight)
         except (ValueError, TypeError):
             raise ValueError(
-                f"vector_weight and graph_weight must be numbers. "
-                f"Got: vector_weight={vector_weight}, graph_weight={graph_weight}"
+                f"vector_weight, bm25_weight, and graph_weight must be numbers. "
+                f"Got: vector_weight={vector_weight}, bm25_weight={bm25_weight}, graph_weight={graph_weight}"
             )
         
-        if vector_weight < 0 or graph_weight < 0:
+        if vector_weight < 0 or bm25_weight < 0 or graph_weight < 0:
             raise ValueError(
                 f"Weights must be non-negative. "
-                f"Got: vector_weight={vector_weight}, graph_weight={graph_weight}"
+                f"Got: vector_weight={vector_weight}, bm25_weight={bm25_weight}, graph_weight={graph_weight}"
             )
         
         # Validate top_k
@@ -103,17 +115,20 @@ class HybridRetrievalNode(BaseNode):
             )
         
         # Normalize weights
-        total_weight = vector_weight + graph_weight
+        total_weight = vector_weight + bm25_weight + graph_weight
         if total_weight > 0:
             vector_weight = vector_weight / total_weight
+            bm25_weight = bm25_weight / total_weight
             graph_weight = graph_weight / total_weight
         elif fusion_method == "weighted":
-            # If both weights are 0, default to equal weights
-            vector_weight = 0.5
-            graph_weight = 0.5
-            logger.warning("Both weights are 0, using equal weights (0.5 each)")
+            # If all weights are 0, default to equal weights
+            vector_weight = 1.0 / 3.0
+            bm25_weight = 1.0 / 3.0
+            graph_weight = 1.0 / 3.0
+            logger.warning("All weights are 0, using equal weights (1/3 each)")
         
         vector_results = []
+        bm25_results = []
         graph_results = []
         
         # Step 1: Vector search (if enabled and results available)
@@ -133,14 +148,31 @@ class HybridRetrievalNode(BaseNode):
                     )
                 # Continue without vector results if not required
         
-        # Step 2: Graph query (if enabled and results available)
+        # Step 2: BM25 search (if enabled and results available)
+        # Check if we have BM25 search results from upstream node
+        bm25_search_config = config.get("bm25_search_config", {})
+        if bm25_search_config.get("enabled", True):
+            await self.stream_progress(node_id, 0.5, "Extracting BM25 search results...")
+            try:
+                bm25_results = await self._extract_bm25_results(inputs, config)
+                await self.stream_progress(node_id, 0.65, f"BM25 search: {len(bm25_results)} results")
+            except Exception as e:
+                logger.warning(f"Failed to extract BM25 search results: {e}")
+                if bm25_search_config.get("required", False):
+                    raise ValueError(
+                        f"BM25 search is required but failed: {str(e)}\n"
+                        "Please ensure a BM25 Search node is connected upstream."
+                    )
+                # Continue without BM25 results if not required
+        
+        # Step 3: Graph query (if enabled and results available)
         # Check if we have graph query results from upstream node
         graph_query_config = config.get("graph_query_config", {})
         if graph_query_config.get("enabled", True):
-            await self.stream_progress(node_id, 0.6, "Extracting graph query results...")
+            await self.stream_progress(node_id, 0.7, "Extracting graph query results...")
             try:
                 graph_results = await self._extract_graph_results(inputs, config)
-                await self.stream_progress(node_id, 0.8, f"Graph query: {len(graph_results)} results")
+                await self.stream_progress(node_id, 0.85, f"Graph query: {len(graph_results)} results")
             except Exception as e:
                 logger.warning(f"Failed to extract graph query results: {e}")
                 if graph_query_config.get("required", False):
@@ -151,23 +183,26 @@ class HybridRetrievalNode(BaseNode):
                 # Continue without graph results if not required
         
         # Validate we have at least one source of results
-        if not vector_results and not graph_results:
+        if not vector_results and not bm25_results and not graph_results:
             raise ValueError(
-                "No results found from either vector search or graph query.\n"
+                "No results found from any retrieval method.\n"
                 "Please ensure at least one of the following is connected:\n"
                 "1. Vector Search node (for semantic similarity)\n"
-                "2. Knowledge Graph node (for relationship queries)\n"
+                "2. BM25 Search node (for keyword matching)\n"
+                "3. Knowledge Graph node (for relationship queries)\n"
                 "Or enable at least one source in the configuration."
             )
         
-        # Step 3: Fuse results
-        await self.stream_progress(node_id, 0.9, f"Fusing {len(vector_results)} vector + {len(graph_results)} graph results...")
+        # Step 4: Fuse results
+        await self.stream_progress(node_id, 0.9, f"Fusing {len(vector_results)} vector + {len(bm25_results)} BM25 + {len(graph_results)} graph results...")
         try:
             fused_results = self._fuse_results(
                 vector_results,
+                bm25_results,
                 graph_results,
                 fusion_method,
                 vector_weight,
+                bm25_weight,
                 graph_weight,
                 top_k,
             )
@@ -182,6 +217,7 @@ class HybridRetrievalNode(BaseNode):
         await self.stream_output(node_id, {
             "results": fused_results,
             "vector_count": len(vector_results),
+            "bm25_count": len(bm25_results),
             "graph_count": len(graph_results),
             "fused_count": len(fused_results),
         }, partial=False)
@@ -189,8 +225,10 @@ class HybridRetrievalNode(BaseNode):
         return {
             "results": fused_results,
             "vector_results": vector_results,
+            "bm25_results": bm25_results,
             "graph_results": graph_results,
             "vector_count": len(vector_results),
+            "bm25_count": len(bm25_results),
             "graph_count": len(graph_results),
             "fused_count": len(fused_results),
             "fusion_method": fusion_method,
@@ -300,17 +338,73 @@ class HybridRetrievalNode(BaseNode):
         logger.debug("No graph query results found in inputs")
         return []
 
+    def _extract_bm25_results(
+        self,
+        inputs: Dict[str, Any],
+        config: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        """
+        Extract BM25 search results from inputs.
+        
+        The workflow engine merges outputs from upstream nodes.
+        BM25 Search node outputs: {"results": [...], "provider": "bm25", "results_count": N}
+        
+        We identify BM25 results by:
+        1. Presence of "provider" key with value "bm25"
+        2. Result structure (has "score", "text", "metadata")
+        """
+        # Check for BM25 search output structure
+        if inputs.get("provider") == "bm25":
+            # This looks like BM25 Search node output
+            if "results" in inputs and isinstance(inputs["results"], list):
+                results = inputs["results"]
+                # Verify these are BM25 results (have score, text, metadata)
+                if results and isinstance(results[0], dict):
+                    if "score" in results[0]:
+                        return results
+        
+        # Check if "results" contains BM25-like results
+        if "results" in inputs:
+            results = inputs["results"]
+            if isinstance(results, list) and results:
+                first_result = results[0]
+                if isinstance(first_result, dict):
+                    # BM25 results typically have: score, text, metadata
+                    # Graph results typically have: node_id, labels, properties, relationship_type
+                    # Vector results typically have: score, text, metadata, distance
+                    has_bm25_keys = "score" in first_result and "text" in first_result
+                    has_graph_keys = any(key in first_result for key in ["node_id", "labels", "relationship_type"])
+                    has_vector_keys = "distance" in first_result
+                    
+                    # If it has BM25 keys but not graph/vector keys, it's BM25 results
+                    if has_bm25_keys and not has_graph_keys and not has_vector_keys:
+                        return results
+        
+        # Check for explicit BM25 search results key
+        if "bm25_search_results" in inputs:
+            results = inputs["bm25_search_results"]
+            if isinstance(results, dict) and "results" in results:
+                return results["results"]
+            elif isinstance(results, list):
+                return results
+        
+        # If not found, return empty list
+        logger.debug("No BM25 search results found in inputs")
+        return []
+
     def _fuse_results(
         self,
         vector_results: List[Dict[str, Any]],
+        bm25_results: List[Dict[str, Any]],
         graph_results: List[Dict[str, Any]],
         fusion_method: str,
         vector_weight: float,
+        bm25_weight: float,
         graph_weight: float,
         top_k: int,
     ) -> List[Dict[str, Any]]:
         """
-        Fuse results from vector search and graph query.
+        Fuse results from vector search, BM25 search, and graph query.
         
         Methods:
         - reciprocal_rank: Reciprocal Rank Fusion (RRF)
@@ -318,18 +412,19 @@ class HybridRetrievalNode(BaseNode):
         - simple_merge: Simple merge with deduplication
         """
         if fusion_method == "reciprocal_rank":
-            return self._reciprocal_rank_fusion(vector_results, graph_results, top_k)
+            return self._reciprocal_rank_fusion(vector_results, bm25_results, graph_results, top_k)
         elif fusion_method == "weighted":
-            return self._weighted_fusion(vector_results, graph_results, vector_weight, graph_weight, top_k)
+            return self._weighted_fusion(vector_results, bm25_results, graph_results, vector_weight, bm25_weight, graph_weight, top_k)
         elif fusion_method == "simple_merge":
-            return self._simple_merge(vector_results, graph_results, top_k)
+            return self._simple_merge(vector_results, bm25_results, graph_results, top_k)
         else:
             logger.warning(f"Unknown fusion method: {fusion_method}, using simple_merge")
-            return self._simple_merge(vector_results, graph_results, top_k)
+            return self._simple_merge(vector_results, bm25_results, graph_results, top_k)
 
     def _reciprocal_rank_fusion(
         self,
         vector_results: List[Dict[str, Any]],
+        bm25_results: List[Dict[str, Any]],
         graph_results: List[Dict[str, Any]],
         top_k: int,
     ) -> List[Dict[str, Any]]:
@@ -356,6 +451,21 @@ class HybridRetrievalNode(BaseNode):
             
             scores[result_id]["rrf_score"] += rrf_score
             scores[result_id]["sources"].append("vector")
+        
+        # Process BM25 results
+        for rank, result in enumerate(bm25_results, start=1):
+            result_id = self._get_result_id(result)
+            rrf_score = 1.0 / (k + rank)
+            
+            if result_id not in scores:
+                scores[result_id] = {
+                    "result": result,
+                    "rrf_score": 0.0,
+                    "sources": [],
+                }
+            
+            scores[result_id]["rrf_score"] += rrf_score
+            scores[result_id]["sources"].append("bm25")
         
         # Process graph results
         for rank, result in enumerate(graph_results, start=1):
@@ -392,8 +502,10 @@ class HybridRetrievalNode(BaseNode):
     def _weighted_fusion(
         self,
         vector_results: List[Dict[str, Any]],
+        bm25_results: List[Dict[str, Any]],
         graph_results: List[Dict[str, Any]],
         vector_weight: float,
+        bm25_weight: float,
         graph_weight: float,
         top_k: int,
     ) -> List[Dict[str, Any]]:
@@ -422,6 +534,29 @@ class HybridRetrievalNode(BaseNode):
             
             scores[result_id]["weighted_score"] += normalized_score
             scores[result_id]["sources"].append("vector")
+        
+        # Normalize BM25 scores (assume they're in [0, 1] range)
+        max_bm25_score = max(
+            (r.get("score", 0.0) for r in bm25_results),
+            default=1.0,
+        )
+        if max_bm25_score == 0:
+            max_bm25_score = 1.0
+        
+        # Process BM25 results
+        for result in bm25_results:
+            result_id = self._get_result_id(result)
+            normalized_score = (result.get("score", 0.0) / max_bm25_score) * bm25_weight
+            
+            if result_id not in scores:
+                scores[result_id] = {
+                    "result": result,
+                    "weighted_score": 0.0,
+                    "sources": [],
+                }
+            
+            scores[result_id]["weighted_score"] += normalized_score
+            scores[result_id]["sources"].append("bm25")
         
         # Normalize graph scores (assume they're in [0, 1] range)
         max_graph_score = max(
@@ -466,6 +601,7 @@ class HybridRetrievalNode(BaseNode):
     def _simple_merge(
         self,
         vector_results: List[Dict[str, Any]],
+        bm25_results: List[Dict[str, Any]],
         graph_results: List[Dict[str, Any]],
         top_k: int,
     ) -> List[Dict[str, Any]]:
@@ -481,6 +617,24 @@ class HybridRetrievalNode(BaseNode):
                 result_copy["sources"] = ["vector"]
                 merged.append(result_copy)
                 seen_ids.add(result_id)
+        
+        # Add BM25 results
+        for result in bm25_results:
+            result_id = self._get_result_id(result)
+            if result_id not in seen_ids:
+                result_copy = result.copy()
+                result_copy["sources"] = ["bm25"]
+                merged.append(result_copy)
+                seen_ids.add(result_id)
+            else:
+                # Update existing result to include BM25 source
+                for item in merged:
+                    if self._get_result_id(item) == result_id:
+                        if "sources" not in item:
+                            item["sources"] = []
+                        if "bm25" not in item["sources"]:
+                            item["sources"].append("bm25")
+                        break
         
         # Add graph results
         for result in graph_results:
@@ -527,7 +681,7 @@ class HybridRetrievalNode(BaseNode):
                 "fusion_method": {
                     "type": "string",
                     "title": "Fusion Method",
-                    "description": "Method to fuse vector and graph results",
+                    "description": "Method to fuse vector, BM25, and graph results",
                     "enum": ["reciprocal_rank", "weighted", "simple_merge"],
                     "default": "reciprocal_rank",
                 },
@@ -537,7 +691,15 @@ class HybridRetrievalNode(BaseNode):
                     "description": "Weight for vector search results (0.0-1.0)",
                     "minimum": 0.0,
                     "maximum": 1.0,
-                    "default": 0.7,
+                    "default": 0.5,
+                },
+                "bm25_weight": {
+                    "type": "number",
+                    "title": "BM25 Weight",
+                    "description": "Weight for BM25 keyword search results (0.0-1.0)",
+                    "minimum": 0.0,
+                    "maximum": 1.0,
+                    "default": 0.3,
                 },
                 "graph_weight": {
                     "type": "number",
@@ -545,7 +707,7 @@ class HybridRetrievalNode(BaseNode):
                     "description": "Weight for graph query results (0.0-1.0)",
                     "minimum": 0.0,
                     "maximum": 1.0,
-                    "default": 0.3,
+                    "default": 0.2,
                 },
                 "top_k": {
                     "type": "integer",
@@ -564,6 +726,20 @@ class HybridRetrievalNode(BaseNode):
                             "type": "boolean",
                             "title": "Enabled",
                             "description": "Enable vector search",
+                            "default": True,
+                        },
+                    },
+                    "default": {"enabled": True},
+                },
+                "bm25_search_config": {
+                    "type": "object",
+                    "title": "BM25 Search Config",
+                    "description": "Configuration for BM25 keyword search (results should come from upstream BM25 Search node)",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "title": "Enabled",
+                            "description": "Enable BM25 keyword search",
                             "default": True,
                         },
                     },

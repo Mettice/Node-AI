@@ -42,28 +42,33 @@ body {
 
 .canvas-dark {
   position: relative;
-  background: linear-gradient(135deg, #111827 0%, #1f2937 50%, #374151 100%);
+  background: #000000; /* Pure black background like the second image */
   background-attachment: fixed;
 }
 
-/* Animated grid overlay */
+/* Ensure ReactFlow pane also has black background */
+.canvas-dark .react-flow__pane {
+  background: #000000;
+}
+
+/* Subtle grid overlay - thinner lines, smaller grid */
 .canvas-dark::before {
   content: '';
   position: absolute;
   inset: 0;
   background-image: 
-    linear-gradient(rgba(167, 139, 250, 0.15) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(167, 139, 250, 0.15) 1px, transparent 1px);
-  background-size: 50px 50px;
+    linear-gradient(rgba(255, 255, 255, 0.03) 0.5px, transparent 0.5px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0.5px, transparent 0.5px);
+  background-size: 20px 20px; /* Smaller grid cells for typical gridline appearance */
   animation: gridMove 20s linear infinite;
   pointer-events: none;
-  opacity: 0.4;
+  opacity: 1;
   z-index: 0;
 }
 
 @keyframes gridMove {
   0% { transform: translate(0, 0); }
-  100% { transform: translate(50px, 50px); }
+  100% { transform: translate(20px, 20px); } /* Match new grid size */
 }
 
 /* Radial glow effects */

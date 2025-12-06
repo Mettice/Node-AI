@@ -24,7 +24,7 @@ logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["Cost Intelligence"])
 
-# In-memory storage for cost analytics (will be replaced with database later)
+# In-memory storage for cost analytics (for immediate access, also persisted to database)
 _cost_history: Dict[str, List[Dict]] = {}
 _budgets: Dict[str, Dict[str, Any]] = {}  # workflow_id -> budget config
 
@@ -667,8 +667,11 @@ async def record_execution_costs(
     Record costs for an execution (called by engine after execution).
     
     This is an internal endpoint used by the execution engine.
+    Stores costs both in-memory (for immediate access) and in database (for persistence).
     """
-    # Merge with existing costs if any
+    from backend.core.cost_storage import record_cost
+    
+    # Merge with existing costs if any (in-memory cache)
     if execution_id in _cost_history:
         existing = _cost_history[execution_id]
         # Merge costs by node_id (update if exists, append if new)
@@ -688,9 +691,257 @@ async def record_execution_costs(
             for cost in costs
         ]
     
+    # Persist to database
+    try:
+        # Get user_id from request if available (from auth context)
+        user_id = None
+        if hasattr(request.state, 'user_id'):
+            user_id = request.state.user_id
+        
+        # Convert workflow_id to UUID if it's a string UUID
+        workflow_uuid = None
+        try:
+            import uuid
+            if workflow_id:
+                workflow_uuid = str(uuid.UUID(workflow_id)) if len(workflow_id) == 36 else workflow_id
+        except (ValueError, AttributeError):
+            workflow_uuid = workflow_id
+        
+        # Record each cost entry in database
+        for cost_record in costs:
+            node_id = cost_record.get("node_id")
+            node_type = cost_record.get("node_type", "unknown")
+            cost_value = cost_record.get("cost", 0.0)
+            
+            if cost_value <= 0:
+                continue  # Skip zero-cost records
+            
+            # Determine category from node_type
+            category = "other"
+            if "embed" in node_type.lower():
+                category = "embedding"
+            elif "rerank" in node_type.lower():
+                category = "rerank"
+            elif "vector" in node_type.lower() or "search" in node_type.lower():
+                category = "vector_search"
+            elif "chat" in node_type.lower() or "llm" in node_type.lower() or "agent" in node_type.lower():
+                category = "llm"
+            
+            # Extract timestamp
+            timestamp = None
+            if cost_record.get("timestamp"):
+                try:
+                    timestamp = datetime.fromisoformat(cost_record["timestamp"].replace('Z', '+00:00'))
+                except (ValueError, AttributeError):
+                    pass
+            
+            # Record to database
+            record_cost(
+                execution_id=execution_id,
+                workflow_id=workflow_uuid,
+                user_id=user_id,
+                node_id=node_id or "unknown",
+                node_type=node_type,
+                cost=cost_value,
+                category=category,
+                provider=cost_record.get("provider"),
+                model=cost_record.get("model"),
+                tokens_used=cost_record.get("tokens_used"),
+                duration_ms=cost_record.get("duration_ms", 0),
+                config=cost_record.get("config"),
+                metadata=cost_record.get("metadata"),
+                timestamp=timestamp,
+            )
+    except Exception as e:
+        logger.warning(f"Failed to persist costs to database: {e}", exc_info=True)
+        # Continue even if database persistence fails
+    
     logger.info(f"Recorded costs for execution: {execution_id} (total nodes: {len(_cost_history[execution_id])})")
     
     return {"message": "Costs recorded", "execution_id": execution_id}
+
+
+@router.get("/cost/stats")
+@limiter.limit("60/minute")
+async def get_cost_stats(
+    request: Request,
+    user_id: Optional[str] = Query(None, description="Filter by user ID"),
+    workflow_id: Optional[str] = Query(None, description="Filter by workflow ID"),
+    period: str = Query("daily", description="Aggregation period: daily, weekly, or monthly"),
+    days: int = Query(30, description="Number of days to look back"),
+) -> Dict[str, Any]:
+    """
+    Get cost statistics for a time period with breakdowns.
+    
+    Returns:
+        - Total cost
+        - Total executions
+        - Breakdown by category (LLM, Embedding, etc.)
+        - Breakdown by provider (OpenAI, Anthropic, etc.)
+        - Breakdown by model
+        - Time series data (daily/weekly/monthly)
+    """
+    from backend.core.cost_storage import get_cost_stats as get_db_cost_stats
+    
+    # Get user_id from request if available
+    db_user_id = None
+    if hasattr(request.state, 'user_id'):
+        db_user_id = request.state.user_id
+    elif user_id:
+        db_user_id = user_id
+    
+    # Convert workflow_id to UUID if needed
+    db_workflow_id = None
+    if workflow_id:
+        try:
+            import uuid
+            db_workflow_id = str(uuid.UUID(workflow_id)) if len(workflow_id) == 36 else workflow_id
+        except (ValueError, AttributeError):
+            db_workflow_id = workflow_id
+    
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=days)
+    
+    stats = get_db_cost_stats(
+        user_id=db_user_id,
+        workflow_id=db_workflow_id,
+        start_date=start_date,
+        end_date=end_date,
+        period=period,
+    )
+    
+    return stats
+
+
+@router.get("/cost/history")
+@limiter.limit("60/minute")
+async def get_cost_history(
+    request: Request,
+    user_id: Optional[str] = Query(None, description="Filter by user ID"),
+    workflow_id: Optional[str] = Query(None, description="Filter by workflow ID"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum number of records"),
+    offset: int = Query(0, ge=0, description="Offset for pagination"),
+    start_date: Optional[str] = Query(None, description="Start date (ISO format)"),
+    end_date: Optional[str] = Query(None, description="End date (ISO format)"),
+) -> Dict[str, Any]:
+    """
+    Get cost history records with pagination.
+    
+    Returns:
+        List of cost records with details
+    """
+    from backend.core.cost_storage import get_cost_history as get_db_cost_history
+    
+    # Get user_id from request if available
+    db_user_id = None
+    if hasattr(request.state, 'user_id'):
+        db_user_id = request.state.user_id
+    elif user_id:
+        db_user_id = user_id
+    
+    # Convert workflow_id to UUID if needed
+    db_workflow_id = None
+    if workflow_id:
+        try:
+            import uuid
+            db_workflow_id = str(uuid.UUID(workflow_id)) if len(workflow_id) == 36 else workflow_id
+        except (ValueError, AttributeError):
+            db_workflow_id = workflow_id
+    
+    # Parse dates
+    parsed_start_date = None
+    parsed_end_date = None
+    if start_date:
+        try:
+            parsed_start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+        except (ValueError, AttributeError):
+            pass
+    if end_date:
+        try:
+            parsed_end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+        except (ValueError, AttributeError):
+            pass
+    
+    records = get_db_cost_history(
+        user_id=db_user_id,
+        workflow_id=db_workflow_id,
+        limit=limit,
+        offset=offset,
+        start_date=parsed_start_date,
+        end_date=parsed_end_date,
+    )
+    
+    return {
+        "records": records,
+        "count": len(records),
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+@router.get("/cost/breakdown")
+@limiter.limit("60/minute")
+async def get_cost_breakdown(
+    request: Request,
+    user_id: Optional[str] = Query(None, description="Filter by user ID"),
+    workflow_id: Optional[str] = Query(None, description="Filter by workflow ID"),
+    days: int = Query(30, description="Number of days to look back"),
+    group_by: str = Query("category", description="Group by: category, provider, or model"),
+) -> Dict[str, Any]:
+    """
+    Get cost breakdown grouped by category, provider, or model.
+    
+    Returns:
+        Breakdown dictionary with costs and counts
+    """
+    from backend.core.cost_storage import get_cost_stats as get_db_cost_stats
+    
+    # Get user_id from request if available
+    db_user_id = None
+    if hasattr(request.state, 'user_id'):
+        db_user_id = request.state.user_id
+    elif user_id:
+        db_user_id = user_id
+    
+    # Convert workflow_id to UUID if needed
+    db_workflow_id = None
+    if workflow_id:
+        try:
+            import uuid
+            db_workflow_id = str(uuid.UUID(workflow_id)) if len(workflow_id) == 36 else workflow_id
+        except (ValueError, AttributeError):
+            db_workflow_id = workflow_id
+    
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=days)
+    
+    stats = get_db_cost_stats(
+        user_id=db_user_id,
+        workflow_id=db_workflow_id,
+        start_date=start_date,
+        end_date=end_date,
+        period="daily",
+    )
+    
+    # Return the requested breakdown
+    if group_by == "provider":
+        return {
+            "group_by": "provider",
+            "breakdown": stats.get("breakdown_by_provider", {}),
+            "total_cost": stats.get("total_cost", 0.0),
+        }
+    elif group_by == "model":
+        return {
+            "group_by": "model",
+            "breakdown": stats.get("breakdown_by_model", {}),
+            "total_cost": stats.get("total_cost", 0.0),
+        }
+    else:  # category (default)
+        return {
+            "group_by": "category",
+            "breakdown": stats.get("breakdown_by_category", {}),
+            "total_cost": stats.get("total_cost", 0.0),
+        }
 
 
 def _generate_cost_suggestions(breakdown: List[CostBreakdown]) -> List[Dict[str, Any]]:

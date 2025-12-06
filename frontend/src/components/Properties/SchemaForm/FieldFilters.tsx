@@ -104,6 +104,20 @@ export function shouldShowField(
     return false;
   }
 
+  // Special fields that should always be shown (handled by special handlers)
+  // Check this FIRST before any provider filtering
+  const specialFields = [
+    'gemini_use_url_context',
+    'gemini_url_context_urls',
+    'gemini_use_file_search',
+    'enable_agent_lightning',
+  ];
+  
+  // Always show special fields - they have their own visibility logic in FieldHandlers
+  if (specialFields.includes(key)) {
+    return true;
+  }
+
   // For generic nodes, filter provider-specific fields
   if (isGenericNode && (formValues.provider || currentProvider)) {
     const currentProviderValue = formValues.provider || currentProvider;
@@ -133,15 +147,30 @@ export function shouldShowField(
       }
     }
     
-    // Special handling for Chat: show File Search fields only when Gemini provider AND use_file_search is enabled
+    // Special handling for Chat: show File Search and URL Context fields only when Gemini provider is selected
     if (nodeType === 'chat' && normalizedProvider === 'gemini') {
       if (key === 'gemini_use_file_search') {
-        // Always show the toggle
+        // Always show the toggle when Gemini is selected
       } else if (key.startsWith('gemini_file_search')) {
         if (!formValues.gemini_use_file_search) {
           return false;
         }
       }
+      // URL Context fields are handled by special handler, but ensure they show for Gemini
+      if (key === 'gemini_use_url_context') {
+        // Always show the toggle when Gemini is selected
+      } else if (key === 'gemini_url_context_urls') {
+        if (!formValues.gemini_use_url_context) {
+          return false;
+        }
+      }
+    }
+    
+    // Hide Gemini-specific fields when NOT using Gemini provider
+    // BUT exclude special fields that have their own visibility logic
+    const geminiSpecialFields = ['gemini_use_url_context', 'gemini_url_context_urls', 'gemini_use_file_search'];
+    if (nodeType === 'chat' && normalizedProvider !== 'gemini' && key.startsWith('gemini_') && !geminiSpecialFields.includes(key)) {
+      return false;
     }
     
     const belongsToOtherProvider = Object.entries(providerPrefixes).some(([provider, prefixes]) => {

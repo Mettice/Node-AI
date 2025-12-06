@@ -13,9 +13,11 @@ pydantic-settings
 # ============================================
 # AI/LLM SDKs
 # ============================================
-openai
+# Pin OpenAI to <2.0.0 for compatibility with crewai-tools and langchain-openai
+openai>=1.12.0,<2.0.0
 anthropic
-tiktoken
+# Pin tiktoken for compatibility with langchain-openai
+tiktoken>=0.5.2,<0.6.0
 google-genai
 
 # ============================================
@@ -25,6 +27,8 @@ faiss-cpu
 # faiss-gpu  # Uncomment if you have CUDA GPU
 pinecone-client
 neo4j  # Neo4j driver for knowledge graph integration
+# Pin chromadb for compatibility with crewai-tools
+chromadb>=0.4.22,<0.5.0
 
 # ============================================
 # LangChain (for text splitting, document loaders, and agents)
@@ -32,7 +36,8 @@ neo4j  # Neo4j driver for knowledge graph integration
 # Let crewai determine compatible versions
 langchain
 langchain-community
-langchain-openai
+# Pin langchain-openai for compatibility
+langchain-openai>=0.1.7,<0.2.0
 langchain-anthropic
 
 # ============================================
@@ -41,6 +46,14 @@ langchain-anthropic
 # Install crewai with tools support - it will pull compatible langchain versions
 # Note: [tools] includes additional dependencies for tool integration
 crewai[tools]
+
+# ============================================
+# Agent Lightning (optional - for agent optimization)
+# ============================================
+# NOTE: Agent Lightning has dependency conflicts with crewai-tools and langchain-openai.
+# If you want to use it, install separately: pip install agentlightning
+# The wrapper handles missing dependencies gracefully, so it's safe to skip.
+# agentlightning  # Commented out due to dependency conflicts - install separately if needed
 
 # ============================================
 # Document Processing
@@ -112,6 +125,7 @@ sentry-sdk[fastapi]  # Error tracking and performance monitoring
 # Text Processing
 # ============================================
 nltk  # For semantic chunking
+rank-bm25  # BM25 ranking algorithm for keyword-based retrieval
 
 # ============================================
 # Optional: Additional Features

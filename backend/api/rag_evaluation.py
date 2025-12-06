@@ -22,6 +22,9 @@ logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["RAG Evaluation"])
 
+# Log router creation for debugging
+logger.info(f"RAG Evaluation router created with prefix: {router.prefix}")
+
 # In-memory storage for evaluations (will be replaced with database later)
 _evaluations: Dict[str, Dict] = {}
 _test_datasets: Dict[str, List[Dict]] = {}
@@ -32,6 +35,13 @@ class QAPair(BaseModel):
     question: str
     expected_answer: str
     context: Optional[str] = None  # Optional context/ground truth
+
+
+class DatasetUploadResponse(BaseModel):
+    """Response after uploading a test dataset."""
+    dataset_id: str
+    num_pairs: int
+    message: str
 
 
 class EvaluationRequest(BaseModel):
@@ -72,12 +82,12 @@ class EvaluationSummary(BaseModel):
     created_at: str
 
 
-@router.post("/rag-eval/dataset")
+@router.post("/rag-eval/dataset", response_model=DatasetUploadResponse)
 @limiter.limit("20/minute")
 async def upload_test_dataset(
     file: UploadFile = File(...),
     request: Request = None,
-) -> Dict[str, str]:
+) -> DatasetUploadResponse:
     """
     Upload a test dataset (JSON or JSONL file with Q&A pairs).
     
@@ -135,11 +145,11 @@ async def upload_test_dataset(
         
         logger.info(f"Uploaded test dataset: {dataset_id} ({len(validated_pairs)} pairs)")
         
-        return {
-            "dataset_id": dataset_id,
-            "num_pairs": len(validated_pairs),
-            "message": "Dataset uploaded successfully",
-        }
+        return DatasetUploadResponse(
+            dataset_id=dataset_id,
+            num_pairs=len(validated_pairs),
+            message="Dataset uploaded successfully",
+        )
         
     except Exception as e:
         logger.error(f"Error uploading test dataset: {e}")
@@ -342,18 +352,6 @@ async def evaluate_rag_workflow(request_body: EvaluationRequest, request: Reques
     return evaluation
 
 
-@router.get("/rag-eval/{evaluation_id}", response_model=EvaluationSummary)
-async def get_evaluation(evaluation_id: str, request: Request) -> EvaluationSummary:
-    """Get evaluation results."""
-    if evaluation_id not in _evaluations:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Evaluation not found: {evaluation_id}"
-        )
-    
-    return EvaluationSummary(**_evaluations[evaluation_id])
-
-
 @router.get("/rag-eval", response_model=List[EvaluationSummary])
 @limiter.limit("30/minute")
 async def list_evaluations(
@@ -370,6 +368,18 @@ async def list_evaluations(
     evaluations.sort(key=lambda x: x.get("created_at", ""), reverse=True)
     
     return [EvaluationSummary(**e) for e in evaluations]
+
+
+@router.get("/rag-eval/{evaluation_id}", response_model=EvaluationSummary)
+async def get_evaluation(evaluation_id: str, request: Request) -> EvaluationSummary:
+    """Get evaluation results."""
+    if evaluation_id not in _evaluations:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Evaluation not found: {evaluation_id}"
+        )
+    
+    return EvaluationSummary(**_evaluations[evaluation_id])
 
 
 class ABTestRequest(BaseModel):

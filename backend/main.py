@@ -288,10 +288,26 @@ except ImportError:
 
 # Import and register RAG evaluation router
 try:
+    logger.info("Attempting to import RAG evaluation router...")
     from backend.api import rag_evaluation
+    logger.info(f"RAG evaluation module imported successfully. Router prefix: {rag_evaluation.router.prefix}")
     app.include_router(rag_evaluation.router)
-except ImportError:
-    logger.warning("RAG Evaluation API not available")
+    # Log registered routes for debugging
+    try:
+        routes = []
+        for r in app.routes:
+            if hasattr(r, 'path') and r.path and 'rag-eval' in r.path:
+                routes.append(r.path)
+            elif hasattr(r, 'path_regex') and r.path_regex:
+                routes.append(str(r.path_regex))
+        logger.info(f"RAG Evaluation API router registered successfully. Found {len(routes)} routes: {routes}")
+    except Exception as e:
+        logger.warning(f"Could not list routes: {e}")
+        logger.info("RAG Evaluation API router registered successfully (route listing failed)")
+except ImportError as e:
+    logger.warning(f"RAG Evaluation API not available (ImportError): {e}", exc_info=True)
+except Exception as e:
+    logger.error(f"Failed to register RAG Evaluation API router: {e}", exc_info=True)
 
 # Import and register prompt playground router
 try:

@@ -137,6 +137,18 @@ except Exception as e:
 from backend.nodes.retrieval.search import VectorSearchNode  # noqa: F401
 from backend.nodes.retrieval.hybrid_retrieval import HybridRetrievalNode  # noqa: F401
 try:
+    from backend.nodes.retrieval.bm25_search import BM25SearchNode  # noqa: F401
+except ImportError as e:
+    # Log but don't fail - node will be available but may fail at runtime if rank-bm25 missing
+    from backend.utils.logger import get_logger
+    logger = get_logger(__name__)
+    logger.warning(f"BM25 Search node import warning (may need rank-bm25): {e}")
+except Exception as e:
+    # Other errors during import - log but don't fail
+    from backend.utils.logger import get_logger
+    logger = get_logger(__name__)
+    logger.error(f"Error importing BM25 Search node: {e}", exc_info=True)
+try:
     from backend.nodes.retrieval.rerank import RerankNode  # noqa: F401
 except ImportError as e:
     # Log but don't fail - node will be available but may fail at runtime if dependencies missing

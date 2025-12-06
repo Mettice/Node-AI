@@ -164,3 +164,97 @@ export async function calculateROI(params: {
   return response.data;
 }
 
+// ============================================
+// Historical Cost Tracking APIs
+// ============================================
+
+export interface CostStats {
+  total_cost: number;
+  total_executions: number;
+  total_records: number;
+  period: 'daily' | 'weekly' | 'monthly';
+  start_date: string;
+  end_date: string;
+  breakdown_by_category: Record<string, { cost: number; count: number }>;
+  breakdown_by_provider: Record<string, { cost: number; count: number }>;
+  breakdown_by_model: Record<string, { cost: number; count: number }>;
+  period_data: Array<{
+    period: string;
+    total_cost: number;
+    executions: number;
+    records: number;
+  }>;
+}
+
+export interface CostHistoryRecord {
+  id: string;
+  execution_id: string;
+  workflow_id: string | null;
+  user_id: string | null;
+  node_id: string;
+  node_type: string;
+  cost: number;
+  tokens_used: { input?: number; output?: number; total?: number };
+  duration_ms: number;
+  provider: string | null;
+  model: string | null;
+  category: string;
+  config: Record<string, any>;
+  metadata: Record<string, any>;
+  created_at: string;
+}
+
+export interface CostHistoryResponse {
+  records: CostHistoryRecord[];
+  count: number;
+  limit: number;
+  offset: number;
+}
+
+export interface CostBreakdownResponse {
+  group_by: 'category' | 'provider' | 'model';
+  breakdown: Record<string, { cost: number; count: number }>;
+  total_cost: number;
+}
+
+/**
+ * Get cost statistics for a time period
+ */
+export async function getCostStats(params?: {
+  user_id?: string;
+  workflow_id?: string;
+  period?: 'daily' | 'weekly' | 'monthly';
+  days?: number;
+}): Promise<CostStats> {
+  const response = await apiClient.get<CostStats>('/cost/stats', { params });
+  return response.data;
+}
+
+/**
+ * Get cost history records with pagination
+ */
+export async function getCostHistory(params?: {
+  user_id?: string;
+  workflow_id?: string;
+  limit?: number;
+  offset?: number;
+  start_date?: string;
+  end_date?: string;
+}): Promise<CostHistoryResponse> {
+  const response = await apiClient.get<CostHistoryResponse>('/cost/history', { params });
+  return response.data;
+}
+
+/**
+ * Get cost breakdown grouped by category, provider, or model
+ */
+export async function getCostBreakdown(params?: {
+  user_id?: string;
+  workflow_id?: string;
+  days?: number;
+  group_by?: 'category' | 'provider' | 'model';
+}): Promise<CostBreakdownResponse> {
+  const response = await apiClient.get<CostBreakdownResponse>('/cost/breakdown', { params });
+  return response.data;
+}
+

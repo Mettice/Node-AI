@@ -18,6 +18,7 @@ import { DashboardAnalytics } from './DashboardAnalytics';
 import { DashboardQuery } from './DashboardQuery';
 import { DashboardTraces } from './DashboardTraces';
 import { DashboardCostForecast } from './DashboardCostForecast';
+import { DashboardCostAnalytics } from './DashboardCostAnalytics';
 import { APIKeyManager } from '@/components/APIKeys/APIKeyManager';
 import { DeploymentManager } from '@/components/Deployment/DeploymentManager';
 import { useQuery } from '@tanstack/react-query';
@@ -112,7 +113,7 @@ function DeploymentTab({
   );
 }
 
-type DashboardTab = 'overview' | 'workflows' | 'metrics' | 'analytics' | 'query' | 'api-keys' | 'deployments' | 'traces' | 'cost-forecast';
+type DashboardTab = 'overview' | 'workflows' | 'metrics' | 'analytics' | 'query' | 'api-keys' | 'deployments' | 'traces' | 'cost-forecast' | 'cost-analytics';
 
 interface DashboardProps {
   workflowId?: string; // Optional: pre-select a workflow
@@ -137,6 +138,7 @@ export function Dashboard({ workflowId }: DashboardProps) {
     { id: 'query', label: 'Query', icon: Search },
     { id: 'traces', label: 'Traces', icon: Activity },
     { id: 'cost-forecast', label: 'Cost Forecast', icon: DollarSign },
+    { id: 'cost-analytics', label: 'Cost Analytics', icon: BarChart3 },
     { id: 'api-keys', label: 'API Keys', icon: Key },
     { id: 'deployments', label: 'Deployments', icon: GitBranch },
     { id: 'metrics', label: 'Metrics', icon: BarChart3 },
@@ -176,6 +178,8 @@ export function Dashboard({ workflowId }: DashboardProps) {
         return <DashboardTraces workflowId={selectedWorkflowId} />;
       case 'cost-forecast':
         return <DashboardCostForecast workflowId={selectedWorkflowId} />;
+      case 'cost-analytics':
+        return <DashboardCostAnalytics workflowId={selectedWorkflowId} />;
       default:
         return null;
     }

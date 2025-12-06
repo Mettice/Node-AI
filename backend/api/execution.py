@@ -74,6 +74,7 @@ async def execute_workflow(request: Request, execution_request: ExecutionRequest
                     workflow=execution_request.workflow,
                     execution_id=execution_id,
                     user_id=user_id,
+                    use_intelligent_routing=execution_request.use_intelligent_routing,
                 )
                 
                 # Update stored execution with results

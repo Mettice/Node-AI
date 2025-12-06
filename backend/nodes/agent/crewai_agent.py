@@ -13,6 +13,7 @@ from backend.core.node_registry import NodeRegistry
 from backend.utils.logger import get_logger
 from backend.config import settings
 from backend.core.secret_resolver import resolve_api_key
+from backend.core.agent_lightning import get_agent_lightning_wrapper, calculate_simple_reward
 from backend.utils.model_pricing import (
     calculate_llm_cost,
     get_available_models,
@@ -400,6 +401,27 @@ class CrewAINode(BaseNode):
         # Format the result nicely
         result_text = str(result)
         
+        # Agent Lightning integration (optional)
+        agl_wrapper = get_agent_lightning_wrapper(config)
+        if agl_wrapper.enabled:
+            try:
+                # Calculate reward based on result quality
+                result_dict = {
+                    "output": result_text,
+                    "tokens_used": tokens_used,
+                    "cost": cost,
+                }
+                reward = calculate_simple_reward(result_dict)
+                agl_wrapper.emit_reward(reward, {
+                    "node_id": node_id,
+                    "provider": provider,
+                    "model": model,
+                    "tokens_used": tokens_used,
+                })
+                logger.info(f"Agent Lightning reward emitted: {reward}")
+            except Exception as e:
+                logger.warning(f"Failed to emit Agent Lightning reward: {e}")
+        
         # Stream the full output (not just first 500 chars)
         await self.stream_output(node_id, result_text, partial=False)
         await self.stream_progress(node_id, 1.0, "CrewAI execution completed")
@@ -548,9 +570,9 @@ class CrewAINode(BaseNode):
         expected_output = task_config.get("expected_output", "Complete the task successfully")
         
         # Substitute placeholders in description and expected_output with input values
-        # Common placeholders: {research_topic}, {text}, {task}, {input}
+        # Common placeholders: {research_topic}, {text}, {task}, {input}, {content_type}, {brand_info}, etc.
         if inputs:
-            # Get the research topic/text from inputs
+            # Get the research topic/text from inputs (fallback chain)
             research_topic = (
                 inputs.get("text") or 
                 inputs.get("task") or 
@@ -559,21 +581,60 @@ class CrewAINode(BaseNode):
                 ""
             )
             
-            # Replace common placeholders
-            if "{research_topic}" in description:
+            # Get specific inputs for common template placeholders
+            content_type = inputs.get("content_type") or inputs.get("text_input_content_type") or ""
+            brand_info = inputs.get("brand_info") or inputs.get("text_input_brand") or ""
+            
+            # Replace all placeholders using Python string formatting
+            # This supports both {placeholder} and {placeholder:format} syntax
+            # Exclude keys we're already passing explicitly to avoid conflicts
+            explicit_keys = {"research_topic", "text", "task", "input", "content_type", "brand_info"}
+            additional_inputs = {
+                k: str(v) for k, v in inputs.items() 
+                if isinstance(v, (str, int, float)) and k not in explicit_keys
+            }
+            
+            try:
+                # First, try to format with all available inputs
+                description = description.format(
+                    research_topic=research_topic,
+                    text=research_topic,
+                    task=research_topic,
+                    input=research_topic,
+                    content_type=content_type,
+                    brand_info=brand_info,
+                    **additional_inputs
+                )
+            except (KeyError, ValueError) as e:
+                # If formatting fails, fall back to simple replacement for common placeholders
+                logger.debug(f"String formatting failed, using simple replacement: {e}")
                 description = description.replace("{research_topic}", research_topic)
-            if "{text}" in description:
                 description = description.replace("{text}", research_topic)
-            if "{task}" in description:
                 description = description.replace("{task}", research_topic)
-            if "{input}" in description:
                 description = description.replace("{input}", research_topic)
+                description = description.replace("{content_type}", content_type)
+                description = description.replace("{brand_info}", brand_info)
             
             # Also replace in expected_output
-            if "{research_topic}" in expected_output:
+            try:
+                expected_output = expected_output.format(
+                    research_topic=research_topic,
+                    text=research_topic,
+                    task=research_topic,
+                    input=research_topic,
+                    content_type=content_type,
+                    brand_info=brand_info,
+                    **additional_inputs
+                )
+            except (KeyError, ValueError) as e:
+                # Fall back to simple replacement
+                logger.debug(f"String formatting failed for expected_output, using simple replacement: {e}")
                 expected_output = expected_output.replace("{research_topic}", research_topic)
-            if "{text}" in expected_output:
                 expected_output = expected_output.replace("{text}", research_topic)
+                expected_output = expected_output.replace("{task}", research_topic)
+                expected_output = expected_output.replace("{input}", research_topic)
+                expected_output = expected_output.replace("{content_type}", content_type)
+                expected_output = expected_output.replace("{brand_info}", brand_info)
         
         # Find agent by role
         assigned_agent = None
@@ -936,6 +997,12 @@ class CrewAINode(BaseNode):
                     "default": False,
                     "title": "Verbose",
                     "description": "Enable verbose logging",
+                },
+                "enable_agent_lightning": {
+                    "type": "boolean",
+                    "default": False,
+                    "title": "Enable Agent Lightning",
+                    "description": "Enable Agent Lightning optimization (RL/APO) for automatic agent improvement. Requires agentlightning package.",
                 },
                 "task": {
                     "type": "string",

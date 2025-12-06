@@ -70,6 +70,7 @@ class WorkflowEngine:
         workflow: Workflow,
         execution_id: str | None = None,
         user_id: str | None = None,
+        use_intelligent_routing: Optional[bool] = None,
     ) -> Execution:
         """
         Execute a workflow.
@@ -179,10 +180,11 @@ class WorkflowEngine:
                 ))
 
                 # Collect inputs from previous nodes
-                inputs = self._collect_node_inputs(
+                inputs = await self._collect_node_inputs(
                     workflow,
                     node_id,
                     node_outputs,
+                    use_intelligent_routing=getattr(self, '_use_intelligent_routing', None),
                 )
 
                 # Start observability span for this node
@@ -490,11 +492,12 @@ class WorkflowEngine:
                 return node
         raise ValueError(f"Node {node_id} not found in workflow")
 
-    def _collect_node_inputs(
+    async def _collect_node_inputs(
         self,
         workflow: Workflow,
         node_id: str,
         node_outputs: Dict[str, Dict[str, Any]],
+        use_intelligent_routing: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """
         Collect inputs for a node from its source nodes.
@@ -503,43 +506,114 @@ class WorkflowEngine:
             workflow: The workflow
             node_id: The target node ID
             node_outputs: Outputs from previously executed nodes
+            use_intelligent_routing: Whether to use intelligent routing (None = auto-detect from settings)
             
         Returns:
             Combined inputs dictionary
         """
+        # Check if intelligent routing is enabled
+        if use_intelligent_routing is None:
+            # Auto-detect from settings or workflow config
+            from backend.config import settings
+            use_intelligent_routing = getattr(settings, 'enable_intelligent_routing', False)
+            # Also check workflow-level config
+            workflow_config = getattr(workflow, 'config', {})
+            if isinstance(workflow_config, dict):
+                use_intelligent_routing = workflow_config.get('use_intelligent_routing', use_intelligent_routing)
+        
         inputs: Dict[str, Any] = {}
+        
+        # Collect all available data from source nodes
+        available_data: Dict[str, Any] = {}
+        source_node_types: List[str] = []
 
         # Find all edges that target this node
         for edge in workflow.edges:
             if edge.target == node_id:
                 source_outputs = node_outputs.get(edge.source, {})
+                source_node = self._get_node_by_id(workflow, edge.source)
+                
+                if source_node:
+                    source_node_types.append(source_node.type)
 
-                # Merge source outputs into inputs
-                # For now, we merge all outputs (can be refined later with handles)
+                # Merge source outputs into available_data
                 for key, value in source_outputs.items():
                     # If key already exists, prefer the most recent (last edge)
-                    inputs[key] = value
+                    available_data[key] = value
+                
+                # For text_input nodes, also map by node ID for better placeholder support
+                # This allows templates to use {node_id} or {label} placeholders
+                if source_node and source_node.type == "text_input":
+                    # Use node ID as a key (e.g., "text_input_brand" -> inputs["text_input_brand"])
+                    if "text" in source_outputs:
+                        available_data[edge.source] = source_outputs["text"]
+                    
+                    # Also try to infer semantic keys from node label/data
+                    node_label = source_node.data.get("label", "").lower() if source_node.data else ""
+                    if "brand" in node_label or "product" in node_label:
+                        available_data["brand_info"] = source_outputs.get("text", "")
+                    elif "content" in node_label and "type" in node_label:
+                        available_data["content_type"] = source_outputs.get("text", "")
+                    elif "topic" in node_label:
+                        available_data["topic"] = source_outputs.get("text", "")
+                    elif "tone" in node_label or "style" in node_label:
+                        available_data["tone"] = source_outputs.get("text", "")
                 
                 # Also pass through common fields that might be needed downstream
                 # (e.g., query text, index_id)
-                if "text" in source_outputs and "query" not in inputs:
-                    inputs["query"] = source_outputs["text"]
+                if "text" in source_outputs and "query" not in available_data:
+                    available_data["query"] = source_outputs["text"]
                 if "index_id" in source_outputs:
-                    inputs["index_id"] = source_outputs["index_id"]
+                    available_data["index_id"] = source_outputs["index_id"]
                 
                 # Extract text from common output formats for text-processing nodes
                 # This helps nodes like advanced_nlp, chat, etc. find text from agent outputs
-                if "text" not in inputs:
+                if "text" not in available_data:
                     # Check for common text output fields
                     if "output" in source_outputs and isinstance(source_outputs["output"], str):
-                        inputs["text"] = source_outputs["output"]
+                        available_data["text"] = source_outputs["output"]
                     elif "report" in source_outputs and isinstance(source_outputs["report"], str):
-                        inputs["text"] = source_outputs["report"]
+                        available_data["text"] = source_outputs["report"]
                     elif "response" in source_outputs and isinstance(source_outputs["response"], str):
-                        inputs["text"] = source_outputs["response"]
+                        available_data["text"] = source_outputs["response"]
                     elif "content" in source_outputs and isinstance(source_outputs["content"], str):
-                        inputs["text"] = source_outputs["content"]
-
+                        available_data["text"] = source_outputs["content"]
+        
+        # If intelligent routing is enabled, use it to map data semantically
+        if use_intelligent_routing and available_data:
+            try:
+                target_node = self._get_node_by_id(workflow, node_id)
+                if target_node:
+                    # Get node schema for intelligent routing
+                    node_class = NodeRegistry.get(target_node.type)
+                    node_instance = node_class()
+                    node_schema = node_instance.get_schema()
+                    
+                    # Get workflow context for better routing decisions
+                    workflow_context = f"{workflow.name}: {workflow.description or 'No description'}"
+                    
+                    # Use intelligent router
+                    from backend.core.intelligent_router import route_data_intelligently
+                    intelligent_inputs = await route_data_intelligently(
+                        target_node_type=target_node.type,
+                        target_node_schema=node_schema,
+                        available_data=available_data,
+                        source_node_types=list(set(source_node_types)),  # Unique source types
+                        workflow_context=workflow_context,
+                        use_intelligent=True,
+                    )
+                    
+                    # Merge intelligent routing results with fallback
+                    # Intelligent routing may not map everything, so we merge
+                    inputs = {**available_data, **intelligent_inputs}
+                    logger.debug(f"Used intelligent routing for node {node_id}: mapped {len(intelligent_inputs)} fields")
+                    return inputs
+            except Exception as e:
+                logger.warning(f"Intelligent routing failed for node {node_id}, using rule-based: {e}")
+                # Fall through to rule-based routing
+        
+        # Rule-based routing (current behavior)
+        inputs = available_data.copy()
         return inputs
 
     async def _execute_node(
@@ -857,10 +931,81 @@ class WorkflowEngine:
                 
                 cost_records.append(cost_record)
             
-            # Store in cost intelligence module's history
-            # This is in-memory storage - in production, this would be a database
+            # Store in cost intelligence module's history (in-memory cache)
             # The _cost_history dict is defined at module level in cost_intelligence
             cost_intelligence._cost_history[execution_id] = cost_records
+            
+            # Also persist to database for historical tracking
+            try:
+                from backend.core.cost_storage import record_cost
+                
+                # Get user_id if available
+                user_id = getattr(self, '_user_id', None)
+                
+                # Convert workflow_id to UUID if needed
+                # Skip if workflow_id is "unknown" or not a valid UUID
+                workflow_uuid = None
+                if workflow_id and workflow_id != "unknown":
+                    try:
+                        import uuid
+                        # Only try to convert if it looks like a UUID (36 chars)
+                        if len(workflow_id) == 36:
+                            workflow_uuid = str(uuid.UUID(workflow_id))
+                        else:
+                            # Not a UUID format, skip it (set to None)
+                            workflow_uuid = None
+                    except (ValueError, AttributeError):
+                        # Invalid UUID format, set to None
+                        workflow_uuid = None
+                
+                # Persist each cost record to database
+                for cost_record in cost_records:
+                    node_id = cost_record.get("node_id")
+                    node_type = cost_record.get("node_type", "unknown")
+                    cost_value = cost_record.get("cost", 0.0)
+                    
+                    if cost_value <= 0:
+                        continue
+                    
+                    # Determine category from node_type
+                    category = "other"
+                    if "embed" in node_type.lower():
+                        category = "embedding"
+                    elif "rerank" in node_type.lower():
+                        category = "rerank"
+                    elif "vector" in node_type.lower() or "search" in node_type.lower():
+                        category = "vector_search"
+                    elif "chat" in node_type.lower() or "llm" in node_type.lower() or "agent" in node_type.lower():
+                        category = "llm"
+                    
+                    # Extract timestamp
+                    timestamp = None
+                    if cost_record.get("timestamp"):
+                        try:
+                            timestamp = datetime.fromisoformat(cost_record["timestamp"].replace('Z', '+00:00'))
+                        except (ValueError, AttributeError):
+                            pass
+                    
+                    # Record to database
+                    record_cost(
+                        execution_id=execution_id,
+                        workflow_id=workflow_uuid,
+                        user_id=user_id,
+                        node_id=node_id or "unknown",
+                        node_type=node_type,
+                        cost=cost_value,
+                        category=category,
+                        provider=cost_record.get("provider"),
+                        model=cost_record.get("model"),
+                        tokens_used=cost_record.get("tokens_used"),
+                        duration_ms=cost_record.get("duration_ms", 0),
+                        config=cost_record.get("config"),
+                        metadata=cost_record.get("metadata"),
+                        timestamp=timestamp,
+                    )
+            except Exception as db_error:
+                # Don't fail execution if database persistence fails
+                logger.warning(f"Failed to persist costs to database: {db_error}", exc_info=True)
             
             logger.debug(
                 f"Recorded costs for execution {execution_id}: "
