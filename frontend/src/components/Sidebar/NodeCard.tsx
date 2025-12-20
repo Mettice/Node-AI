@@ -47,6 +47,7 @@ const nodeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   vector_search: Search,
   rerank: Search, // Use Search icon with different styling
   hybrid_retrieval: Search, // Hybrid retrieval combines vector + graph
+  bm25_search: Search, // BM25 text search
   knowledge_graph: Network, // Network icon for knowledge graph
   chat: MessageSquare,
   vision: Eye,
@@ -70,6 +71,13 @@ interface NodeCardProps {
 export function NodeCard({ node }: NodeCardProps) {
   const category = node.category || 'default';
   const categoryColor = NODE_CATEGORY_COLORS[category as keyof typeof NODE_CATEGORY_COLORS] || '#9ca3af';
+  
+  // Format node display name - override for specific node types
+  const getDisplayName = () => {
+    if (node.type === 'crewai_agent') return 'AGENTCREW';
+    if (node.type === 'langchain_agent') return 'AGENTCHAIN';
+    return node.name;
+  };
   
   // Use ProviderIcon for nodes that have provider-specific icons
   const getProviderIconName = (nodeType: string): string | null => {
@@ -191,7 +199,7 @@ export function NodeCard({ node }: NodeCardProps) {
         draggable={false}
         onDragStart={(e) => e.preventDefault()}
       >
-        {node.name}
+        {getDisplayName()}
       </span>
     </div>
   );

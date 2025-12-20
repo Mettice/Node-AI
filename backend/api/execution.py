@@ -161,9 +161,9 @@ async def execute_workflow(request: Request, execution_request: ExecutionRequest
         )
 
 
-@router.get("/executions/{execution_id}", response_model=Execution)
+@router.get("/executions/{execution_id}", response_model=ExecutionResponse)
 @limiter.limit("60/minute")  # Increased for polling - allows 1 request per second
-async def get_execution(execution_id: str, request: Request) -> Execution:
+async def get_execution(execution_id: str, request: Request) -> ExecutionResponse:
     """
     Get execution details by ID.
     
@@ -171,7 +171,7 @@ async def get_execution(execution_id: str, request: Request) -> Execution:
         execution_id: The execution ID
         
     Returns:
-        Execution object with full details
+        ExecutionResponse with execution details and results
         
     Raises:
         HTTPException: If execution not found
@@ -182,7 +182,18 @@ async def get_execution(execution_id: str, request: Request) -> Execution:
             detail=f"Execution {execution_id} not found",
         )
     
-    return _executions[execution_id]
+    execution = _executions[execution_id]
+    
+    # Convert Execution to ExecutionResponse format
+    return ExecutionResponse(
+        execution_id=execution.id,
+        status=execution.status,
+        started_at=execution.started_at.isoformat() if execution.started_at else "",
+        completed_at=execution.completed_at.isoformat() if execution.completed_at else None,
+        total_cost=execution.total_cost,
+        duration_ms=execution.duration_ms,
+        results={node_id: result.model_dump() for node_id, result in execution.results.items()} if execution.results else None,
+    )
 
 
 @router.get("/executions/{execution_id}/trace")
@@ -214,6 +225,7 @@ async def get_execution_trace(execution_id: str, request: Request) -> Dict:
         "trace": [step.model_dump() for step in execution.trace],
         "total_cost": execution.total_cost,
         "duration_ms": execution.duration_ms,
+        "results": {node_id: result.model_dump() for node_id, result in execution.results.items()} if execution.results else {},
     }
 
 

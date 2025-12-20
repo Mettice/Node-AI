@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NodeAI - Node Shape Exploration</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #06080d;
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        /* Canvas Background */
+        .canvas {
+            position: relative;
+            width: 100%;
+            min-height: 100vh;
+            background: radial-gradient(ellipse at 50% 30%, #0d1117 0%, #06080d 70%);
+        }
+
+        /* Ambient Glow */
+        .canvas::before {
+            content: '';
+            position: fixed;
+            width: 800px;
+            height: 800px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(240, 180, 41, 0.12) 0%, transparent 70%);
+            filter: blur(80px);
+            top: -10%;
+            left: 20%;
+            pointer-events: none;
+        }
+
+        .canvas::after {
+            content: '';
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(34, 211, 238, 0.08) 0%, transparent 70%);
+            filter: blur(60px);
+            bottom: 10%;
+            right: 10%;
+            pointer-events: none;
+        }
+
+        /* Grid */
+        .grid {
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.03) 1px, transparent 0);
+            background-size: 24px 24px;
+            pointer-events: none;
+        }
+
+        /* Header */
+        .header {
+            padding: 20px 40px;
+            background: rgba(13, 17, 23, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .header p {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 4px;
+        }
+
+        /* Section */
+        .section {
+            padding: 40px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #f0b429;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 24px;
+        }
+
+        .section-subtitle {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 32px;
+            max-width: 600px;
+        }
+
+        /* Node Grid */
+        .node-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+
+        .node-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .node-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+        }
+
+        .node-description {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            text-align: center;
+            max-width: 200px;
+        }
+
+        /* ============================================ */
+        /* BASE NODE STYLES */
+        /* ============================================ */
+
+        .node {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        .node:hover {
+            transform: translateY(-4px);
+        }
+
+        .node-header {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .node-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .node-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        .node-subtitle {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .node-body {
+            padding: 14px 16px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .node-footer {
+            padding: 10px 16px;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Handle dots */
+        .handle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .handle-left {
+            left: -6px;
+        }
+
+        .handle-right {
+            right: -6px;
+        }
+
+        /* ============================================ */
+        /* OPTION 1: ULTRA GLASS (Current + More Transparent) */
+        /* ============================================ */
+
+        .node-ultra-glass {
+            width: 240px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .node-ultra-glass .node-icon {
+            background: rgba(244, 114, 182, 0.2);
+            color: #f472b6;
+            box-shadow: 0 0 20px rgba(244, 114, 182, 0.3);
+        }
+
+        .node-ultra-glass .handle {
+            background: #f472b6;
+            box-shadow: 0 0 10px rgba(244, 114, 182, 0.5);
+        }
+
+        /* ============================================ */
+        /* OPTION 2: FROSTED GLASS (Heavier blur, more opacity) */
+        /* ============================================ */
+
+        .node-frosted {
+            width: 240px;
+            background: rgba(30, 30, 50, 0.4);
+            backdrop-filter: blur(60px) saturate(200%);
+            -webkit-backdrop-filter: blur(60px) saturate(200%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+
+        .node-frosted .node-icon {
+            background: rgba(240, 180, 41, 0.2);
+            color: #f0b429;
+            box-shadow: 0 0 20px rgba(240, 180, 41, 0.3);
+        }
+
+        .node-frosted .handle {
+            background: #f0b429;
+            box-shadow: 0 0 10px rgba(240, 180, 41, 0.5);
+        }
+
+        /* ============================================ */
+        /* OPTION 3: NOTCHED CORNERS */
+        /* ============================================ */
+
+        .node-notched {
+            width: 260px;
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            clip-path: polygon(
+                16px 0%, 
+                calc(100% - 16px) 0%, 
+                100% 16px, 
+                100% calc(100% - 16px), 
+                calc(100% - 16px) 100%, 
+                16px 100%, 
+                0% calc(100% - 16px), 
+                0% 16px
+            );
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .node-notched::before {
+            content: '';
+            position: absolute;
+            inset: 1px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+            clip-path: inherit;
+            pointer-events: none;
+        }
+
+        .node-notched .node-icon {
+            background: rgba(244, 114, 182, 0.2);
+            color: #f472b6;
+        }
+
+        .node-notched .handle {
+            background: #f472b6;
+            box-shadow: 0 0 10px rgba(244, 114, 182, 0.5);
+        }
+
+        .node-notched .node-header {
+            border-radius: 0;
+        }
+
+        /* ============================================ */
+        /* OPTION 4: SOFT HEXAGON */
+        /* ============================================ */
+
+        .node-hexagon {
+            width: 260px;
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: none;
+            clip-path: polygon(
+                20px 0%, 
+                calc(100% - 20px) 0%, 
+                100% 25%, 
+                100% 75%, 
+                calc(100% - 20px) 100%, 
+                20px 100%, 
+                0% 75%, 
+                0% 25%
+            );
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            padding: 2px;
+        }
+
+        .node-hexagon-inner {
+            background: rgba(13, 17, 23, 0.6);
+            clip-path: inherit;
+            height: 100%;
+        }
+
+        .node-hexagon .node-icon {
+            background: rgba(240, 180, 41, 0.2);
+            color: #f0b429;
+        }
+
+        .node-hexagon .handle {
+            background: #f0b429;
+            box-shadow: 0 0 10px rgba(240, 180, 41, 0.5);
+        }
+
+        /* ============================================ */
+        /* OPTION 5: PILL / STADIUM */
+        /* ============================================ */
+
+        .node-pill {
+            width: 260px;
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 100px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            overflow: hidden;
+        }
+
+        .node-pill .node-header {
+            border-radius: 100px 100px 0 0;
+        }
+
+        .node-pill .node-icon {
+            background: rgba(34, 211, 238, 0.2);
+            color: #22d3ee;
+            border-radius: 50%;
+        }
+
+        .node-pill .handle {
+            background: #22d3ee;
+            box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+        }
+
+        /* ============================================ */
+        /* OPTION 6: DOUBLE BORDER GLOW */
+        /* ============================================ */
+
+        .node-double-border {
+            width: 240px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-radius: 16px;
+            padding: 3px;
+            background: linear-gradient(135deg, rgba(244, 114, 182, 0.4), rgba(240, 180, 41, 0.4));
+            box-shadow: 
+                0 0 30px rgba(244, 114, 182, 0.2),
+                0 0 60px rgba(240, 180, 41, 0.1);
+        }
+
+        .node-double-border-inner {
+            background: rgba(13, 17, 23, 0.85);
+            backdrop-filter: blur(20px);
+            border-radius: 13px;
+            overflow: hidden;
+        }
+
+        .node-double-border .node-icon {
+            background: rgba(244, 114, 182, 0.2);
+            color: #f472b6;
+        }
+
+        .node-double-border .handle {
+            background: #f472b6;
+            box-shadow: 0 0 10px rgba(244, 114, 182, 0.5);
+        }
+
+        /* ============================================ */
+        /* OPTION 7: INNER CORE GLOW */
+        /* ============================================ */
+
+        .node-inner-glow {
+            width: 260px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .node-inner-glow .node-header {
+            position: relative;
+            background: rgba(240, 180, 41, 0.05);
+        }
+
+        .node-inner-glow .node-header::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, rgba(240, 180, 41, 0.3) 0%, transparent 70%);
+            filter: blur(20px);
+            pointer-events: none;
+            animation: innerPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes innerPulse {
+            0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+        }
+
+        .node-inner-glow .node-icon {
+            background: rgba(240, 180, 41, 0.3);
+            color: #f0b429;
+            box-shadow: 0 0 20px rgba(240, 180, 41, 0.4);
+            position: relative;
+            z-index: 2;
+        }
+
+        .node-inner-glow .handle {
+            background: #f0b429;
+            box-shadow: 0 0 10px rgba(240, 180, 41, 0.5);
+        }
+
+        /* ============================================ */
+        /* OPTION 8: CARD WITH PROMINENT HEADER */
+        /* ============================================ */
+
+        .node-big-header {
+            width: 240px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .node-big-header .node-header {
+            padding: 24px 16px;
+            background: linear-gradient(135deg, rgba(244, 114, 182, 0.15) 0%, rgba(240, 180, 41, 0.1) 100%);
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 12px;
+        }
+
+        .node-big-header .node-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 24px;
+            background: rgba(244, 114, 182, 0.2);
+            color: #f472b6;
+            box-shadow: 0 0 30px rgba(244, 114, 182, 0.3);
+        }
+
+        .node-big-header .node-body {
+            text-align: center;
+        }
+
+        .node-big-header .handle {
+            background: #f472b6;
+            box-shadow: 0 0 10px rgba(244, 114, 182, 0.5);
+        }
+
+        /* ============================================ */
+        /* OPTION 9: MINIMAL WIRE FRAME */
+        /* ============================================ */
+
+        .node-wireframe {
+            width: 240px;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            box-shadow: 
+                0 0 20px rgba(34, 211, 238, 0.1),
+                inset 0 0 30px rgba(34, 211, 238, 0.03);
+        }
+
+        .node-wireframe .node-header {
+            border-bottom-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .node-wireframe .node-icon {
+            background: transparent;
+            border: 1px solid rgba(34, 211, 238, 0.5);
+            color: #22d3ee;
+        }
+
+        .node-wireframe .handle {
+            background: transparent;
+            border-color: #22d3ee;
+            box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+        }
+
+        /* ============================================ */
+        /* OPTION 10: FLOATING / ELEVATED */
+        /* ============================================ */
+
+        .node-floating {
+            width: 240px;
+            background: rgba(20, 20, 35, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                0 8px 20px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.05);
+            transform: perspective(1000px) rotateX(2deg);
+        }
+
+        .node-floating .node-icon {
+            background: rgba(167, 139, 250, 0.2);
+            color: #a78bfa;
+            box-shadow: 0 0 20px rgba(167, 139, 250, 0.3);
+        }
+
+        .node-floating .handle {
+            background: #a78bfa;
+            box-shadow: 0 0 10px rgba(167, 139, 250, 0.5);
+        }
+
+        /* ============================================ */
+        /* COMPARISON SECTION */
+        /* ============================================ */
+
+        .comparison {
+            display: flex;
+            gap: 60px;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 60px 40px;
+            background: rgba(0, 0, 0, 0.3);
+            margin-top: 40px;
+        }
+
+        .comparison-title {
+            width: 100%;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 40px;
+        }
+
+        /* ============================================ */
+        /* TRANSPARENCY COMPARISON */
+        /* ============================================ */
+
+        .transparency-demo {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            padding: 40px;
+            background: 
+                linear-gradient(45deg, rgba(255,255,255,0.03) 25%, transparent 25%),
+                linear-gradient(-45deg, rgba(255,255,255,0.03) 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.03) 75%),
+                linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.03) 75%);
+            background-size: 20px 20px;
+            border-radius: 16px;
+            margin: 40px;
+        }
+
+        .trans-node {
+            width: 200px;
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .trans-10 { background: rgba(255, 255, 255, 0.02); }
+        .trans-20 { background: rgba(255, 255, 255, 0.05); }
+        .trans-30 { background: rgba(255, 255, 255, 0.08); }
+        .trans-40 { background: rgba(30, 30, 50, 0.4); }
+        .trans-50 { background: rgba(30, 30, 50, 0.6); }
+        .trans-60 { background: rgba(30, 30, 50, 0.8); }
+
+        .trans-label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 12px;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="canvas">
+        <div class="grid"></div>
+
+        <div class="header">
+            <h1>NodeAI — Node Shape Exploration</h1>
+            <p>Click and hover to see interactions. Compare shapes and transparency levels.</p>
+        </div>
+
+        <!-- SECTION 1: Glass Variations -->
+        <div class="section">
+            <div class="section-title">Glass Transparency Options</div>
+            <div class="section-subtitle">Different levels of transparency and blur. More transparent = more "ethereal", less transparent = more "solid".</div>
+            
+            <div class="node-grid">
+                <!-- Ultra Glass -->
+                <div class="node-option">
+                    <div class="node node-ultra-glass">
+                        <div class="handle handle-left"></div>
+                        <div class="node-header">
+                            <div class="node-icon">🤖</div>
+                            <div>
+                                <div class="node-title">CrewAI Agent</div>
+                                <div class="node-subtitle">agent</div>
+                            </div>
+                        </div>
+                        <div class="node-body">
+                            Provider: OpenAI<br>
+                            Model: gpt-4o
+                        </div>
+                        <div class="node-footer">
+                            <span>● Ready</span>
+                            <span>$0.00</span>
+                        </div>
+                        <div class="handle handle-right"></div>
+                    </div>
+                    <div class="node-label">Ultra Glass</div>
+                    <div class="node-description">Very transparent, light blur. Ethereal, almost invisible.</div>
+                </div>
+
+                <!-- Frosted Glass -->
+                <div class="node-option">
+                    <div class="node node-frosted">
+                        <div class="handle handle-left"></div>
+                        <div class="node-header">
+                            <div class="node-icon">🧠</div>
+                            <div>
+                                <div class="node-title">LangChain Agent</div>
+                                <div class="node-subtitle">agent</div>
+                            </div>
+                        </div>
+                        <div class="node-body">
+                            Provider: Anthropic<br>
+                            Model: claude-3
+                        </div>
+                        <div class="node-footer">
+                            <span>● Ready</span>
+                            <span>$0.00</span>
+                        </div>
+                        <div class="handle handle-right"></div>
+                    </div>
+                    <div class="node-label">Frosted Glass</div>
+                    <div class="node-description">Heavy blur, medium opacity. Like frosted window.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: Shape Variations -->
+        <div class="section">
+            <div class="section-title">Shape Options for AI/Agent Nodes</div>
+            <div class="section-subtitle">Different shapes to differentiate AI nodes from regular nodes.</div>
+            
+            <div class="node-grid">
+                <!-- Notched Corners -->
+                <div class="node-option">
+                    <div class="node node-notched">
+                        <div class="handle handle-left"></div>
+                        <div class="node-header">
+                            <div class="node-icon">🤖</div>
+                            <div>
+                                <div class="node-title">CrewAI Agent</div>
+                                <div class="node-subtitle">agent</div>
+                            </div>
+                        </div>
+                        <div class="node-body">
+                            Provider: OpenAI<br>
+                            Agents: 3
+                        </div>
+                        <div class="node-footer">
+                            <span>● Ready</span>
+                            <span>$0.00</span>
+                        </div>
+                        <div class="handle handle-right"></div>
+                    </div>
+                    <div class="node-label">Notched Corners</div>
+                    <div class="node-description">Subtle cut corners. Tech/futuristic feel.</div>
+                </div>
+
+                <!-- Soft Hexagon -->
+                <div class="node-option">
+                    <div class="node node-hexagon">
+                        <div class="node-hexagon-inner">
+                            <div class="handle handle-left"></div>
+                            <div class="node-header">
+                                <div class="node-icon">🧠</div>
+                                <div>
+                                    <div class="node-title">LangChain Agent</div>
+                                    <div class="node-subtitle">agent</div>
+                                </div>
+                            </div>
+                            <div class="node-body">
+                                Provider: OpenAI<br>
+                                Tools: 5
+                            </div>
+                            <div class="node-footer">
+                                <span>● Ready</span>
+                                <span>$0.00</span>
+                            </div>
+                            <div class="handle handle-right"></div>
+                        </div>
+                    </div>
+                    <div class="node-label">Soft Hexagon</div>
+                    <div class="node-description">Honeycomb shape. Suggests intelligence.</div>
+                </div>
+
+                <!-- Pill Shape -->
+                <div class="node-option">
+                    <div class="node node-pill">
+                        <div class="handle handle-left"></div>
+                        <div class="node-header">
+                            <div class="node-icon">💬</div>
+                            <div>
+                                <div class="node-title">Chat</div>
+                                <div class="node-subtitle">llm</div>
+                            </div>
+                        </div>
+                        <div class="node-body">
+                            Provider: OpenAI<br>
+                            Model: gpt-4o
+                        </div>
+                        <div class="node-footer">
+                            <span>● Ready</span>
+                            <span>$0.00</span>
+                        </div>
+                        <div class="handle handle-right"></div>
+                    </div>
+                    <div class="node-label">Pill / Stadium</div>
+                    <div class="node-description">Soft, friendly. Good for inputs.</div>
+                </div>
+
+                <!-- Double Border -->
+                <div class="node-option">
+                    <div class="node node-double-border">
+                        <div class="node-double-border-inner">
+                            <div class="handle handle-left"></div>
+                            <div class="node-header">
+                                <div class="node-icon">🤖</div>
+                                <div>
+                                    <div class="node-title">CrewAI Agent</div>
+                                    <div class="node-subtitle">agent</div>
+                                </div>
+                            </div>
+                            <div class="node-body">
+                                Provider: OpenAI<br>
+                                Agents: 3
+                            </div>
+                            <div class="node-footer">
+                                <span>● Ready</span>
+                                <span>$0.00</span>
+                            </div>
+                            <div class="handle handle-right"></div>
+                        </div>
+                    </div>
+                    <div class="node-label">Gradient Border</div>
+                    <div class="node-description">Glowing gradient frame. Very premium.</div>
+                </div>
+
+                <!-- Inner Glow -->
+                <div class="node-option">
+                    <div class="node node-inner-glow">
+                        <div class="handle handle-left"></div>
+                        <div class="node-header">
+                            <div class="node-icon">🧠</div>
+                            <div>
+                                <div class="node-title">LangChain Agent</div>
+                                <div class="node-subtitle">agent</div>
+                            </div>
+                        </div>
+                        <div class="node-body">
+                            Provider: Anthropic<br>
+                            Model: claude-3
+                        </div>
+                        <div class="node-footer">
+                            <span>● Ready</span>
+                            <span>$0.00</span>
+                        </div>
+                        <div class="handle handle-right"></div>
+                    </div>
+                    <div class="node-label">Inner Core Glow</div>
+                    <div class="node-description">Pulsing glow inside. "Brain" feel.</div>
+                </div>
+
+                <!-- Big Header -->
+                <div class="node-option">
+                    <div class="node node-big-header">
+                        <div class="handle handle-left"></div>
+                        <div class="node-header">
+                            <div class="node-icon">🤖</div>
+                            <div>
+                                <div class="node-title">CrewAI Agent</div>
+                                <div class="node-subtitle">Multi-Agent System</div>
+                            </div>
+                        </div>
+                        <div class="node-body">
+                            3 Agents configured
+                        </div>
+                        <div class="handle handle-right"></div>
+                    </div>
+                    <div class="node-label">Big Header</div>
+                    <div class="node-description">Icon-forward design. Prominent.</div>
+                </div>
+
+                <!-- Wireframe -->
+                <div class="node-option">
+                    <div class="node node-wireframe">
+                        <div class="handle handle-left"></div>
+                        <div class="node-header">
+                            <div class="node-icon">📥</div>
+                            <div>
+                                <div class="node-title">Text Input</div>
+                                <div class="node-subtitle">input</div>
+                            </div>
+                        </div>
+                        <div class="node-body">
+                            Type your text...
+                        </div>
+                        <div class="handle handle-right"></div>
+                    </div>
+                    <div class="node-label">Wireframe</div>
+                    <div class="node-description">Minimal, transparent. For simple nodes.</div>
+                </div>
+
+                <!-- Floating -->
+                <div class="node-option">
+                    <div class="node node-floating">
+                        <div class="handle handle-left"></div>
+                        <div class="node-header">
+                            <div class="node-icon">🗄️</div>
+                            <div>
+                                <div class="node-title">Vector Store</div>
+                                <div class="node-subtitle">storage</div>
+                            </div>
+                        </div>
+                        <div class="node-body">
+                            Collection: docs<br>
+                            Vectors: 1,234
+                        </div>
+                        <div class="node-footer">
+                            <span>● Connected</span>
+                        </div>
+                        <div class="handle handle-right"></div>
+                    </div>
+                    <div class="node-label">Floating / Elevated</div>
+                    <div class="node-description">Heavy shadow, slight tilt. Solid feel.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 3: Transparency Comparison -->
+        <div class="section">
+            <div class="section-title">Transparency Levels</div>
+            <div class="section-subtitle">From almost invisible to solid. Which feels right for your nodes?</div>
+            
+            <div class="transparency-demo">
+                <div class="trans-node trans-10">
+                    <div style="font-size: 24px; margin-bottom: 8px;">🤖</div>
+                    <div class="trans-label">2% white<br>(Ultra transparent)</div>
+                </div>
+                <div class="trans-node trans-20">
+                    <div style="font-size: 24px; margin-bottom: 8px;">🤖</div>
+                    <div class="trans-label">5% white<br>(Very light)</div>
+                </div>
+                <div class="trans-node trans-30">
+                    <div style="font-size: 24px; margin-bottom: 8px;">🤖</div>
+                    <div class="trans-label">8% white<br>(Light glass)</div>
+                </div>
+                <div class="trans-node trans-40">
+                    <div style="font-size: 24px; margin-bottom: 8px;">🤖</div>
+                    <div class="trans-label">40% dark<br>(Medium)</div>
+                </div>
+                <div class="trans-node trans-50">
+                    <div style="font-size: 24px; margin-bottom: 8px;">🤖</div>
+                    <div class="trans-label">60% dark<br>(Frosted)</div>
+                </div>
+                <div class="trans-node trans-60">
+                    <div style="font-size: 24px; margin-bottom: 8px;">🤖</div>
+                    <div class="trans-label">80% dark<br>(Solid-ish)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 4: My Recommendation -->
+        <div class="comparison">
+            <div class="comparison-title">💡 My Recommendation: Combine These</div>
+            
+            <!-- Recommended AI Node -->
+            <div class="node-option">
+                <div class="node node-double-border" style="width: 280px;">
+                    <div class="node-double-border-inner">
+                        <div class="handle handle-left"></div>
+                        <div class="node-header" style="padding: 20px 16px; background: linear-gradient(135deg, rgba(244, 114, 182, 0.1) 0%, rgba(240, 180, 41, 0.05) 100%);">
+                            <div class="node-icon" style="width: 40px; height: 40px; font-size: 20px; box-shadow: 0 0 25px rgba(244, 114, 182, 0.4);">🤖</div>
+                            <div>
+                                <div class="node-title" style="font-size: 14px;">CrewAI Agent</div>
+                                <div class="node-subtitle">Multi-Agent System</div>
+                            </div>
+                        </div>
+                        <div class="node-body">
+                            <strong>Provider:</strong> OpenAI<br>
+                            <strong>Agents:</strong> Researcher, Writer, Editor
+                        </div>
+                        <div class="node-footer">
+                            <span style="color: #22c55e;">● Ready</span>
+                            <span style="color: #f0b429;">$0.04</span>
+                        </div>
+                        <div class="handle handle-right"></div>
+                    </div>
+                </div>
+                <div class="node-label">AI/Agent Node (Tier 1)</div>
+                <div class="node-description">Gradient border + larger size + prominent icon</div>
+            </div>
+
+            <!-- Recommended Processing Node -->
+            <div class="node-option">
+                <div class="node node-frosted" style="width: 220px;">
+                    <div class="handle handle-left"></div>
+                    <div class="node-header">
+                        <div class="node-icon" style="background: rgba(167, 139, 250, 0.2); color: #a78bfa;">🧬</div>
+                        <div>
+                            <div class="node-title">Embed</div>
+                            <div class="node-subtitle">embedding</div>
+                        </div>
+                    </div>
+                    <div class="node-body">
+                        Model: text-embedding-3
+                    </div>
+                    <div class="node-footer">
+                        <span>● Ready</span>
+                    </div>
+                    <div class="handle handle-right" style="background: #a78bfa;"></div>
+                </div>
+                <div class="node-label">Processing Node (Tier 2)</div>
+                <div class="node-description">Frosted glass, standard size</div>
+            </div>
+
+            <!-- Recommended Input Node -->
+            <div class="node-option">
+                <div class="node node-wireframe" style="width: 200px;">
+                    <div class="handle handle-left"></div>
+                    <div class="node-header">
+                        <div class="node-icon">📝</div>
+                        <div>
+                            <div class="node-title">Text Input</div>
+                            <div class="node-subtitle">input</div>
+                        </div>
+                    </div>
+                    <div class="node-body">
+                        Enter your prompt...
+                    </div>
+                    <div class="handle handle-right"></div>
+                </div>
+                <div class="node-label">Input Node (Tier 3)</div>
+                <div class="node-description">Wireframe, minimal, unobtrusive</div>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>

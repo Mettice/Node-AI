@@ -284,6 +284,66 @@ except Exception as e:
     logger = get_logger(__name__)
     logger.error(f"Error importing FineTune node: {e}", exc_info=True)
 
+# AI-Native Intelligence nodes
+try:
+    from backend.nodes.intelligence import *  # noqa: F401, F403
+except ImportError as e:
+    from backend.utils.logger import get_logger
+    logger = get_logger(__name__)
+    logger.warning(f"Intelligence nodes import warning: {e}")
+except Exception as e:
+    from backend.utils.logger import get_logger
+    logger = get_logger(__name__)
+    logger.error(f"Error importing Intelligence nodes: {e}", exc_info=True)
+
+# Business Intelligence nodes
+try:
+    from backend.nodes.business import *  # noqa: F401, F403
+except ImportError as e:
+    from backend.utils.logger import get_logger
+    logger = get_logger(__name__)
+    logger.warning(f"Business nodes import warning: {e}")
+except Exception as e:
+    from backend.utils.logger import get_logger
+    logger = get_logger(__name__)
+    logger.error(f"Error importing Business nodes: {e}", exc_info=True)
+
+# Content Creation nodes
+try:
+    from backend.nodes.content import *  # noqa: F401, F403
+except ImportError as e:
+    from backend.utils.logger import get_logger
+    logger = get_logger(__name__)
+    logger.warning(f"Content nodes import warning: {e}")
+except Exception as e:
+    from backend.utils.logger import get_logger
+    logger = get_logger(__name__)
+    logger.error(f"Error importing Content nodes: {e}", exc_info=True)
+
+# Developer Tools nodes
+try:
+    from backend.nodes.developer import *  # noqa: F401, F403
+except ImportError as e:
+    from backend.utils.logger import get_logger
+    logger = get_logger(__name__)
+    logger.warning(f"Developer nodes import warning: {e}")
+except Exception as e:
+    from backend.utils.logger import get_logger
+    logger = get_logger(__name__)
+    logger.error(f"Error importing Developer nodes: {e}", exc_info=True)
+
+# Sales & CRM nodes
+try:
+    from backend.nodes.sales import *  # noqa: F401, F403
+except ImportError as e:
+    from backend.utils.logger import get_logger
+    logger = get_logger(__name__)
+    logger.warning(f"Sales nodes import warning: {e}")
+except Exception as e:
+    from backend.utils.logger import get_logger
+    logger = get_logger(__name__)
+    logger.error(f"Error importing Sales nodes: {e}", exc_info=True)
+
 # Export the registry for easy access
 from backend.core.node_registry import NodeRegistry, get_node_class, register_node
 

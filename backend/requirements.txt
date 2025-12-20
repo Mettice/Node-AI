@@ -147,3 +147,32 @@ azure-identity  # Azure authentication
 azure-keyvault-secrets  # Azure Key Vault (optional)
 azure-ai-textanalytics  # Azure Text Analytics (for NLP tasks)
 azure-ai-translation-text  # Azure Translator
+
+# ============================================
+# AI-Native Intelligence Nodes
+# ============================================
+plotly  # For chart generation in auto_chart_generator
+kaleido  # For plotly static image generation
+matplotlib  # Alternative charting library
+seaborn  # Statistical plotting for data analysis
+scikit-learn  # For statistical analysis and ML features
+scipy  # Scientific computing functions
+
+# ============================================
+# Business Intelligence Nodes
+# ============================================
+stripe  # For Stripe analytics integration (optional - API key based)
+
+# ============================================
+# Communication & Social Media
+# ============================================
+slack-sdk  # For Slack node integration
+google-api-python-client  # For Google services integration
+google-auth-httplib2  # Google auth for APIs
+google-auth-oauthlib  # Google OAuth flow
+
+# ============================================
+# Developer Tools
+# ============================================
+bandit  # Security scanning for Python code
+safety  # Security vulnerability scanning

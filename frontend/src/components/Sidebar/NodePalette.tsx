@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronDown, ChevronRight, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { listNodes } from '@/services/nodes';
 import { NodeCard } from './NodeCard';
 import { NodeCategory } from './NodeCategory';
@@ -13,16 +13,17 @@ import { Spinner } from '@/components/common/Spinner';
 
 export function NodePalette() {
   const [searchQuery, setSearchQuery] = useState('');
+  // Categories collapsed by default for cleaner UI
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
-    input: true,
-    processing: true,
-    embedding: true,
-    storage: true,
-    retrieval: true,
-    llm: true,
-    tool: true,
-    memory: true,
-    agent: true,
+    input: false,
+    processing: false,
+    embedding: false,
+    storage: false,
+    retrieval: false,
+    llm: false,
+    tool: false,
+    memory: false,
+    agent: false,
   });
 
   // Fetch nodes from API

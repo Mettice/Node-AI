@@ -2,7 +2,7 @@
  * Custom node component for React Flow
  */
 
-import { memo, useState, useEffect, useRef } from 'react';
+import { memo, useState, useEffect, useRef, useMemo } from 'react';
 import { Handle, Position } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { 
@@ -13,11 +13,10 @@ import {
   Database, 
   Search, 
   MessageSquare,
-  CheckCircle2,
+  CheckCircle,
   XCircle,
   Loader2,
   Clock,
-  Pencil,
   Trash2,
   DollarSign,
   BrainCircuit,
@@ -35,6 +34,22 @@ import {
   Mail,
   Webhook,
   Network,
+  // New icons for AI nodes
+  Lightbulb,
+  TrendingUp,
+  PenTool,
+  Code,
+  Target,
+  BarChart3,
+  Shield,
+  FileCheck,
+  Sparkles,
+  PieChart,
+  Phone,
+  FileEdit,
+  UserPlus,
+  FileText as FileTextIcon,
+  Zap,
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { NODE_CATEGORY_COLORS } from '@/constants';
@@ -46,6 +61,8 @@ import { useExecutionStore } from '@/store/executionStore';
 import { useQuery } from '@tanstack/react-query';
 import { getFinetuneStatus } from '@/services/finetune';
 import { ProviderIcon } from '@/components/common/ProviderIcon';
+import { AgentRoom, type Agent } from './AgentRoom';
+import { AgentRoomSuggestion } from './AgentRoomSuggestion';
 
 // Icon mapping
 const nodeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -62,6 +79,7 @@ const nodeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   vector_search: Search,
   rerank: Search, // Use Search icon with different styling
   hybrid_retrieval: Search, // Hybrid retrieval combines vector + graph
+  bm25_search: Search, // BM25 text search
   knowledge_graph: Network, // Network icon for knowledge graph
   chat: MessageSquare,
   vision: Eye,
@@ -77,12 +95,38 @@ const nodeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   reddit: MessageSquare, // Reddit node
   finetune: GraduationCap,
   webhook_input: Webhook, // Webhook Input node
+  // Intelligence nodes
+  smart_data_analyzer: BarChart3, // Data analysis
+  auto_chart_generator: PieChart, // Chart generation
+  content_moderator: Shield, // Content moderation
+  meeting_summarizer: FileTextIcon, // Meeting summaries
+  lead_scorer: Target, // Lead scoring
+  // Business nodes
+  stripe_analytics: DollarSign, // Revenue analytics
+  cost_optimizer: TrendingUp, // Cost optimization
+  social_analyzer: MessageSquare, // Social media analysis
+  ab_test_analyzer: BarChart3, // A/B testing
+  // Content nodes
+  blog_generator: PenTool, // Blog writing
+  brand_generator: Sparkles, // Brand assets
+  podcast_transcriber: Mic, // Podcast transcription
+  social_scheduler: MessageSquare, // Social scheduling
+  // Developer nodes
+  bug_triager: Shield, // Bug triaging
+  docs_writer: FileText, // Documentation
+  performance_monitor: Zap, // Performance monitoring
+  security_scanner: Shield, // Security scanning
+  // Sales nodes
+  call_summarizer: Phone, // Call summaries
+  followup_writer: FileEdit, // Follow-up emails
+  lead_enricher: UserPlus, // Lead enrichment
+  proposal_generator: FileTextIcon, // Proposal generation
 };
 
 // Status icon mapping
-const statusIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+const statusIcons: Record<string, React.ComponentType<{ className?: string; fill?: string }>> = {
   pending: Clock,
-  completed: CheckCircle2,
+  completed: CheckCircle,
   failed: XCircle,
   running: Loader2,
 };
@@ -94,11 +138,83 @@ interface CustomNodeData {
   config?: Record<string, any>;
 }
 
+// Node tier classification based on "Living Intelligence" hierarchy
+const NODE_TIER_MAP = {
+  // Tier 1 - AI/Intelligence (240-260px)
+  llm: 1,
+  agent: 1,
+  memory: 1,
+  intelligence: 1, // AI Intelligence & Analytics nodes
+  
+  // Tier 2 - Processing (200-240px) 
+  processing: 2,
+  embedding: 2,
+  tool: 2,
+  training: 2,
+  business: 2, // Business Intelligence nodes
+  content: 2, // Content Creation nodes
+  developer: 2, // Developer Tools nodes
+  sales: 2, // Sales & CRM nodes
+  
+  // Tier 3 - Input/Output (180-200px)
+  input: 3,
+  retrieval: 3,
+  
+  // Tier 4 - Storage/Infrastructure (160-180px)
+  storage: 4,
+  data: 4,
+  communication: 4, // Communication nodes
+} as const;
+
+// Tier-specific styling configuration
+const TIER_CONFIG = {
+  1: {
+    minWidth: '190px', // Further reduced after removing edit icon
+    maxWidth: '210px',
+    hasPersistentGlow: true,
+    hasBreathingAnimation: true,
+    styleClass: 'tier-1-gradient', // Gradient border style
+    iconSize: 'w-10 h-10', // 40px for prominence
+  },
+  2: {
+    minWidth: '160px', // Further reduced after removing edit icon
+    maxWidth: '180px',
+    hasPersistentGlow: false,
+    hasBreathingAnimation: false,
+    styleClass: 'tier-2-frosted', // Frosted glass style
+    iconSize: 'w-8 h-8', // 32px standard
+  },
+  3: {
+    minWidth: '140px', // Further reduced after removing edit icon
+    maxWidth: '160px',
+    hasPersistentGlow: false,
+    hasBreathingAnimation: false,
+    styleClass: 'tier-3-wireframe', // Wireframe style
+    iconSize: 'w-6 h-6', // 24px minimal
+  },
+  4: {
+    minWidth: '130px', // Further reduced after removing edit icon
+    maxWidth: '150px',
+    hasPersistentGlow: false,
+    hasBreathingAnimation: false,
+    styleClass: 'tier-4-stack', // Stack effect style
+    iconSize: 'w-6 h-6', // 24px minimal
+  },
+} as const;
+
 export const CustomNode = memo(({ data, selected, type, id }: NodeProps<CustomNodeData>) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [textValue, setTextValue] = useState(data.config?.text || '');
   const [isTextareaFocused, setIsTextareaFocused] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isRoomExpanded, setIsRoomExpanded] = useState(false);
+  const [showCompletionAnimation, setShowCompletionAnimation] = useState(false);
+  const [hasShownRunning, setHasShownRunning] = useState(false);
+  const [showRoomSuggestion, setShowRoomSuggestion] = useState(false);
+  const [dismissedRoomSuggestion, setDismissedRoomSuggestion] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const prevStatusForAnimationRef = useRef<string>('idle');
+  const nodeRef = useRef<HTMLDivElement>(null);
   const { removeNode, updateNode } = useWorkflowStore();
   const { results, trace, nodeEvents, currentNodeId, nodeStatuses, status: executionStatus } = useExecutionStore();
   
@@ -108,7 +224,8 @@ export const CustomNode = memo(({ data, selected, type, id }: NodeProps<CustomNo
     if (currentText !== textValue && !isTextareaFocused) {
       setTextValue(currentText);
     }
-  }, [data.config?.text, isTextareaFocused, textValue]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.config, isTextareaFocused]); // textValue intentionally excluded to prevent infinite loop
   
   // Get execution status for this node - prioritize real-time status from SSE
   const executionResult = results[id];
@@ -161,7 +278,131 @@ export const CustomNode = memo(({ data, selected, type, id }: NodeProps<CustomNo
   
   const category = data.category || type || 'default';
   const status: NodeStatus | 'pending' | 'idle' = displayStatus as any;
-  const nodeType = data.label || type || 'Node';
+  
+  // Format node type label - override for specific node types, otherwise use custom label or format the type
+  const getNodeTypeLabel = () => {
+    // Always override for these specific node types
+    if (type === 'crewai_agent') return 'AGENTCREW';
+    if (type === 'langchain_agent') return 'AGENTCHAIN';
+    
+    // Use custom label if provided
+    if (data.label) return data.label;
+    
+    // Default: format type (capitalize and replace underscores)
+    return type ? type.split('_').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ') : 'Node';
+  };
+  
+  const nodeType = getNodeTypeLabel();
+  
+  // Parse agents for Agent Room visualization (CrewAI only)
+  const parseAgents = (): Agent[] => {
+    if (type !== 'crewai_agent') return [];
+    
+    try {
+      const agentsConfig = data.config?.agents;
+      if (!agentsConfig) return [];
+      
+      // Handle string or array
+      const agents = typeof agentsConfig === 'string' 
+        ? JSON.parse(agentsConfig) 
+        : agentsConfig;
+      
+      if (!Array.isArray(agents)) return [];
+      
+      // Filter out invalid agents and map to Agent type
+      return agents
+        .filter((agent: any) => agent && agent.role && agent.role.trim())
+        .map((agent: any) => ({
+          role: agent.role || '',
+          goal: agent.goal || '',
+          backstory: agent.backstory || '',
+        }));
+    } catch (error) {
+      console.error('Error parsing agents:', error);
+      return [];
+    }
+  };
+  
+  const agents = parseAgents();
+  const shouldShowRoom = type === 'crewai_agent' && agents.length >= 2;
+  const canShowRoom = type === 'crewai_agent' && agents.length >= 2;
+  
+  // Get node position for suggestion popup
+  const [nodePosition, setNodePosition] = useState({ x: 0, y: 0 });
+  
+  // Show suggestion popup if node has 2+ agents but room is not expanded and not dismissed
+  useEffect(() => {
+    if (canShowRoom && !isRoomExpanded && !dismissedRoomSuggestion && !showRoomSuggestion) {
+      // Show suggestion after a short delay
+      const timer = setTimeout(() => {
+        setShowRoomSuggestion(true);
+      }, 2000); // 2 second delay
+      return () => clearTimeout(timer);
+    }
+  }, [canShowRoom, isRoomExpanded, dismissedRoomSuggestion, showRoomSuggestion]);
+  
+  // Update node position when suggestion should show
+  useEffect(() => {
+    if (nodeRef.current && showRoomSuggestion) {
+      const rect = nodeRef.current.getBoundingClientRect();
+      setNodePosition({
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      });
+    }
+  }, [showRoomSuggestion]);
+  
+  // Calculate node tier and configuration
+  // Check both category and type to determine tier
+  let nodeTier = NODE_TIER_MAP[category as keyof typeof NODE_TIER_MAP];
+  
+  // If category doesn't map, check node type directly
+  if (!nodeTier) {
+    // Tier 1: AI/Intelligence nodes
+    if (type === 'chat' || type === 'llm' || type === 'vision' || 
+        type === 'langchain_agent' || type === 'crewai_agent' || 
+        type === 'memory' || type === 'agent' ||
+        // Intelligence category nodes
+        type === 'smart_data_analyzer' || type === 'auto_chart_generator' ||
+        type === 'content_moderator' || type === 'meeting_summarizer' ||
+        type === 'lead_scorer') {
+      nodeTier = 1;
+    }
+    // Tier 2: Processing nodes
+    else if (type === 'chunk' || type === 'embed' || type === 'rerank' || 
+             type === 'ocr' || type === 'transcribe' || type === 'video_frames' ||
+             type === 'advanced_nlp' || type === 'tool' || type === 'finetune' ||
+             // Business category nodes
+             type === 'stripe_analytics' || type === 'cost_optimizer' ||
+             type === 'social_analyzer' || type === 'ab_test_analyzer' ||
+             // Content category nodes
+             type === 'blog_generator' || type === 'brand_generator' ||
+             type === 'podcast_transcriber' || type === 'social_scheduler' ||
+             // Developer category nodes
+             type === 'bug_triager' || type === 'docs_writer' ||
+             type === 'performance_monitor' || type === 'security_scanner' ||
+             // Sales category nodes
+             type === 'call_summarizer' || type === 'followup_writer' ||
+             type === 'lead_enricher' || type === 'proposal_generator') {
+      nodeTier = 2;
+    }
+    // Tier 4: Storage nodes
+    else if (type === 'vector_store' || type === 'database' || type === 's3' ||
+             type === 'knowledge_graph' || type === 'google_drive' || 
+             type === 'azure_blob' ||
+             // Communication category nodes
+             type === 'email' || type === 'slack' || type === 'reddit') {
+      nodeTier = 4;
+    }
+    // Tier 3: Input/Output (default)
+    else {
+      nodeTier = 3;
+    }
+  }
+  
+  const tierConfig = TIER_CONFIG[nodeTier as keyof typeof TIER_CONFIG];
   
   // Check if using fine-tuned model
   const isUsingFinetuned = (type === 'chat' || type === 'embed') && 
@@ -170,6 +411,182 @@ export const CustomNode = memo(({ data, selected, type, id }: NodeProps<CustomNo
   
   // Get category color
   const categoryColor = NODE_CATEGORY_COLORS[category as keyof typeof NODE_CATEGORY_COLORS] || '#9ca3af';
+  
+  // Auto-expand room when running
+  useEffect(() => {
+    if (shouldShowRoom && displayStatus === 'running' && !isRoomExpanded) {
+      setIsRoomExpanded(true);
+    }
+  }, [shouldShowRoom, displayStatus, isRoomExpanded]);
+  
+  // Track completion/failure animations (must be before any early returns)
+  useEffect(() => {
+    // Track when node starts running
+    if (displayStatus === 'running' && !hasShownRunning) {
+      setHasShownRunning(true);
+    }
+    
+    // Trigger animation when status changes to completed or failed
+    if ((displayStatus === 'completed' || displayStatus === 'failed') && prevStatusForAnimationRef.current !== displayStatus) {
+      // Set animation immediately
+      setShowCompletionAnimation(true);
+      // Reset after animation completes (800ms for the animation duration)
+      const timer = setTimeout(() => {
+        setShowCompletionAnimation(false);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+    
+    // Reset animation flag when status changes away from completed/failed
+    if (displayStatus !== 'completed' && displayStatus !== 'failed' && showCompletionAnimation) {
+      setShowCompletionAnimation(false);
+    }
+    
+    // Update previous status ref
+    prevStatusForAnimationRef.current = displayStatus;
+  }, [displayStatus, hasShownRunning, showCompletionAnimation]);
+  
+  // Get active agent index from execution events (for Agent Room)
+  const getActiveAgentIndex = (): number | undefined => {
+    if (!shouldShowRoom || displayStatus !== 'running') return undefined;
+    
+    // Get all events for this node
+    const events = nodeEvents[id] || [];
+    if (events.length === 0) return undefined;
+    
+    // Look through recent events (last 10) to find the most recent agent activity
+    // Prioritize events with agent field, then fall back to message parsing
+    const recentEvents = events.slice(-10).reverse();
+    
+    for (const event of recentEvents) {
+      // First priority: Use agent field directly from event
+      if (event.agent) {
+        const agentName = event.agent.toLowerCase();
+        for (let i = 0; i < agents.length; i++) {
+          const role = agents[i].role.toLowerCase();
+          if (agentName === role || agentName.includes(role) || role.includes(agentName)) {
+            return i;
+          }
+        }
+      }
+      
+      // Second priority: Check for agent activity event types
+      if (['agent_started', 'agent_thinking', 'agent_tool_called', 'agent_output', 'agent_completed', 
+           'task_started', 'task_completed'].includes(event.event_type)) {
+        // Try to match agent from message if agent field not available
+        if (event.message) {
+          const message = event.message.toLowerCase();
+          for (let i = 0; i < agents.length; i++) {
+            const role = agents[i].role.toLowerCase();
+            if (message.includes(role)) {
+              return i;
+            }
+          }
+        }
+      }
+      
+      // Third priority: Fallback to message content parsing
+      if (event.message) {
+        const message = event.message.toLowerCase();
+        for (let i = 0; i < agents.length; i++) {
+          const role = agents[i].role.toLowerCase();
+          if (message.includes(role)) {
+            return i;
+          }
+        }
+      }
+    }
+    
+    return undefined;
+  };
+  
+  const activeAgentIndex = getActiveAgentIndex();
+  
+  // Get progress from execution result or events
+  const getProgress = (): number => {
+    if (displayStatus !== 'running') return 0;
+    // Check latest event for progress
+    if (latestEvent?.progress !== undefined) return latestEvent.progress;
+    // Check displayProgress (from fine-tune or other sources)
+    if (displayProgress !== undefined) return displayProgress;
+    return 0;
+  };
+  
+  const progress = getProgress();
+  
+  // Get cost from execution result (use useMemo to prevent object recreation)
+  const cost = useMemo(() => executionResult?.cost, [executionResult]);
+  
+  // Debug: Log cost for Agent Room nodes (only log when cost actually changes)
+  const prevCostRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (shouldShowRoom && process.env.NODE_ENV === 'development' && cost !== prevCostRef.current) {
+      console.log(`[CustomNode] ${id} cost:`, {
+        cost,
+        hasResult: !!executionResult,
+      });
+      prevCostRef.current = cost;
+    }
+  }, [shouldShowRoom, id, cost, executionResult]); // Include executionResult as stable dependency
+  
+  // Render Agent Room if conditions are met (before regular node rendering)
+  if (shouldShowRoom) {
+    // Get node events for conversation visualization
+    const events = nodeEvents[id] || [];
+    
+    return (
+      <>
+        <div ref={nodeRef}>
+          <AgentRoom
+            agents={agents}
+            roomName={data.label || 'Agent Room'}
+            isExpanded={isRoomExpanded}
+            onToggleExpand={() => {
+              setIsRoomExpanded(!isRoomExpanded);
+              setShowRoomSuggestion(false);
+              setDismissedRoomSuggestion(true);
+            }}
+            status={displayStatus as 'idle' | 'running' | 'completed' | 'failed'}
+            activeAgentIndex={activeAgentIndex}
+            progress={progress * 100} // Convert to percentage
+            cost={cost}
+            categoryColor={categoryColor}
+            nodeId={id}
+            selected={selected}
+            nodeEvents={events}
+            onEditNode={() => setShowEditModal(true)}
+          />
+        </div>
+        
+        {/* Agent Room Suggestion Popup */}
+        {showRoomSuggestion && !isRoomExpanded && (
+          <AgentRoomSuggestion
+            nodeId={id}
+            agentCount={agents.length}
+            onConvert={() => {
+              setIsRoomExpanded(true);
+              setShowRoomSuggestion(false);
+              setDismissedRoomSuggestion(true);
+            }}
+            onDismiss={() => {
+              setShowRoomSuggestion(false);
+              setDismissedRoomSuggestion(true);
+            }}
+            position={nodePosition}
+            categoryColor={categoryColor}
+          />
+        )}
+        
+        {/* Edit Modal for Agent Room */}
+        {showEditModal && (
+          <NodeEditModal
+            node={{ id, type: type || '', data, position: { x: 0, y: 0 } }}
+            onClose={() => setShowEditModal(false)}
+          />
+        )}
+      </>
+    );
+  }
   
   // Get icon - use ProviderIcon for crewai_agent, langchain_agent, vision (based on provider), and s3, otherwise use nodeIcons
   let Icon: React.ComponentType<{ className?: string }> | null = null;
@@ -263,39 +680,15 @@ export const CustomNode = memo(({ data, selected, type, id }: NodeProps<CustomNo
       storage: 'glow-storage',
       retrieval: 'glow-retrieval',
       llm: 'glow-llm',
+      agent: 'glow-agent',
+      memory: 'glow-embedding', // Same as embedding (purple)
+      tool: 'glow-processing',  // Same as processing (orange)
+      training: 'glow-embedding', // Same as embedding (purple)
+      data: 'glow-storage',     // Same as storage (emerald)
     };
     return glowMap[category] || '';
   };
 
-  // Track if we should show completion/failure animation
-  const [showCompletionAnimation, setShowCompletionAnimation] = useState(false);
-  const [hasShownRunning, setHasShownRunning] = useState(false);
-  const prevStatusForAnimationRef = useRef<string>(status);
-  
-  useEffect(() => {
-    // Track when node starts running
-    if (status === 'running' && !hasShownRunning) {
-      setHasShownRunning(true);
-    }
-    
-    // Trigger animation when status changes to completed or failed
-    if ((status === 'completed' || status === 'failed') && prevStatusForAnimationRef.current !== status) {
-      // Set animation immediately
-      setShowCompletionAnimation(true);
-      // Reset after animation completes (800ms for the animation duration)
-      const timer = setTimeout(() => {
-        setShowCompletionAnimation(false);
-      }, 800);
-      return () => clearTimeout(timer);
-    }
-    
-    // Reset animation flag when status changes away from completed/failed
-    if (status !== 'completed' && status !== 'failed' && showCompletionAnimation) {
-      setShowCompletionAnimation(false);
-    }
-    
-    prevStatusForAnimationRef.current = status;
-  }, [status, hasShownRunning, showCompletionAnimation]);
   
   // Remove debug logging - no longer needed
 
@@ -327,97 +720,118 @@ export const CustomNode = memo(({ data, selected, type, id }: NodeProps<CustomNo
   // Get animation class - call it here so it's available for logging
   const animationClass = getAnimationClass();
 
-  return (
+  // Determine tier-specific classes and styles based on recommendations
+  const getTierClass = () => {
+    // Tier 1 nodes use the wrapper + inner pattern (no direct class on inner)
+    if (nodeTier === 1) return '';
+    // Tier 2 uses frosted glass as recommended
+    if (nodeTier === 2) return 'node-tier-2-frosted';
+    // Tier 3 uses wireframe as recommended  
+    if (nodeTier === 3) return 'node-tier-3-wireframe';
+    // Tier 4 uses stack effect
+    if (nodeTier === 4) return 'node-tier-4-stack';
+    // Default fallback
+    return 'node-tier-2-frosted';
+  };
+
+  // Base node content (used for all tiers)
+  const nodeContent = (
     <div
+      ref={nodeRef}
       className={cn(
-        'rounded-lg border min-w-[180px] max-w-[240px] cursor-pointer relative',
-        'transition-all duration-300 ease-out',
-        'hover:scale-[1.03] hover:-translate-y-1 hover:shadow-xl',
-        'hover:border-opacity-80',
-        selected && 'ring-2 ring-blue-500 scale-[1.02] shadow-lg',
-        status !== 'idle' && status !== 'completed' && status !== 'failed' && executionStatus !== 'completed' && executionStatus !== 'failed' && !selected && getGlowClass(),
+        'cursor-pointer relative overflow-hidden',
+        // Apply tier-specific classes - CSS handles all visual styling
+        nodeTier === 1 ? 'node-tier-1-inner' : getTierClass(),
+        // Tier-specific animations
+        tierConfig.hasPersistentGlow && 'node-tier-1-glow',
+        tierConfig.hasBreathingAnimation && status === 'idle' && 'node-breathing',
         animationClass,
         isActive && 'node-border-pulse',
-        'node-glass' // Custom glassy style
+        selected && 'ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-900 scale-[1.02] shadow-lg shadow-blue-500/50',
       )}
       style={{
-        background: `rgba(15, 23, 42, 0.35)`, // More transparent dark background
-        backdropFilter: 'blur(24px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-        borderColor: selected 
-          ? 'rgba(59, 130, 246, 0.5)'  // More transparent selection border
-          : isActive
-            ? `${categoryColor}60`  // More transparent when active
-            : (status === 'idle' || !status) 
-              ? `${categoryColor}25`  // Very subtle border for idle
-              : status === 'completed'
-                ? 'rgba(22, 163, 74, 0.4)'  // Subtle green
-                : status === 'failed'
-                  ? 'rgba(239, 68, 68, 0.5)'  // Subtle red
-                  : `${categoryColor}40`,  // More transparent default
-        borderWidth: selected || status !== 'idle' ? '1.5px' : '1px',
-        color: isActive ? categoryColor : undefined,
-        boxShadow: selected 
-          ? `0 8px 32px rgba(59, 130, 246, 0.2), 0 0 0 1px ${categoryColor}15, inset 0 1px 0 rgba(255, 255, 255, 0.1)`
-          : isActive
-            ? `0 4px 20px ${categoryColor}20, 0 2px 8px ${categoryColor}15, inset 0 1px 0 rgba(255, 255, 255, 0.08)`
-            : `0 4px 16px rgba(0, 0, 0, 0.2), 0 1px 4px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.06)`,
+        // NO inline styles - let CSS classes handle everything via !important
+        // This ensures nodedesign.html styles apply correctly
       }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       onClick={handleNodeClick}
+      title={type !== 'text_input' ? 'Click to edit' : undefined}
       onMouseDown={(e) => {
         // Don't prevent textarea interaction
         if (type === 'text_input' && (e.target as HTMLElement).closest('textarea')) {
           return;
         }
       }}
+      onContextMenu={(e) => {
+        // Prevent default browser context menu but allow event to bubble to ReactFlow
+        e.preventDefault();
+        // Don't stop propagation - let ReactFlow handle it
+      }}
     >
-      {/* Input handles */}
+      {/* Input handles - matching nodedesign.html */}
       <Handle
         type="target"
         position={Position.Left}
-        className="w-3.5 h-3.5 border-2 border-white"
+        className="w-3 h-3"
         style={{ 
-          backgroundColor: categoryColor,
-          boxShadow: `0 2px 4px ${categoryColor}40`
+          backgroundColor: nodeTier === 3 ? 'transparent' : categoryColor,
+          border: `2px solid ${nodeTier === 3 ? categoryColor : 'rgba(255, 255, 255, 0.8)'}`,
+          boxShadow: `0 0 10px ${categoryColor}50`,
         }}
       />
 
-      {/* Node header */}
+      {/* Node header - Clean design matching nodedesign.html */}
       <div
-        className="px-3 py-2 rounded-t-lg flex items-center justify-between group relative overflow-hidden transition-all duration-200"
+        className="px-3 py-2.5 flex items-center justify-between group relative"
         style={{ 
-          background: `linear-gradient(135deg, ${categoryColor}20 0%, ${categoryColor}10 100%)`,
-          borderBottom: `1px solid ${categoryColor}25`,
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
+          // Simple header gradient based on category color
+          background: nodeTier === 1 
+            ? `linear-gradient(135deg, ${categoryColor}20 0%, ${categoryColor}08 100%)`
+            : nodeTier === 2
+              ? `linear-gradient(135deg, ${categoryColor}15 0%, ${categoryColor}05 100%)`
+              : 'transparent', // Tier 3 & 4: transparent header
+          borderBottom: nodeTier === 3 
+            ? '1px solid rgba(255, 255, 255, 0.1)' // Wireframe: white border
+            : `1px solid ${categoryColor}20`,
         }}
       >
-        {/* Subtle pattern overlay */}
-        <div className="absolute inset-0 opacity-5" style={{
-          backgroundImage: `radial-gradient(circle at 2px 2px, ${categoryColor} 1px, transparent 0)`,
-          backgroundSize: '16px 16px'
-        }}></div>
         
-        <div className="flex items-center gap-1.5 relative z-10">
+        <div className="flex items-center gap-2 relative z-10">
+          {/* Icon container - matches nodedesign.html styles */}
           <div 
-            className="p-1 rounded-md transition-all duration-300 group-hover:scale-110 group-hover:rotate-3"
+            className={cn(
+              "p-1.5 rounded-lg transition-all duration-300 group-hover:scale-110",
+              nodeTier === 3 && "bg-transparent border" // Wireframe style
+            )}
             style={{ 
               color: categoryColor,
-              background: `linear-gradient(135deg, ${categoryColor}30 0%, ${categoryColor}20 100%)`,
-              boxShadow: `
-                0 2px 4px -1px ${categoryColor}30,
-                0 1px 2px -1px ${categoryColor}20,
-                inset 0 1px 0 0 rgba(255, 255, 255, 0.4)
-              `
+              background: nodeTier === 3 
+                ? 'transparent'
+                : `${categoryColor}20`, // Simple background matching nodedesign.html
+              borderColor: nodeTier === 3 ? `${categoryColor}80` : undefined,
+              boxShadow: `0 0 ${nodeTier === 1 ? '25px' : nodeTier === 2 ? '20px' : '15px'} ${categoryColor}40`,
             }}
           >
             {useProviderIcon ? (
-              <ProviderIcon provider={providerIconName} size="sm" />
+              <ProviderIcon provider={providerIconName} size={nodeTier === 1 ? "lg" : nodeTier === 2 ? "md" : "sm"} />
             ) : (
-              Icon && <Icon className="w-3 h-3" />
+              Icon && <Icon className={cn(
+                tierConfig.iconSize,
+                nodeTier === 3 && "stroke-[1.5]" // Thinner stroke for wireframe
+              )} />
             )}
           </div>
-          <span className="text-[10px] font-semibold text-slate-100 tracking-tight truncate drop-shadow-sm">{nodeType}</span>
+          <div className="flex flex-col min-w-0">
+            <span className="text-[12px] font-semibold text-slate-100 tracking-[-0.01em] truncate drop-shadow-sm leading-tight">
+              {nodeType}
+            </span>
+            {/* Subtitle: Model or Provider or Type */}
+            <span className="text-[10px] text-white/50 font-normal truncate leading-tight">
+              {data.config?.model || data.config?.provider || category || 'Node'}
+            </span>
+          </div>
+          
           {isUsingFinetuned && (
             <div className="absolute -top-1 -right-1 bg-purple-500 rounded-full p-0.5" title="Using fine-tuned model">
               <GraduationCap className="w-2.5 h-2.5 text-white" />
@@ -470,19 +884,7 @@ export const CustomNode = memo(({ data, selected, type, id }: NodeProps<CustomNo
           </div>
         )}
         <div className="flex items-center gap-1 relative z-10">
-          {/* Hide edit button for text_input - it has inline editing */}
-          {type !== 'text_input' && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowEditModal(true);
-              }}
-              className="opacity-0 group-hover:opacity-100 transition-all duration-200 p-1 hover:bg-white/10 rounded hover:scale-110"
-              title="Edit node"
-            >
-              <Pencil className="w-3 h-3 text-slate-300" />
-            </button>
-          )}
+          {/* Delete button only - Edit is done by clicking the node */}
           <button
             onClick={handleDelete}
             className="opacity-0 group-hover:opacity-100 transition-all duration-200 p-1 hover:bg-red-50 rounded hover:scale-110"
@@ -497,17 +899,18 @@ export const CustomNode = memo(({ data, selected, type, id }: NodeProps<CustomNo
           <div className="absolute -top-2 -left-2 group/status z-20">
             <div className="relative">
               <div className={cn(
-                'rounded-full p-2 shadow-lg cursor-pointer transition-all duration-200 hover:scale-110 hover:shadow-xl border-2 border-white',
-                status === 'completed' && 'bg-gradient-to-br from-green-700 to-green-800 text-white',
-                status === 'failed' && 'bg-gradient-to-br from-red-500 to-red-600 text-white',
-                status === 'running' && 'bg-gradient-to-br from-blue-500 to-blue-600 text-white',
-                status === 'pending' && 'bg-gradient-to-br from-yellow-500 to-yellow-600 text-white'
+                'rounded-full p-1.5 shadow-lg cursor-pointer transition-all duration-200 hover:scale-110 hover:shadow-xl border border-white/20',
+                status === 'completed' && 'bg-green-500 text-white',
+                status === 'failed' && 'bg-red-500 text-white',
+                status === 'running' && 'bg-blue-500 text-white',
+                status === 'pending' && 'bg-amber-500 text-white'
               )}>
                 <StatusIcon
                   className={cn(
                     'w-3.5 h-3.5',
                     status === 'running' && 'animate-spin'
                   )}
+                  fill={status === 'completed' || status === 'failed' ? "currentColor" : "none"}
                 />
               </div>
               {/* Tooltip on hover */}
@@ -534,7 +937,7 @@ export const CustomNode = memo(({ data, selected, type, id }: NodeProps<CustomNo
          executionResult.cost > 0 && (
           <div className="absolute -top-2 -right-2 group/cost z-20">
             <div className="relative">
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full p-2 shadow-lg cursor-pointer hover:from-blue-600 hover:to-blue-700 transition-all duration-200 hover:scale-110 hover:shadow-xl border-2 border-white">
+              <div className="bg-gradient-to-br from-amber-500 to-amber-600 text-black rounded-full p-2 shadow-lg cursor-pointer hover:from-amber-600 hover:to-amber-700 transition-all duration-200 hover:scale-110 hover:shadow-xl border border-white/20">
                 <DollarSign className="w-3.5 h-3.5" />
               </div>
               {/* Enhanced Tooltip on hover - shows cost and execution details */}
@@ -559,7 +962,7 @@ export const CustomNode = memo(({ data, selected, type, id }: NodeProps<CustomNo
         )}
       </div>
 
-      {/* Node body - show key config or inline text input */}
+      {/* Node body - show key config or inline text input - Content visible only on hover (except text_input) */}
       {type === 'text_input' ? (
         <div 
           className="px-3 py-2"
@@ -610,9 +1013,14 @@ export const CustomNode = memo(({ data, selected, type, id }: NodeProps<CustomNo
           />
         </div>
       ) : (
-        <div className="px-3 py-2">
+        <div 
+          className={cn(
+            "px-3 py-2 transition-all duration-300 ease-out",
+            !isHovered && "opacity-0 max-h-0 overflow-hidden",
+            isHovered && "opacity-100 max-h-[200px]"
+          )}
+        >
           <NodeConfigDisplay 
-            key={`${id}-${JSON.stringify(data.config || {})}`}
             type={type || ''} 
             config={data.config || {}} 
           />
@@ -637,13 +1045,17 @@ export const CustomNode = memo(({ data, selected, type, id }: NodeProps<CustomNo
         </div>
       )}
 
-      {/* Execution Status Bar (only after node has run) */}
+      {/* Execution Status Bar (only after node has run) - Show only on hover */}
       {status !== 'idle' && executionResult && (
         <div 
-          className="px-3 py-1.5 border-t flex items-center justify-between text-xs"
+          className={cn(
+            "px-3 py-1.5 border-t flex items-center justify-between text-xs transition-all duration-300 ease-out",
+            !isHovered && "opacity-0 max-h-0 overflow-hidden border-transparent",
+            isHovered && "opacity-100 max-h-[60px]"
+          )}
           style={{
-            borderTopColor: `${categoryColor}20`,
-            background: `linear-gradient(to right, ${categoryColor}08, transparent)`,
+            borderTopColor: `${categoryColor}30`,
+            background: `linear-gradient(to right, ${categoryColor}12, transparent)`,
             backdropFilter: 'blur(4px)',
             WebkitBackdropFilter: 'blur(4px)',
           }}
@@ -675,34 +1087,45 @@ export const CustomNode = memo(({ data, selected, type, id }: NodeProps<CustomNo
               <span>{formatDuration(executionResult.duration_ms)}</span>
             )}
             {executionResult.cost !== undefined && executionResult.cost > 0 && (
-              <span className="text-blue-400 font-medium">{formatCost(executionResult.cost)}</span>
+              <span className="text-amber-400 font-medium">{formatCost(executionResult.cost)}</span>
             )}
           </div>
         </div>
       )}
 
-      {/* Output handles */}
+      {/* Output handles - matching nodedesign.html */}
       <Handle
         type="source"
         position={Position.Right}
-        className="w-3.5 h-3.5 border-2 border-white"
+        className="w-3 h-3"
         style={{ 
-          backgroundColor: categoryColor,
-          boxShadow: `0 2px 4px ${categoryColor}40`
+          backgroundColor: nodeTier === 3 ? 'transparent' : categoryColor,
+          border: `2px solid ${nodeTier === 3 ? categoryColor : 'rgba(255, 255, 255, 0.8)'}`,
+          boxShadow: `0 0 10px ${categoryColor}50`,
         }}
       />
 
       {/* Edit Modal */}
       {showEditModal && (
-        <NodeEditModal
-          node={{ id, type: type || '', data, position: { x: 0, y: 0 } }}
-          onClose={() => setShowEditModal(false)}
-        />
-      )}
+      <NodeEditModal
+        node={{ id, type: type || '', data, position: { x: 0, y: 0 } }}
+        onClose={() => setShowEditModal(false)}
+      />
+    )}
 
     </div>
   );
+
+  // Wrap Tier 1 nodes with gradient border
+  if (nodeTier === 1) {
+    return (
+      <div className="node-tier-1-wrapper">
+        {nodeContent}
+      </div>
+    );
+  }
+
+  // Apply sizing to other tiers (Tier 2, 3, 4) with proper styling
+  return nodeContent;
 });
 CustomNode.displayName = 'CustomNode';
-
-

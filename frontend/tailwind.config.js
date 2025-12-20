@@ -7,60 +7,65 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Dark theme base colors
-        dark: {
-          bg: '#0a0a0f',
-          surface: '#1a1625',
-          elevated: '#252034',
-          border: 'rgba(255, 255, 255, 0.1)',
-          text: '#f8fafc',
+        canvas: {
+          DEFAULT: '#06080d',
+          surface: '#0d1117',
+          elevated: '#161b22',
         },
-        // Glass effect colors
+        accent: {
+          DEFAULT: '#f0b429',
+          light: '#fbbf24',
+          dark: '#d97706',
+        },
         glass: {
-          bg: 'rgba(30, 27, 45, 0.7)',
-          light: 'rgba(30, 27, 45, 0.5)',
-          strong: 'rgba(30, 27, 45, 0.85)',
-          border: 'rgba(255, 255, 255, 0.1)',
+          bg: 'rgba(13, 17, 23, 0.75)',
+          light: 'rgba(13, 17, 23, 0.6)',
+          strong: 'rgba(13, 17, 23, 0.92)',
+          border: 'rgba(255, 255, 255, 0.08)',
         },
-        // Node categories (vibrant for dark theme)
         node: {
-          input: '#a78bfa',
+          input: '#22d3ee',
           processing: '#fb923c',
-          embedding: '#22d3ee',
+          embedding: '#a78bfa',
           storage: '#34d399',
           retrieval: '#60a5fa',
-          llm: '#f472b6',
+          llm: '#f0b429',
+          agent: '#f472b6',
+        },
+        status: {
+          idle: '#64748b',
+          pending: '#fbbf24',
+          running: '#3b82f6',
+          completed: '#22c55e',
+          failed: '#ef4444',
         },
       },
-      // Backdrop blur
       backdropBlur: {
         xs: '4px',
-        sm: '8px',
-        md: '12px',
         lg: '20px',
         xl: '32px',
       },
-      spacing: {
-        xs: '0.25rem',
-        sm: '0.5rem',
-        md: '1rem',
-        lg: '1.5rem',
-        xl: '2rem',
-        '2xl': '3rem',
-      },
       borderRadius: {
-        sm: '0.25rem',
-        md: '0.5rem',
-        lg: '0.75rem',
-        xl: '1rem',
+        sm: '6px',
+        md: '10px',
+        lg: '14px',
+        xl: '18px',
       },
-      transitionDuration: {
-        fast: '150ms',
-        base: '200ms',
-        slow: '300ms',
+      animation: {
+        'breathing': 'breathing 3s ease-in-out infinite',
+        'glow-pulse': 'glowPulse 2s ease-in-out infinite',
+      },
+      keyframes: {
+        breathing: {
+          '0%, 100%': { opacity: '0.85', transform: 'scale(1)' },
+          '50%': { opacity: '1', transform: 'scale(1.02)' },
+        },
+        glowPulse: {
+          '0%, 100%': { opacity: '0.6' },
+          '50%': { opacity: '1' },
+        },
       },
     },
   },
   plugins: [],
 }
-

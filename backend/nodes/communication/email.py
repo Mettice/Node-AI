@@ -47,9 +47,40 @@ class EmailNode(BaseNode):
         provider = config.get("email_provider", "resend")
         
         # Get email data from inputs or config
-        to_email = config.get("email_to") or inputs.get("to") or inputs.get("email_to")
-        subject = config.get("email_subject") or inputs.get("subject") or inputs.get("email_subject")
-        body = config.get("email_body") or inputs.get("body") or inputs.get("email_body") or inputs.get("content")
+        # Check multiple possible sources for each field (intelligent routing + fallback)
+        to_email = (
+            config.get("email_to") or 
+            inputs.get("email_to") or 
+            inputs.get("to") or
+            inputs.get("recipient") or
+            inputs.get("email")
+        )
+        subject = (
+            config.get("email_subject") or 
+            inputs.get("email_subject") or 
+            inputs.get("subject") or
+            inputs.get("title")
+        )
+        body = (
+            config.get("email_body") or 
+            inputs.get("email_body") or 
+            inputs.get("body") or 
+            inputs.get("content") or
+            inputs.get("text") or
+            inputs.get("output") or
+            inputs.get("message")
+        )
+        
+        # Check if email type should be HTML (from intelligent routing or if body contains HTML)
+        email_type_override = inputs.get("_email_type")
+        if email_type_override == "html" or (body and ("<h" in body or "<p>" in body or "<img" in body or "<ul>" in body)):
+            # Auto-detect HTML content and set email type
+            if config.get("email_type") != "html":
+                config = config.copy()
+                config["email_type"] = "html"
+        
+        # Get attachments from inputs (e.g., from chart generator) or config
+        email_attachments = inputs.get("_email_attachments") or config.get("email_attachments") or inputs.get("attachments") or []
         
         if not to_email:
             raise ValueError("Recipient email address (to) is required")
@@ -62,7 +93,7 @@ class EmailNode(BaseNode):
         
         # Route to appropriate provider
         if provider == "resend":
-            return await self._send_resend_email(inputs, config, node_id, to_email, subject, body)
+            return await self._send_resend_email(inputs, config, node_id, to_email, subject, body, email_attachments)
         else:
             raise ValueError(f"Unsupported email provider: {provider}")
 
@@ -74,12 +105,14 @@ class EmailNode(BaseNode):
         to_email: str,
         subject: str,
         body: str,
+        email_attachments: list = None,
     ) -> Dict[str, Any]:
         """Send email using Resend API."""
         api_key = config.get("resend_api_key")
         from_email = config.get("email_from")
         from_name = config.get("email_from_name")
         reply_to = config.get("email_reply_to")
+        # Get email type from config (may have been auto-set to HTML by intelligent routing)
         email_type = config.get("email_type", "text")  # "text" or "html"
         
         if not api_key:
@@ -97,8 +130,8 @@ class EmailNode(BaseNode):
         if bcc and isinstance(bcc, str):
             bcc = [email.strip() for email in bcc.split(",")]
         
-        # Get attachments from inputs or config
-        attachments = config.get("email_attachments") or inputs.get("attachments") or []
+        # Get attachments from parameter (from intelligent routing) or config or inputs
+        attachments = email_attachments if email_attachments else (config.get("email_attachments") or inputs.get("attachments") or [])
         
         await self.stream_progress(node_id, 0.3, "Sending email via Resend...")
         
@@ -123,13 +156,18 @@ class EmailNode(BaseNode):
         if bcc:
             payload["bcc"] = bcc if isinstance(bcc, list) else [bcc]
         
-        # Handle attachments
+        # Handle attachments (including inline images with CID)
         if attachments:
             processed_attachments = []
             for attachment in attachments:
                 if isinstance(attachment, dict):
-                    # Attachment is already in the right format
-                    processed_attachments.append(attachment)
+                    # Resend API format: { "filename": "...", "content": "base64...", "cid": "..." } for inline
+                    # For inline images, we need to use a different approach
+                    # Resend doesn't support CID directly, so we'll embed base64 in HTML instead
+                    processed_attachments.append({
+                        "filename": attachment.get("filename", "attachment"),
+                        "content": attachment.get("content", ""),
+                    })
                 elif isinstance(attachment, str):
                     # Try to parse as file path or base64
                     # For now, assume it's a file path or needs to be handled differently
@@ -267,7 +305,7 @@ class EmailNode(BaseNode):
                     },
                 },
             },
-            "required": ["email_provider", "resend_api_key", "email_from", "email_subject", "email_body"],
+            "required": ["email_provider", "resend_api_key", "email_from"],
         }
 
 

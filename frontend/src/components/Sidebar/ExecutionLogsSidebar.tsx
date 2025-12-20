@@ -86,26 +86,27 @@ export function ExecutionLogsSidebar() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-white/10 flex-shrink-0 overflow-x-auto scrollbar-hide">
+      {/* Tabs - Amber active styling */}
+      <div className="flex border-b border-white/10 flex-shrink-0 overflow-x-auto scrollbar-hide bg-black/20">
         {tabs.map((tab) => {
           const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'flex-1 px-4 py-2.5 text-xs font-medium transition-colors relative flex-shrink-0',
-                'hover:bg-white/5 flex items-center justify-center gap-1.5 whitespace-nowrap',
-                activeTab === tab.id
-                  ? 'text-blue-400'
-                  : 'text-slate-400 hover:text-slate-300'
+                'flex-1 px-4 py-2.5 text-xs font-medium transition-all relative flex-shrink-0',
+                'flex items-center justify-center gap-1.5 whitespace-nowrap',
+                isActive
+                  ? 'text-amber-400 bg-amber-500/10'
+                  : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
               )}
             >
-              <Icon className="w-3.5 h-3.5" />
+              <Icon className={cn("w-3.5 h-3.5", isActive && "text-amber-400")} />
               <span>{tab.label}</span>
-              {activeTab === tab.id && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400" />
+              {isActive && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500 to-amber-400" />
               )}
             </button>
           );

@@ -1,0 +1,276 @@
+{
+  "templates": [
+    {
+      "name": "Smart Data Analysis",
+      "description": "Analyze sales data with focus on trends and anomalies",
+      "nodes": [
+        {
+          "type": "text_input",
+          "config": {
+            "text": "{\"month\": [\"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\"], \"sales\": [12000, 15000, 18000, 14000, 22000], \"customers\": [120, 150, 180, 140, 220]}"
+          },
+          "position": { "x": 100, "y": 100 }
+        },
+        {
+          "type": "smart_data_analyzer",
+          "config": {
+            "provider": "openai",
+            "analysis_type": "business",
+            "focus_areas": ["trends", "anomalies", "patterns"],
+            "include_visualizations": true
+          },
+          "position": { "x": 400, "y": 100 }
+        }
+      ],
+      "connections": [
+        {
+          "from": "text_input",
+          "to": "smart_data_analyzer",
+          "fromHandle": "output",
+          "toHandle": "data"
+        }
+      ]
+    },
+    {
+      "name": "Lead Scoring Workflow",
+      "description": "Score leads and generate follow-up emails",
+      "nodes": [
+        {
+          "type": "text_input",
+          "config": {
+            "text": "{\"name\": \"John Doe\", \"email\": \"john@example.com\", \"company\": \"Tech Corp\", \"title\": \"CTO\", \"website_visits\": 15, \"email_opens\": 8, \"demo_requests\": 1}"
+          },
+          "position": { "x": 100, "y": 100 }
+        },
+        {
+          "type": "lead_scorer",
+          "config": {
+            "provider": "openai",
+            "scoring_model": "comprehensive",
+            "industry": "saas",
+            "include_recommendations": true
+          },
+          "position": { "x": 400, "y": 100 }
+        },
+        {
+          "type": "followup_writer",
+          "config": {
+            "provider": "openai",
+            "email_tone": "professional",
+            "include_attachments": true
+          },
+          "position": { "x": 700, "y": 100 }
+        }
+      ],
+      "connections": [
+        {
+          "from": "text_input",
+          "to": "lead_scorer",
+          "fromHandle": "output",
+          "toHandle": "lead_data"
+        },
+        {
+          "from": "lead_scorer",
+          "to": "followup_writer",
+          "fromHandle": "output",
+          "toHandle": "meeting_notes"
+        }
+      ]
+    },
+    {
+      "name": "Blog Post Generation",
+      "description": "Generate SEO-optimized blog post from topic",
+      "nodes": [
+        {
+          "type": "text_input",
+          "config": {
+            "text": "Building RAG applications with Nodai: A visual workflow builder for AI automation"
+          },
+          "position": { "x": 100, "y": 100 }
+        },
+        {
+          "type": "blog_generator",
+          "config": {
+            "provider": "openai",
+            "tone": "professional",
+            "target_audience": "technical",
+            "include_seo": true,
+            "word_count": 1500
+          },
+          "position": { "x": 400, "y": 100 }
+        }
+      ],
+      "connections": [
+        {
+          "from": "text_input",
+          "to": "blog_generator",
+          "fromHandle": "output",
+          "toHandle": "topic"
+        }
+      ]
+    },
+    {
+      "name": "Call Summary & Follow-up",
+      "description": "Summarize sales call and generate follow-up email",
+      "nodes": [
+        {
+          "type": "text_input",
+          "config": {
+            "text": "Sales call transcript: Discussed product features, pricing, and implementation timeline. Client showed strong interest in automation capabilities. Budget range: $10k-$25k. Next steps: Send demo video and schedule technical deep-dive."
+          },
+          "position": { "x": 100, "y": 100 }
+        },
+        {
+          "type": "call_summarizer",
+          "config": {
+            "provider": "openai",
+            "call_type": "discovery"
+          },
+          "position": { "x": 400, "y": 100 }
+        },
+        {
+          "type": "followup_writer",
+          "config": {
+            "provider": "openai",
+            "email_tone": "professional",
+            "include_attachments": true
+          },
+          "position": { "x": 700, "y": 100 }
+        }
+      ],
+      "connections": [
+        {
+          "from": "text_input",
+          "to": "call_summarizer",
+          "fromHandle": "output",
+          "toHandle": "call_transcript"
+        },
+        {
+          "from": "call_summarizer",
+          "to": "followup_writer",
+          "fromHandle": "output",
+          "toHandle": "meeting_notes"
+        }
+      ]
+    },
+    {
+      "name": "Auto Chart Generation",
+      "description": "Generate charts from sales data",
+      "nodes": [
+        {
+          "type": "text_input",
+          "config": {
+            "text": "{\"product\": [\"Product A\", \"Product B\", \"Product C\"], \"q1_sales\": [50000, 75000, 60000], \"q2_sales\": [55000, 80000, 65000], \"q3_sales\": [60000, 85000, 70000]}"
+          },
+          "position": { "x": 100, "y": 100 }
+        },
+        {
+          "type": "auto_chart_generator",
+          "config": {
+            "provider": "openai",
+            "chart_types": ["auto"],
+            "max_charts": 5,
+            "theme": "professional"
+          },
+          "position": { "x": 400, "y": 100 }
+        }
+      ],
+      "connections": [
+        {
+          "from": "text_input",
+          "to": "auto_chart_generator",
+          "fromHandle": "output",
+          "toHandle": "data"
+        }
+      ]
+    },
+    {
+      "name": "Bug Triage Workflow",
+      "description": "Triage GitHub issues and assign priorities",
+      "nodes": [
+        {
+          "type": "text_input",
+          "config": {
+            "text": "[{\"id\": 1, \"title\": \"Critical security vulnerability in auth\", \"body\": \"SQL injection found in login endpoint\", \"user\": {\"login\": \"security-team\"}}, {\"id\": 2, \"title\": \"UI improvement for dashboard\", \"body\": \"Add dark mode toggle\", \"user\": {\"login\": \"designer\"}}]"
+          },
+          "position": { "x": 100, "y": 100 }
+        },
+        {
+          "type": "bug_triager",
+          "config": {
+            "provider": "openai"
+          },
+          "position": { "x": 400, "y": 100 }
+        }
+      ],
+      "connections": [
+        {
+          "from": "text_input",
+          "to": "bug_triager",
+          "fromHandle": "output",
+          "toHandle": "issues"
+        }
+      ]
+    },
+    {
+      "name": "Documentation Generation",
+      "description": "Generate docs from code",
+      "nodes": [
+        {
+          "type": "text_input",
+          "config": {
+            "text": "def calculate_revenue(sales, margin):\n    \"\"\"Calculate total revenue from sales and margin\"\"\"\n    return sales * (1 + margin / 100)\n\nclass RevenueCalculator:\n    def __init__(self, base_sales):\n        self.base_sales = base_sales\n    \n    def project(self, growth_rate, months):\n        return self.base_sales * ((1 + growth_rate) ** months)"
+          },
+          "position": { "x": 100, "y": 100 }
+        },
+        {
+          "type": "docs_writer",
+          "config": {
+            "provider": "openai",
+            "doc_type": "readme"
+          },
+          "position": { "x": 400, "y": 100 }
+        }
+      ],
+      "connections": [
+        {
+          "from": "text_input",
+          "to": "docs_writer",
+          "fromHandle": "output",
+          "toHandle": "code"
+        }
+      ]
+    },
+    {
+      "name": "Social Media Post Scheduler",
+      "description": "Create optimized posts for multiple platforms",
+      "nodes": [
+        {
+          "type": "text_input",
+          "config": {
+            "text": "We're excited to announce our new AI-powered workflow automation feature that helps teams save 10+ hours per week!"
+          },
+          "position": { "x": 100, "y": 100 }
+        },
+        {
+          "type": "social_scheduler",
+          "config": {
+            "provider": "openai",
+            "platforms": ["twitter", "linkedin", "facebook"],
+            "schedule_time": ""
+          },
+          "position": { "x": 400, "y": 100 }
+        }
+      ],
+      "connections": [
+        {
+          "from": "text_input",
+          "to": "social_scheduler",
+          "fromHandle": "output",
+          "toHandle": "content_idea"
+        }
+      ]
+    }
+  ]
+}
+

@@ -9,7 +9,11 @@ import type { ExecutionResponse, ExecutionTrace } from '@/types/api';
  * Get execution status
  */
 export async function getExecutionStatus(executionId: string): Promise<ExecutionResponse> {
-  const response = await apiClient.get<ExecutionResponse>(`/executions/${executionId}`);
+  // Use longer timeout for execution status polling (60 seconds)
+  // Workflows can take time, especially CrewAI agents
+  const response = await apiClient.get<ExecutionResponse>(`/executions/${executionId}`, {
+    timeout: 60000, // 60 seconds - longer timeout for status polling
+  });
   return response.data;
 }
 

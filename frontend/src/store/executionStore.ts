@@ -13,6 +13,21 @@ interface NodeSSEEvent {
   message: string;
   timestamp: string;
   progress?: number;
+  agent?: string; // Agent name/role from SSE event
+  task?: string; // Task name from SSE event
+  input_tokens?: number; // Input tokens used
+  output_tokens?: number; // Output tokens used
+  total_tokens?: number; // Total tokens used
+  data?: {
+    thought?: string;
+    tool?: string;
+    tokens_used?: {
+      input_tokens?: number;
+      output_tokens?: number;
+      total_tokens?: number;
+    };
+    [key: string]: any;
+  };
 }
 
 interface ExecutionState {
@@ -233,7 +248,7 @@ export const useExecutionStore = create<ExecutionState>((set) => ({
       return {
         nodeEvents: {
           ...state.nodeEvents,
-          [nodeId]: [...(state.nodeEvents[nodeId] || []), event].slice(-5), // Keep last 5 events
+          [nodeId]: [...(state.nodeEvents[nodeId] || []), event], // Keep ALL events for analytics
         },
         nodeStatuses: {
           ...state.nodeStatuses,

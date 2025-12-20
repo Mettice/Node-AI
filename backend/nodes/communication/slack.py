@@ -81,8 +81,21 @@ class SlackNode(BaseNode):
         node_id: str,
     ) -> Dict[str, Any]:
         """Send a direct message to a user or channel."""
-        channel = config.get("slack_channel") or inputs.get("channel")
-        message = config.get("slack_message") or inputs.get("message") or inputs.get("text")
+        channel = (
+            config.get("slack_channel") or 
+            inputs.get("slack_channel") or
+            inputs.get("channel") or
+            inputs.get("channel_id")
+        )
+        message = (
+            config.get("slack_message") or 
+            inputs.get("slack_message") or
+            inputs.get("message") or 
+            inputs.get("text") or
+            inputs.get("output") or
+            inputs.get("content") or
+            inputs.get("body")
+        )
         
         if not channel:
             raise ValueError("Slack channel or user ID is required")

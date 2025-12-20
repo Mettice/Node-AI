@@ -157,6 +157,12 @@ class ChatNode(BaseNode):
         system_prompt = config.get("system_prompt", "")
         user_prompt_template = config.get("user_prompt_template", "{context}\n\nQuestion: {query}\n\nAnswer:")
         
+        # Check if model requires max_completion_tokens instead of max_tokens
+        # Models like o1, o1-preview, o1-mini, and newer gpt-4o models require max_completion_tokens
+        is_new_model = ("o1" in model.lower() or 
+                       "gpt-4o" in model.lower() or 
+                       model.lower().startswith("chatgpt-4o"))
+        
         # Get node ID for streaming
         node_id = config.get("_node_id", "chat")
         
@@ -209,13 +215,21 @@ class ChatNode(BaseNode):
             # Create a retry-wrapped function for the OpenAI API call
             async def make_openai_request():
                 try:
-                    return client.chat.completions.create(
-                        model=model,
-                        messages=messages,
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                        stream=True,  # Enable streaming
-                    )
+                    # Build request params
+                    request_params = {
+                        "model": model,
+                        "messages": messages,
+                        "temperature": temperature,
+                        "stream": True,  # Enable streaming
+                    }
+                    
+                    # Use max_completion_tokens for newer models, max_tokens for others
+                    if is_new_model:
+                        request_params["max_completion_tokens"] = max_tokens
+                    else:
+                        request_params["max_tokens"] = max_tokens
+                    
+                    return client.chat.completions.create(**request_params)
                 except Exception as e:
                     # Classify the error and raise appropriate retry exception
                     classified_error = classify_openai_error(e)

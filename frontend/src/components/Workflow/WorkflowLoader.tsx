@@ -92,6 +92,7 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
       }));
 
       // Set workflow in store
+      // CustomNode expects data structure: { label, category, status, config }
       setWorkflow({
         id: workflow.id,
         name: workflow.name,
@@ -99,7 +100,13 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
           id: node.id,
           type: node.type || 'default',
           position: node.position,
-          data: node.data?.config || node.data || {},
+          data: {
+            label: node.data?.label || node.type || 'default',
+            category: node.data?.category,
+            status: node.data?.status || 'idle',
+            // If config has a nested config, use that. Otherwise use the config directly
+            config: node.data?.config?.config || node.data?.config || {},
+          },
         })),
         edges: edges.map((edge) => ({
           id: edge.id,

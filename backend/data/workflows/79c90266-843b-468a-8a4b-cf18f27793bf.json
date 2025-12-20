@@ -1,0 +1,49 @@
+{
+  "id": "79c90266-843b-468a-8a4b-cf18f27793bf",
+  "name": "Blog Post Generation",
+  "description": "Generate SEO-optimized blog post from topic",
+  "nodes": [
+    {
+      "id": "text_input_1",
+      "type": "text_input",
+      "position": {
+        "x": 100.0,
+        "y": 100.0
+      },
+      "data": {
+        "text": "Building RAG applications with Nodai: A visual workflow builder for AI automation"
+      }
+    },
+    {
+      "id": "blog_generator_2",
+      "type": "blog_generator",
+      "position": {
+        "x": 400.0,
+        "y": 100.0
+      },
+      "data": {
+        "provider": "openai",
+        "tone": "professional",
+        "target_audience": "technical",
+        "include_seo": true,
+        "word_count": 1500
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_1",
+      "source": "text_input_1",
+      "target": "blog_generator_2",
+      "sourceHandle": "output",
+      "targetHandle": "topic"
+    }
+  ],
+  "created_at": "2025-12-13T13:35:17.865394",
+  "updated_at": "2025-12-13T13:35:17.865394",
+  "tags": [],
+  "is_template": true,
+  "is_deployed": false,
+  "deployed_at": null,
+  "owner_id": null
+}

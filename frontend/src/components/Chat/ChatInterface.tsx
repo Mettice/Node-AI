@@ -79,16 +79,33 @@ export function ChatInterface({ isOpen, onClose }: ChatInterfaceProps) {
         throw new Error('Missing required nodes');
       }
 
+      // Find vector_store node to get index_id
+      const vectorStoreNode = nodes.find(n => n.type === 'vector_store');
+      
+      // Get index_id from vector_store node's config or from previous execution results
+      const { results } = useExecutionStore.getState();
+      const vectorStoreResult = vectorStoreNode ? results[vectorStoreNode.id] : null;
+      const indexId = vectorStoreNode?.data?.config?.index_id || 
+                      vectorStoreNode?.data?.index_id ||
+                      vectorStoreResult?.output?.index_id ||
+                      vectorSearchNode.data?.config?.index_id ||
+                      vectorSearchNode.data?.index_id;
+
       // Build workflow with query injected into vector search and chat nodes
       const workflowNodes = nodes.map((node) => {
         // Get base config (flattened like ExecutionControls does)
         const baseConfig = node.data?.config || node.data || {};
         
-        // For vector search node, inject the query (for searching)
+        // For vector search node, inject the query (for searching) and ensure index_id is set
         // For chat node, inject the query (for the prompt template)
         let config = baseConfig;
         if (node.id === vectorSearchNode.id) {
-          config = { ...baseConfig, query: message };
+          config = { 
+            ...baseConfig, 
+            query: message,
+            // Ensure index_id is set - critical for finding the stored vectors
+            ...(indexId && !baseConfig.index_id ? { index_id: indexId } : {}),
+          };
         } else if (node.id === chatNode.id) {
           config = { 
             ...baseConfig, 
@@ -107,6 +124,7 @@ export function ChatInterface({ isOpen, onClose }: ChatInterfaceProps) {
             originalConfig: baseConfig,
             injectedQuery: message,
             finalConfig: config,
+            ...(node.id === vectorSearchNode.id && { indexId, vectorStoreNodeId: vectorStoreNode?.id }),
           });
         }
 

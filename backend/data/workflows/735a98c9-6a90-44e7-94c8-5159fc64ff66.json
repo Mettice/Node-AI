@@ -1,0 +1,52 @@
+{
+  "id": "735a98c9-6a90-44e7-94c8-5159fc64ff66",
+  "name": "Smart Data Analysis",
+  "description": "Analyze sales data with focus on trends and anomalies",
+  "nodes": [
+    {
+      "id": "text_input_1",
+      "type": "text_input",
+      "position": {
+        "x": 100.0,
+        "y": 100.0
+      },
+      "data": {
+        "text": "{\"month\": [\"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\"], \"sales\": [12000, 15000, 18000, 14000, 22000], \"customers\": [120, 150, 180, 140, 220]}"
+      }
+    },
+    {
+      "id": "smart_data_analyzer_2",
+      "type": "smart_data_analyzer",
+      "position": {
+        "x": 400.0,
+        "y": 100.0
+      },
+      "data": {
+        "provider": "openai",
+        "analysis_type": "business",
+        "focus_areas": [
+          "trends",
+          "anomalies",
+          "patterns"
+        ],
+        "include_visualizations": true
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_1",
+      "source": "text_input_1",
+      "target": "smart_data_analyzer_2",
+      "sourceHandle": "output",
+      "targetHandle": "data"
+    }
+  ],
+  "created_at": "2025-12-13T13:35:17.860885",
+  "updated_at": "2025-12-13T13:35:17.860885",
+  "tags": [],
+  "is_template": true,
+  "is_deployed": false,
+  "deployed_at": null,
+  "owner_id": null
+}

@@ -289,10 +289,14 @@ export function SchemaForm({
   const properties = schema.properties || {};
   const required = schema.required || [];
 
+  // Check if this node has LLM provider configuration (for nodes using LLMConfigMixin)
+  const hasLLMProviderConfig = properties['provider'] && 
+    (properties['openai_model'] || properties['anthropic_model'] || properties['gemini_model']);
+
   return (
     <div className="space-y-4">
-      {/* Provider selector for generic nodes - show first */}
-      {isGenericNode && (
+      {/* Provider selector for generic nodes or nodes with LLM config - show first */}
+      {(isGenericNode || hasLLMProviderConfig) && (
         <ProviderSelector
           nodeType={nodeType}
           currentProvider={formValues.provider || ''}

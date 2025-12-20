@@ -12,6 +12,8 @@ import { KnowledgeBaseSelector } from '../KnowledgeBaseSelector';
 import { ModelSelector } from '../ModelSelector';
 import { ArrayInput } from '../ArrayInput';
 import { ObjectInput } from '../ObjectInput';
+import { MultiSelectDropdown } from '@/components/common/MultiSelectDropdown';
+import { SelectWithIcons } from '@/components/common/SelectWithIcons';
 import { testSearchProviderConnection, testLLMConnection, testEmailConnection } from '@/services/nodes';
 
 interface FieldHandlerContext {
@@ -300,6 +302,46 @@ export function getSpecialFieldHandler(context: FieldHandlerContext): React.Reac
     );
   }
 
+  // Special handling for platform selection in Cost Optimizer
+  if (nodeType === 'cost_optimizer' && key === 'platform') {
+    const platformOptions = [
+      { value: 'aws', label: 'AWS', icon: 'aws' },
+      { value: 'gcp', label: 'Google Cloud Platform', icon: 'gcp' },
+      { value: 'azure', label: 'Microsoft Azure', icon: 'microsoftazure' },
+      { value: 'multi_cloud', label: 'Multi-Cloud', icon: 'cloud' },
+    ];
+    
+    return (
+      <div key={key} className="space-y-2">
+        <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
+          {fieldSchema.title || key}
+          {required.includes(key) && <span className="text-red-400 ml-1">*</span>}
+        </label>
+        {fieldSchema.description && (
+          <p className="text-xs text-slate-400 -mt-1">{fieldSchema.description}</p>
+        )}
+        <SelectWithIcons
+          value={formValues[key] || fieldSchema.default || 'aws'}
+          onChange={(value) => setValue(key, value)}
+          options={platformOptions}
+          placeholder="Select cloud platform..."
+        />
+      </div>
+    );
+  }
+
+  // Special handling for platforms in Social Analyzer
+  if (nodeType === 'social_analyzer' && key === 'platforms') {
+    // This will be handled by the enum array handler above, but we can add icons
+    return null; // Let the enum array handler take care of it
+  }
+
+  // Special handling for analysis_types in Social Analyzer
+  if (nodeType === 'social_analyzer' && key === 'analysis_types') {
+    // This will be handled by the enum array handler above
+    return null; // Let the enum array handler take care of it
+  }
+
     // Special handling for API key fields (masked input with connect button)
   if (key.includes('api_key') || key.includes('_api_key')) {
     // For tool nodes with web_search, conditionally show API key fields based on provider
@@ -378,7 +420,14 @@ export function getSpecialFieldHandler(context: FieldHandlerContext): React.Reac
       'search', 'vector_search',
       'vector_store',
       'tool', 'web_search',
-      'reddit'
+      'reddit',
+      // New LLM nodes using LLMConfigMixin
+      'smart_data_analyzer', 'blog_generator', 'proposal_generator',
+      'meeting_summarizer', 'lead_scorer', 'content_moderator', 'auto_chart_generator',
+      'call_summarizer', 'followup_writer', 'lead_enricher',
+      'stripe_analytics', 'cost_optimizer', 'social_analyzer', 'ab_test_analyzer',
+      'brand_generator', 'podcast_transcriber', 'social_scheduler',
+      'bug_triager', 'docs_writer', 'performance_monitor', 'security_scanner'
     ];
     // Check if node type matches (exact match or contains the node type)
     const isVaultSupportedNode = nodesWithVaultSupport.some(node => 
@@ -425,22 +474,24 @@ export function getSpecialFieldHandler(context: FieldHandlerContext): React.Reac
     };
 
     if (shouldUseVault) {
+      // Check if there's a secret_id in config (for loading existing vault secrets)
+      const secretIdKey = `${key}_secret_id`;
+      const existingSecretId = formValues[secretIdKey];
+      
       return (
         <APIKeyInputWithVault
           key={key}
           value={formValues[key] || ''}
-          secretId={formValues[`${key}_secret_id`]}
+          secretId={existingSecretId}
           onChange={(value, secretId) => {
+            // Store the API key value
             setValue(key, value);
-            // Store secret ID if using vault, clear it if not
+            // Store secret_id in config (for backend to use) but don't show it as a separate field
             if (secretId) {
-              setValue(`${key}_secret_id`, secretId);
+              setValue(secretIdKey, secretId);
             } else {
-              // Explicitly remove the secret_id field when clearing
-              const currentValues = formValues;
-              if (currentValues[`${key}_secret_id`]) {
-                setValue(`${key}_secret_id`, undefined);
-              }
+              // Clear secret_id when not using vault
+              setValue(secretIdKey, undefined);
             }
           }}
           placeholder={fieldSchema.description || 'Enter API key...'}
@@ -518,6 +569,50 @@ export function getSpecialFieldHandler(context: FieldHandlerContext): React.Reac
 
   // Special handling for array fields with strings
   if (fieldSchema.type === 'array' && fieldSchema.items?.type === 'string') {
+    // If items have enum values, use multi-select dropdown instead of ArrayInput
+    if (fieldSchema.items?.enum) {
+      // Format options for MultiSelectDropdown
+      const formatLabel = (val: string) => {
+        return val
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, (l) => l.toUpperCase());
+      };
+
+      const dropdownOptions = fieldSchema.items.enum.map((val: string) => ({
+        value: val,
+        label: formatLabel(val),
+        // Add icons for specific options if needed
+        icon: val === 'aws' ? 'aws' : 
+              val === 'gcp' ? 'gcp' : 
+              val === 'azure' ? 'microsoftazure' :
+              val === 'twitter' ? 'twitter' :
+              val === 'linkedin' ? 'linkedin' :
+              val === 'facebook' ? 'facebook' :
+              val === 'instagram' ? 'instagram' :
+              undefined
+      }));
+
+      return (
+        <div key={key} className="space-y-2">
+          <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
+            {fieldSchema.title || key}
+            {required.includes(key) && <span className="text-red-400 ml-1">*</span>}
+          </label>
+          {fieldSchema.description && (
+            <p className="text-xs text-slate-400 -mt-1">{fieldSchema.description}</p>
+          )}
+          <MultiSelectDropdown
+            value={formValues[key] || []}
+            onChange={(selected) => setValue(key, selected)}
+            options={dropdownOptions}
+            placeholder={fieldSchema.description || `Select ${fieldSchema.title?.toLowerCase() || 'options'}...`}
+            maxSelections={fieldSchema.maxItems}
+          />
+        </div>
+      );
+    }
+    
+    // Regular array input for non-enum arrays
     return (
       <div key={key} className="space-y-2">
         <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">

@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Sparkles } from 'lucide-react';
 import { Input } from '@/components/common/Input';
 import { Textarea } from '@/components/common/Textarea';
 import { Select } from '@/components/common/Select';
@@ -12,6 +12,7 @@ import { SelectWithIcons } from '@/components/common/SelectWithIcons';
 import { ProviderSelector } from './ProviderSelector';
 import { APIKeyInputWithVault } from './APIKeyInputWithVault';
 import { testLLMConnection } from '@/services/nodes';
+import { ROOM_TEMPLATES, applyTemplate, type RoomTemplate } from '@/components/Canvas/AgentRoomTemplates';
 
 interface Agent {
   name?: string;
@@ -51,12 +52,25 @@ export function CrewAIAgentForm({ initialData, onChange, schema }: CrewAIAgentFo
     if (!initialData.tasks) return [{ description: '', agent: '', expected_output: '' }];
     if (typeof initialData.tasks === 'string') {
       try {
-        return JSON.parse(initialData.tasks);
+        const parsed = JSON.parse(initialData.tasks);
+        // Ensure all task fields are strings, not null
+        return Array.isArray(parsed) ? parsed.map((task: any) => ({
+          description: task.description || '',
+          agent: task.agent || '',
+          expected_output: task.expected_output || '',
+        })) : [{ description: '', agent: '', expected_output: '' }];
       } catch {
         return [{ description: '', agent: '', expected_output: '' }];
       }
     }
-    return Array.isArray(initialData.tasks) ? initialData.tasks : [{ description: '', agent: '', expected_output: '' }];
+    // Ensure all task fields are strings, not null
+    return Array.isArray(initialData.tasks) 
+      ? initialData.tasks.map((task: any) => ({
+          description: task.description || '',
+          agent: task.agent || '',
+          expected_output: task.expected_output || '',
+        }))
+      : [{ description: '', agent: '', expected_output: '' }];
   };
 
   const [provider, setProvider] = useState(initialData.provider || 'openai');
@@ -232,8 +246,62 @@ export function CrewAIAgentForm({ initialData, onChange, schema }: CrewAIAgentFo
     .map((a) => a.role)
     .filter((role) => role.trim() !== '');
 
+  const handleApplyTemplate = (template: RoomTemplate) => {
+    const templateAgents = applyTemplate(template);
+    // Convert template agents to form agents (ensure goal and backstory are strings)
+    const formAgents = templateAgents.map(agent => ({
+      role: agent.role,
+      goal: agent.goal || '',
+      backstory: agent.backstory || '',
+    }));
+    setAgents(formAgents);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Room Templates */}
+      <div>
+        <label className="block text-sm font-medium text-white mb-2 flex items-center gap-2">
+          <Sparkles className="w-4 h-4" />
+          Quick Start Templates
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          {ROOM_TEMPLATES.map((template) => (
+            <button
+              key={template.id}
+              onClick={() => handleApplyTemplate(template)}
+              className="p-3 rounded-lg border border-white/10 hover:border-white/30 hover:bg-white/5 transition-all text-left group"
+              style={{
+                borderColor: template.color + '40',
+              }}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">{template.icon}</span>
+                <span className="text-sm font-semibold text-white group-hover:text-white">
+                  {template.name}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 line-clamp-2">
+                {template.description}
+              </p>
+              <div className="mt-2 flex items-center gap-1 flex-wrap">
+                {template.agents.map((agent, idx) => (
+                  <span
+                    key={idx}
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-slate-400"
+                  >
+                    {agent.role}
+                  </span>
+                ))}
+              </div>
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-slate-500 mt-2">
+          Click a template to automatically configure agents. You can still customize them afterward.
+        </p>
+      </div>
+
       {/* Provider Selection */}
       <div>
         <label className="block text-sm font-medium text-white mb-2">LLM Provider</label>

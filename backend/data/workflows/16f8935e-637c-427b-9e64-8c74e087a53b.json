@@ -1,0 +1,46 @@
+{
+  "id": "16f8935e-637c-427b-9e64-8c74e087a53b",
+  "name": "Documentation Generation",
+  "description": "Generate docs from code",
+  "nodes": [
+    {
+      "id": "text_input_1",
+      "type": "text_input",
+      "position": {
+        "x": 100.0,
+        "y": 100.0
+      },
+      "data": {
+        "text": "def calculate_revenue(sales, margin):\n    \"\"\"Calculate total revenue from sales and margin\"\"\"\n    return sales * (1 + margin / 100)\n\nclass RevenueCalculator:\n    def __init__(self, base_sales):\n        self.base_sales = base_sales\n    \n    def project(self, growth_rate, months):\n        return self.base_sales * ((1 + growth_rate) ** months)"
+      }
+    },
+    {
+      "id": "docs_writer_2",
+      "type": "docs_writer",
+      "position": {
+        "x": 400.0,
+        "y": 100.0
+      },
+      "data": {
+        "provider": "openai",
+        "doc_type": "readme"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_1",
+      "source": "text_input_1",
+      "target": "docs_writer_2",
+      "sourceHandle": "output",
+      "targetHandle": "code"
+    }
+  ],
+  "created_at": "2025-12-13T13:35:17.868395",
+  "updated_at": "2025-12-13T13:35:17.868395",
+  "tags": [],
+  "is_template": true,
+  "is_deployed": false,
+  "deployed_at": null,
+  "owner_id": null
+}

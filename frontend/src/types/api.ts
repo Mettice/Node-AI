@@ -46,5 +46,6 @@ export interface ExecutionTrace {
   trace: ExecutionStep[];  // Backend returns "trace", not "steps"
   total_cost: number;
   duration_ms: number;
+  results?: Record<string, NodeResult>;  // Node results included in trace response
 }
 

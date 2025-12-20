@@ -107,7 +107,9 @@ class StreamManager:
     
     _instance: Optional["StreamManager"] = None
     _streams: Dict[str, asyncio.Queue] = {}
+    _stream_timestamps: Dict[str, datetime] = {}  # Track creation time for cleanup
     _lock = asyncio.Lock()
+    _cleanup_interval = 300  # 5 minutes in seconds
     
     def __new__(cls):
         if cls._instance is None:
@@ -119,13 +121,19 @@ class StreamManager:
         async with self._lock:
             if execution_id not in self._streams:
                 self._streams[execution_id] = asyncio.Queue()
+                self._stream_timestamps[execution_id] = datetime.now()
                 logger.info(f"Created stream for execution: {execution_id}")
+                
+                # Schedule automatic cleanup for old streams
+                asyncio.create_task(self._schedule_cleanup())
     
     async def remove_stream(self, execution_id: str) -> None:
         """Remove a stream for an execution."""
         async with self._lock:
             if execution_id in self._streams:
                 del self._streams[execution_id]
+                if execution_id in self._stream_timestamps:
+                    del self._stream_timestamps[execution_id]
                 logger.info(f"Removed stream for execution: {execution_id}")
     
     async def publish(self, event: StreamEvent) -> None:
@@ -165,6 +173,35 @@ class StreamManager:
             except Exception as e:
                 logger.error(f"Error in stream subscription: {e}", exc_info=True)
                 break
+    
+    async def _schedule_cleanup(self) -> None:
+        """Schedule automatic cleanup of old streams."""
+        try:
+            await asyncio.sleep(self._cleanup_interval)
+            await self._cleanup_old_streams()
+        except Exception as e:
+            logger.warning(f"Error in scheduled stream cleanup: {e}")
+    
+    async def _cleanup_old_streams(self) -> None:
+        """Clean up streams that are older than the cleanup interval."""
+        from datetime import timedelta
+        cutoff_time = datetime.now() - timedelta(seconds=self._cleanup_interval)
+        streams_to_remove = []
+        
+        async with self._lock:
+            for execution_id, created_at in self._stream_timestamps.items():
+                if created_at < cutoff_time:
+                    streams_to_remove.append(execution_id)
+            
+            for execution_id in streams_to_remove:
+                if execution_id in self._streams:
+                    del self._streams[execution_id]
+                if execution_id in self._stream_timestamps:
+                    del self._stream_timestamps[execution_id]
+                logger.info(f"Auto-cleaned up old stream: {execution_id}")
+        
+        if streams_to_remove:
+            logger.info(f"Cleaned up {len(streams_to_remove)} old streams")
 
 
 # Global stream manager instance

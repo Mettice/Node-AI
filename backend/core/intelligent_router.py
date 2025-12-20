@@ -87,7 +87,15 @@ class IntelligentRouter:
             self._cache[cache_key] = routed_data
             return routed_data
         except Exception as e:
-            logger.warning(f"Intelligent routing failed, falling back to rule-based: {e}")
+            error_context = {
+                "target_node_type": target_node_type,
+                "source_node_types": source_node_types,
+                "available_data_keys": list(available_data.keys()),
+                "workflow_context": workflow_context,
+                "error_type": type(e).__name__,
+                "error_message": str(e)
+            }
+            logger.warning(f"Intelligent routing failed, falling back to rule-based. Context: {error_context}")
             return self._fallback_route(target_node_type, available_data)
     
     async def _intelligent_route(
@@ -238,7 +246,14 @@ Return JSON mapping only:"""
                 return await self._call_openai(prompt, "gpt-4o-mini")
             
         except Exception as e:
-            logger.error(f"LLM routing call failed: {e}")
+            llm_error_context = {
+                "provider": self.provider,
+                "model": self.model,
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+                "prompt_length": len(prompt)
+            }
+            logger.error(f"LLM routing call failed. Context: {llm_error_context}")
             raise
     
     async def _call_openai(self, prompt: str, model: str) -> Dict[str, Any]:
@@ -381,11 +396,33 @@ Return JSON mapping only:"""
         return routed_data
     
     def _evaluate_template(self, template: str, data: Dict[str, Any]) -> str:
-        """Evaluate template string with available data."""
-        result = template
-        for key, value in data.items():
-            result = result.replace(f"{{{{{key}}}}}", str(value))
-        return result
+        """
+        Evaluate template string with available data using safe substitution.
+        Prevents injection attacks by using string.Template with safe_substitute.
+        """
+        import re
+        from string import Template
+        
+        try:
+            # Convert {{key}} syntax to $key syntax for string.Template
+            # This ensures safe variable substitution
+            safe_template_str = re.sub(r'\{\{(\w+)\}\}', r'$\1', template)
+            
+            # Create Template object and safely substitute
+            safe_template = Template(safe_template_str)
+            
+            # Use safe_substitute to prevent KeyError and injection
+            # Convert all values to strings safely
+            safe_data = {k: str(v) if v is not None else "" for k, v in data.items()}
+            result = safe_template.safe_substitute(safe_data)
+            
+            logger.debug(f"Template evaluation: '{template}' -> '{result}'")
+            return result
+            
+        except Exception as e:
+            # Fallback to original template if substitution fails
+            logger.warning(f"Template evaluation failed for '{template}': {e}")
+            return template
     
     def _apply_cached_routing(
         self,
@@ -407,23 +444,160 @@ Return JSON mapping only:"""
         # Use existing rule-based logic
         routed = {}
         
-        # Common mappings
+        # Extract text from available_data (may be prefixed with source_id)
+        # Check both direct keys and prefixed keys
+        text_value = None
         if "text" in available_data:
-            routed["text"] = available_data["text"]
-            routed["query"] = available_data["text"]
-            routed["input"] = available_data["text"]
+            text_value = available_data["text"]
+        else:
+            # Look for prefixed text keys (e.g., "text_input_1_text", "text_text_input_1")
+            for key in available_data.keys():
+                if key.startswith("text_") and key != "text_input":
+                    text_value = available_data[key]
+                    break
+                elif key.endswith("_text"):
+                    text_value = available_data[key]
+                    break
         
+        # Common mappings
+        if text_value:
+            routed["text"] = text_value
+            routed["query"] = text_value
+            routed["input"] = text_value
+            routed["content"] = text_value  # For content processing nodes
+        
+        # Also check for output
+        output_value = None
         if "output" in available_data:
-            routed["text"] = available_data["output"]
+            output_value = available_data["output"]
+        else:
+            # Look for prefixed output keys
+            for key in available_data.keys():
+                if key.startswith("output_") or key.endswith("_output"):
+                    output_value = available_data[key]
+                    break
+        
+        if output_value and not text_value:
+            routed["text"] = output_value
+            routed["query"] = output_value
+        
+        # Handle embeddings for vector search
+        if "query_embedding" in available_data:
+            routed["query_embedding"] = available_data["query_embedding"]
+        elif "embeddings" in available_data:
+            routed["query_embedding"] = available_data["embeddings"]
+            routed["embeddings"] = available_data["embeddings"]
+        elif "embedding" in available_data:
+            routed["query_embedding"] = available_data["embedding"]
+        
+        # Handle search results for chat
+        if "results" in available_data:
+            routed["results"] = available_data["results"]
         
         # Node-type specific fallbacks
         if target_node_type == "email" or "send_email" in target_node_type:
             if "sender" in available_data:
                 routed["to"] = available_data["sender"]
-            if "reply_text" in available_data:
+            
+            # Check for formatted output first (from blog_generator, chart_generator, etc.)
+            formatted_value = None
+            for key in available_data.keys():
+                if key.startswith("formatted_"):
+                    formatted_value = available_data[key]
+                    break
+            
+            if formatted_value:
+                # Use formatted output (HTML) for email body
+                routed["body"] = formatted_value
+                routed["email_body"] = formatted_value
+                routed["_email_type"] = "html"
+            elif "reply_text" in available_data:
                 routed["body"] = available_data["reply_text"]
+                routed["email_body"] = available_data["reply_text"]
+            elif "body" in available_data:
+                # Already formatted body (e.g., from chart generator)
+                routed["body"] = available_data["body"]
+                routed["email_body"] = available_data["body"]
             elif "text" in available_data:
                 routed["body"] = available_data["text"]
+                routed["email_body"] = available_data["text"]
+            elif "output" in available_data:
+                # Map output to body (most common case)
+                routed["body"] = available_data["output"]
+                routed["email_body"] = available_data["output"]
+            elif "content" in available_data:
+                routed["body"] = available_data["content"]
+                routed["email_body"] = available_data["content"]
+        
+        # Slack node fallbacks
+        if target_node_type == "slack":
+            # Check for formatted output first (from blog_generator, chart_generator, etc.)
+            formatted_value = None
+            for key in available_data.keys():
+                if key.startswith("formatted_"):
+                    formatted_value = available_data[key]
+                    break
+            
+            if formatted_value:
+                # Use formatted output for Slack message
+                routed["message"] = formatted_value
+                routed["text"] = formatted_value
+            elif "output" in available_data:
+                routed["message"] = available_data["output"]
+                routed["text"] = available_data["output"]
+            elif "text" in available_data:
+                routed["message"] = available_data["text"]
+            elif "content" in available_data:
+                routed["message"] = available_data["content"]
+        
+        # Blog generator and content generation nodes fallbacks
+        if target_node_type in ["blog_generator", "proposal_generator", "brand_generator"]:
+            # These nodes expect "topic" field, but can accept "text", "content", "output"
+            topic_value = None
+            if "topic" in available_data:
+                topic_value = available_data["topic"]
+            elif text_value:
+                # Map text to topic for content generators
+                topic_value = text_value
+            elif "content" in available_data:
+                topic_value = available_data["content"]
+            elif output_value:
+                topic_value = output_value
+            else:
+                # Look for prefixed content keys
+                for key in available_data.keys():
+                    if "content" in key.lower() or "topic" in key.lower():
+                        topic_value = available_data[key]
+                        break
+            
+            if topic_value:
+                routed["topic"] = topic_value
+                if text_value:
+                    routed["text"] = text_value
+                if output_value:
+                    routed["output"] = output_value
+        
+        # Advanced NLP and processing nodes fallbacks
+        if target_node_type == "advanced_nlp":
+            # Advanced NLP expects "text" field
+            nlp_text = None
+            if text_value:
+                nlp_text = text_value
+            elif "content" in available_data:
+                nlp_text = available_data["content"]
+            elif output_value:
+                nlp_text = output_value
+            elif "file_content" in available_data:
+                nlp_text = available_data["file_content"]
+            else:
+                # Look for prefixed file_content keys
+                for key in available_data.keys():
+                    if "file_content" in key or "content" in key:
+                        nlp_text = available_data[key]
+                        break
+            
+            if nlp_text:
+                routed["text"] = nlp_text
         
         # Pass through all available data as fallback
         for key, value in available_data.items():

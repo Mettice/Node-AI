@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NodeAI - Agent Rooms & Animated Nodes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #06080d;
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .canvas {
+            position: relative;
+            width: 100%;
+            min-height: 100vh;
+            background: radial-gradient(ellipse at 50% 30%, #0d1117 0%, #06080d 70%);
+        }
+
+        .canvas::before {
+            content: '';
+            position: fixed;
+            width: 800px;
+            height: 800px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(240, 180, 41, 0.12) 0%, transparent 70%);
+            filter: blur(80px);
+            top: -10%;
+            left: 20%;
+            pointer-events: none;
+            animation: ambientFloat 20s ease-in-out infinite;
+        }
+
+        .canvas::after {
+            content: '';
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(34, 211, 238, 0.08) 0%, transparent 70%);
+            filter: blur(60px);
+            bottom: 10%;
+            right: 10%;
+            pointer-events: none;
+            animation: ambientFloat 25s ease-in-out infinite reverse;
+        }
+
+        @keyframes ambientFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.7; }
+            50% { transform: translate(30px, -20px) scale(1.1); opacity: 0.9; }
+        }
+
+        .grid {
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.03) 1px, transparent 0);
+            background-size: 24px 24px;
+            pointer-events: none;
+        }
+
+        .header {
+            padding: 20px 40px;
+            background: rgba(13, 17, 23, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .header p {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 4px;
+        }
+
+        .section {
+            padding: 40px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #f0b429;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 12px;
+        }
+
+        .section-subtitle {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 32px;
+            max-width: 700px;
+            line-height: 1.6;
+        }
+
+        .node-grid {
+            display: flex;
+            gap: 60px;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            align-items: flex-start;
+        }
+
+        .node-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .node-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .node-description {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            text-align: center;
+            max-width: 250px;
+        }
+
+        /* ============================================ */
+        /* ANIMATED GRADIENT BORDER */
+        /* ============================================ */
+
+        @keyframes gradientRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes borderPulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .node-animated-border {
+            position: relative;
+            width: 260px;
+            border-radius: 16px;
+            padding: 2px;
+            background: linear-gradient(135deg, #f472b6, #f0b429, #22d3ee, #a78bfa, #f472b6);
+            background-size: 400% 400%;
+            animation: gradientShift 3s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .node-animated-border-inner {
+            background: rgba(13, 17, 23, 0.92);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .node-animated-border .node-header {
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .node-animated-border .node-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            background: rgba(244, 114, 182, 0.2);
+            box-shadow: 0 0 20px rgba(244, 114, 182, 0.3);
+        }
+
+        .node-animated-border .node-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .node-animated-border .node-subtitle {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .node-animated-border .node-body {
+            padding: 14px 16px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 8px 16px 12px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f472b6, #f0b429);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-bar-animated .progress-bar-fill {
+            animation: progressPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes progressPulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        .node-animated-border .node-footer {
+            padding: 10px 16px;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .status-running {
+            color: #3b82f6;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #3b82f6;
+            animation: statusPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes statusPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        /* Handle */
+        .handle {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .handle-left { left: -7px; }
+        .handle-right { right: -7px; }
+
+        /* ============================================ */
+        /* IDLE STATE - Subtle glow, no animation */
+        /* ============================================ */
+
+        .node-idle {
+            position: relative;
+            width: 260px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 
+                0 4px 24px rgba(0, 0, 0, 0.3),
+                0 0 40px rgba(244, 114, 182, 0.08);
+            overflow: hidden;
+        }
+
+        .node-idle .node-header {
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(244, 114, 182, 0.05);
+        }
+
+        .node-idle .node-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            background: rgba(244, 114, 182, 0.15);
+        }
+
+        .node-idle .node-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .node-idle .node-subtitle {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .node-idle .node-body {
+            padding: 14px 16px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .node-idle .node-footer {
+            padding: 10px 16px;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* ============================================ */
+        /* COMPLETED STATE */
+        /* ============================================ */
+
+        .node-completed {
+            position: relative;
+            width: 260px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(30px);
+            border: 2px solid rgba(34, 197, 94, 0.5);
+            box-shadow: 
+                0 4px 24px rgba(0, 0, 0, 0.3),
+                0 0 30px rgba(34, 197, 94, 0.15);
+            overflow: hidden;
+        }
+
+        .node-completed .node-header {
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(34, 197, 94, 0.08);
+        }
+
+        .node-completed .node-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .node-completed .node-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .node-completed .node-subtitle {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .node-completed .node-body {
+            padding: 14px 16px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .node-completed .node-footer {
+            padding: 10px 16px;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .status-completed {
+            color: #22c55e;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* ============================================ */
+        /* AGENT ROOM - The Big Innovation */
+        /* ============================================ */
+
+        .agent-room {
+            position: relative;
+            width: 480px;
+            border-radius: 20px;
+            padding: 3px;
+            background: linear-gradient(135deg, #f472b6, #f0b429, #22d3ee, #f472b6);
+            background-size: 300% 300%;
+            animation: gradientShift 4s ease infinite;
+            box-shadow: 
+                0 0 40px rgba(244, 114, 182, 0.2),
+                0 0 80px rgba(240, 180, 41, 0.1);
+        }
+
+        .agent-room-inner {
+            background: rgba(13, 17, 23, 0.95);
+            border-radius: 17px;
+            overflow: hidden;
+        }
+
+        .agent-room-header {
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: linear-gradient(135deg, rgba(244, 114, 182, 0.1) 0%, rgba(240, 180, 41, 0.05) 100%);
+        }
+
+        .agent-room-title-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .agent-room-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            background: rgba(244, 114, 182, 0.2);
+            box-shadow: 0 0 25px rgba(244, 114, 182, 0.3);
+        }
+
+        .agent-room-title {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .agent-room-subtitle {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 2px;
+        }
+
+        .agent-room-badge {
+            background: rgba(244, 114, 182, 0.2);
+            color: #f472b6;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        /* Agent Container - The "Meeting Room" */
+        .agent-container {
+            padding: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+            min-height: 160px;
+        }
+
+        /* Connection lines between agents */
+        .agent-container::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 80px;
+            right: 80px;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(255, 255, 255, 0.2) 20%, 
+                rgba(255, 255, 255, 0.2) 80%, 
+                transparent 100%);
+            z-index: 0;
+        }
+
+        /* Mini Agent Node */
+        .mini-agent {
+            position: relative;
+            z-index: 1;
+            width: 100px;
+            padding: 16px 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .mini-agent:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-4px);
+        }
+
+        .mini-agent-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin: 0 auto 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .mini-agent-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .mini-agent-role {
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 2px;
+        }
+
+        /* Active speaking agent */
+        .mini-agent.speaking {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .mini-agent.speaking .mini-agent-icon {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: #3b82f6;
+            animation: speakingPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes speakingPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
+        }
+
+        /* Conversation arrows */
+        .arrow-right, .arrow-left {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.3);
+            z-index: 2;
+        }
+
+        /* Agent Room Footer */
+        .agent-room-footer {
+            padding: 14px 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .agent-room-progress {
+            flex: 1;
+            margin-right: 20px;
+        }
+
+        .agent-room-progress-label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .agent-room-progress-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .agent-room-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f472b6, #f0b429);
+            border-radius: 3px;
+            width: 67%;
+            animation: progressGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes progressGlow {
+            0%, 100% { box-shadow: 0 0 10px rgba(244, 114, 182, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(240, 180, 41, 0.5); }
+        }
+
+        .agent-room-stats {
+            display: flex;
+            gap: 16px;
+            font-size: 11px;
+        }
+
+        .agent-room-stat {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .agent-room-stat span {
+            color: #f0b429;
+            font-weight: 600;
+        }
+
+        /* ============================================ */
+        /* AGENT ROOM - CIRCULAR LAYOUT */
+        /* ============================================ */
+
+        .agent-room-circular {
+            position: relative;
+            width: 400px;
+            border-radius: 20px;
+            padding: 3px;
+            background: linear-gradient(135deg, #a78bfa, #22d3ee, #34d399, #a78bfa);
+            background-size: 300% 300%;
+            animation: gradientShift 4s ease infinite;
+        }
+
+        .agent-room-circular .agent-room-inner {
+            padding-bottom: 0;
+        }
+
+        .agent-circle-container {
+            padding: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Central hub */
+        .agent-hub {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(167, 139, 250, 0.15);
+            border: 2px solid rgba(167, 139, 250, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .agent-hub-icon {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        .agent-hub-label {
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 600;
+        }
+
+        /* Orbiting agents */
+        .orbit-agent {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .orbit-agent:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.1);
+        }
+
+        .orbit-agent-1 { top: 10px; left: 50%; transform: translateX(-50%); }
+        .orbit-agent-2 { bottom: 40px; left: 30px; }
+        .orbit-agent-3 { bottom: 40px; right: 30px; }
+
+        .orbit-agent.active {
+            background: rgba(34, 211, 238, 0.15);
+            border-color: #22d3ee;
+            box-shadow: 0 0 20px rgba(34, 211, 238, 0.4);
+        }
+
+        .orbit-agent span {
+            font-size: 18px;
+        }
+
+        .orbit-agent small {
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 2px;
+        }
+
+        /* Connection lines in circle */
+        .orbit-lines {
+            position: absolute;
+            inset: 30px;
+            pointer-events: none;
+        }
+
+        .orbit-lines svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .orbit-lines line {
+            stroke: rgba(255, 255, 255, 0.15);
+            stroke-width: 1;
+            stroke-dasharray: 4 4;
+        }
+
+        /* ============================================ */
+        /* SIMPLE INPUT NODE - Very minimal */
+        /* ============================================ */
+
+        .node-input-simple {
+            width: 200px;
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(20px);
+            border: 1px dashed rgba(34, 211, 238, 0.3);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .node-input-simple .node-header {
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .node-input-simple .node-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            background: rgba(34, 211, 238, 0.1);
+        }
+
+        .node-input-simple .node-title {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .node-input-simple .node-body {
+            padding: 12px 14px;
+        }
+
+        .node-input-simple textarea {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            resize: none;
+            height: 60px;
+        }
+
+        .node-input-simple textarea::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* ============================================ */
+        /* COMPARISON ROW */
+        /* ============================================ */
+
+        .comparison-row {
+            display: flex;
+            gap: 40px;
+            align-items: flex-start;
+            padding: 40px;
+            background: rgba(0, 0, 0, 0.2);
+            margin: 20px;
+            border-radius: 16px;
+            flex-wrap: wrap;
+        }
+
+        .comparison-label {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* ============================================ */
+        /* STATE INDICATORS */
+        /* ============================================ */
+
+        .state-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .state-indicator.idle { color: rgba(255, 255, 255, 0.5); }
+        .state-indicator.running { color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
+        .state-indicator.completed { color: #22c55e; background: rgba(34, 197, 94, 0.1); }
+
+    </style>
+</head>
+<body>
+    <div class="canvas">
+        <div class="grid"></div>
+
+        <div class="header">
+            <h1>NodeAI — Agent Rooms & Execution States</h1>
+            <p>Exploring animated borders, progress indicators, and the "Agent Room" concept</p>
+        </div>
+
+        <!-- SECTION: Node States -->
+        <div class="section">
+            <div class="section-title">Node Execution States</div>
+            <div class="section-subtitle">
+                How nodes look in different states: Idle (waiting), Running (animated gradient + progress), Completed (green border).
+                The animated gradient border shows "this is actively working."
+            </div>
+
+            <div class="node-grid">
+                <!-- Idle State -->
+                <div class="node-option">
+                    <div class="node-idle">
+                        <div class="handle handle-left" style="background: #f472b6; box-shadow: 0 0 10px rgba(244, 114, 182, 0.5);"></div>
+                        <div class="node-header">
+                            <div class="node-icon">🤖</div>
+                            <div>
+                                <div class="node-title">CrewAI Agent</div>
+                                <div class="node-subtitle">Multi-Agent System</div>
+                            </div>
+                        </div>
+                        <div class="node-body">
+                            <strong>Agents:</strong> Researcher, Writer<br>
+                            <strong>Provider:</strong> OpenAI
+                        </div>
+                        <div class="node-footer">
+                            <span style="color: rgba(255,255,255,0.5);">● Idle</span>
+                            <span>—</span>
+                        </div>
+                        <div class="handle handle-right" style="background: #f472b6; box-shadow: 0 0 10px rgba(244, 114, 182, 0.5);"></div>
+                    </div>
+                    <div class="node-label">Idle State</div>
+                    <div class="node-description">Subtle glow, no animation. Waiting to run.</div>
+                </div>
+
+                <!-- Running State -->
+                <div class="node-option">
+                    <div class="node-animated-border">
+                        <div class="node-animated-border-inner">
+                            <div class="handle handle-left" style="background: #f472b6; box-shadow: 0 0 10px rgba(244, 114, 182, 0.5);"></div>
+                            <div class="node-header">
+                                <div class="node-icon">🤖</div>
+                                <div>
+                                    <div class="node-title">CrewAI Agent</div>
+                                    <div class="node-subtitle">Multi-Agent System</div>
+                                </div>
+                            </div>
+                            <div class="node-body">
+                                <strong>Agents:</strong> Researcher, Writer<br>
+                                <strong>Provider:</strong> OpenAI
+                            </div>
+                            <div class="progress-bar progress-bar-animated">
+                                <div class="progress-bar-fill" style="width: 67%;"></div>
+                            </div>
+                            <div class="node-footer">
+                                <div class="status-running">
+                                    <div class="status-dot"></div>
+                                    Running...
+                                </div>
+                                <span style="color: #f0b429;">$0.03</span>
+                            </div>
+                            <div class="handle handle-right" style="background: #f472b6; box-shadow: 0 0 10px rgba(244, 114, 182, 0.5);"></div>
+                        </div>
+                    </div>
+                    <div class="node-label">Running State</div>
+                    <div class="node-description">Animated gradient border + progress bar. Clearly "working."</div>
+                </div>
+
+                <!-- Completed State -->
+                <div class="node-option">
+                    <div class="node-completed">
+                        <div class="handle handle-left" style="background: #22c55e; box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);"></div>
+                        <div class="node-header">
+                            <div class="node-icon">✓</div>
+                            <div>
+                                <div class="node-title">CrewAI Agent</div>
+                                <div class="node-subtitle">Multi-Agent System</div>
+                            </div>
+                        </div>
+                        <div class="node-body">
+                            <strong>Agents:</strong> Researcher, Writer<br>
+                            <strong>Provider:</strong> OpenAI
+                        </div>
+                        <div class="node-footer">
+                            <div class="status-completed">
+                                <span>✓</span>
+                                Completed
+                            </div>
+                            <span style="color: #f0b429;">$0.04</span>
+                        </div>
+                        <div class="handle handle-right" style="background: #22c55e; box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);"></div>
+                    </div>
+                    <div class="node-label">Completed State</div>
+                    <div class="node-description">Green border, checkmark. Done successfully.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION: Agent Rooms -->
+        <div class="section">
+            <div class="section-title">💡 Agent Rooms — The Big Idea</div>
+            <div class="section-subtitle">
+                Instead of wiring rigid lines between agents, drop them into a "room" where they can visualize the conversation loop.
+                The room shows which agent is currently "speaking" and the flow between them.
+                This makes multi-agent systems intuitive and visual.
+            </div>
+
+            <div class="node-grid" style="gap: 80px;">
+                <!-- Linear Agent Room -->
+                <div class="node-option">
+                    <div class="agent-room">
+                        <div class="agent-room-inner">
+                            <div class="agent-room-header">
+                                <div class="agent-room-title-area">
+                                    <div class="agent-room-icon">🏠</div>
+                                    <div>
+                                        <div class="agent-room-title">Content Creation Room</div>
+                                        <div class="agent-room-subtitle">CrewAI • 3 Agents</div>
+                                    </div>
+                                </div>
+                                <div class="agent-room-badge">Running</div>
+                            </div>
+                            
+                            <div class="agent-container">
+                                <div class="mini-agent">
+                                    <div class="mini-agent-icon">🔍</div>
+                                    <div class="mini-agent-name">Researcher</div>
+                                    <div class="mini-agent-role">Finds info</div>
+                                </div>
+                                
+                                <span style="color: rgba(255,255,255,0.3);">→</span>
+                                
+                                <div class="mini-agent speaking">
+                                    <div class="mini-agent-icon">✍️</div>
+                                    <div class="mini-agent-name">Writer</div>
+                                    <div class="mini-agent-role">Creates content</div>
+                                </div>
+                                
+                                <span style="color: rgba(255,255,255,0.3);">→</span>
+                                
+                                <div class="mini-agent">
+                                    <div class="mini-agent-icon">📝</div>
+                                    <div class="mini-agent-name">Editor</div>
+                                    <div class="mini-agent-role">Refines output</div>
+                                </div>
+                            </div>
+
+                            <div class="agent-room-footer">
+                                <div class="agent-room-progress">
+                                    <div class="agent-room-progress-label">
+                                        <span>Writer is working...</span>
+                                        <span>67%</span>
+                                    </div>
+                                    <div class="agent-room-progress-bar">
+                                        <div class="agent-room-progress-fill"></div>
+                                    </div>
+                                </div>
+                                <div class="agent-room-stats">
+                                    <div class="agent-room-stat">Cost: <span>$0.04</span></div>
+                                    <div class="agent-room-stat">Time: <span>23s</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="handle handle-left" style="background: #f472b6; box-shadow: 0 0 15px rgba(244, 114, 182, 0.5);"></div>
+                        <div class="handle handle-right" style="background: #f472b6; box-shadow: 0 0 15px rgba(244, 114, 182, 0.5);"></div>
+                    </div>
+                    <div class="node-label">Linear Agent Room</div>
+                    <div class="node-description">Agents shown in sequence. Active agent glows. Good for pipelines.</div>
+                </div>
+
+                <!-- Circular Agent Room -->
+                <div class="node-option">
+                    <div class="agent-room-circular">
+                        <div class="agent-room-inner">
+                            <div class="agent-room-header" style="background: linear-gradient(135deg, rgba(167, 139, 250, 0.1) 0%, rgba(34, 211, 238, 0.05) 100%);">
+                                <div class="agent-room-title-area">
+                                    <div class="agent-room-icon" style="background: rgba(167, 139, 250, 0.2);">🔄</div>
+                                    <div>
+                                        <div class="agent-room-title">Debate Room</div>
+                                        <div class="agent-room-subtitle">LangChain • Circular Discussion</div>
+                                    </div>
+                                </div>
+                                <div class="agent-room-badge" style="background: rgba(167, 139, 250, 0.2); color: #a78bfa;">3 Turns</div>
+                            </div>
+                            
+                            <div class="agent-circle-container">
+                                <!-- SVG connection lines -->
+                                <svg class="orbit-lines" viewBox="0 0 340 180" style="position: absolute; top: 30px; left: 30px; width: calc(100% - 60px); height: calc(100% - 60px);">
+                                    <line x1="170" y1="30" x2="60" y2="130" />
+                                    <line x1="170" y1="30" x2="280" y2="130" />
+                                    <line x1="60" y2="130" x2="280" y2="130" />
+                                </svg>
+                                
+                                <div class="orbit-agent orbit-agent-1 active">
+                                    <span>🎯</span>
+                                    <small>Pro</small>
+                                </div>
+                                <div class="orbit-agent orbit-agent-2">
+                                    <span>⚖️</span>
+                                    <small>Con</small>
+                                </div>
+                                <div class="orbit-agent orbit-agent-3">
+                                    <span>🧑‍⚖️</span>
+                                    <small>Judge</small>
+                                </div>
+                                
+                                <div class="agent-hub">
+                                    <div class="agent-hub-icon">💬</div>
+                                    <div class="agent-hub-label">TOPIC</div>
+                                </div>
+                            </div>
+
+                            <div class="agent-room-footer">
+                                <div class="agent-room-progress">
+                                    <div class="agent-room-progress-label">
+                                        <span>Round 2 of 3</span>
+                                        <span>Pro speaking...</span>
+                                    </div>
+                                    <div class="agent-room-progress-bar">
+                                        <div class="agent-room-progress-fill" style="width: 45%; background: linear-gradient(90deg, #a78bfa, #22d3ee);"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="handle handle-left" style="background: #a78bfa; box-shadow: 0 0 15px rgba(167, 139, 250, 0.5);"></div>
+                        <div class="handle handle-right" style="background: #a78bfa; box-shadow: 0 0 15px rgba(167, 139, 250, 0.5);"></div>
+                    </div>
+                    <div class="node-label">Circular Agent Room</div>
+                    <div class="node-description">Agents in a circle around a central topic. Good for debates/discussions.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION: Node Hierarchy Comparison -->
+        <div class="section">
+            <div class="section-title">Complete Node Hierarchy</div>
+            <div class="section-subtitle">
+                How different node types should look together. AI/Agents are prominent, inputs are minimal.
+            </div>
+
+            <div class="comparison-row">
+                <div class="comparison-label">TIER 1<br>AI</div>
+                
+                <div class="node-option">
+                    <div class="node-animated-border" style="width: 240px;">
+                        <div class="node-animated-border-inner">
+                            <div class="node-header">
+                                <div class="node-icon">💬</div>
+                                <div>
+                                    <div class="node-title">Chat</div>
+                                    <div class="node-subtitle">LLM</div>
+                                </div>
+                            </div>
+                            <div class="node-body">
+                                Model: gpt-4o
+                            </div>
+                            <div class="progress-bar progress-bar-animated">
+                                <div class="progress-bar-fill" style="width: 45%;"></div>
+                            </div>
+                            <div class="node-footer">
+                                <div class="status-running">
+                                    <div class="status-dot"></div>
+                                    Thinking...
+                                </div>
+                                <span style="color: #f0b429;">$0.02</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="node-option">
+                    <div class="agent-room" style="width: 360px;">
+                        <div class="agent-room-inner">
+                            <div class="agent-room-header">
+                                <div class="agent-room-title-area">
+                                    <div class="agent-room-icon">🏠</div>
+                                    <div>
+                                        <div class="agent-room-title" style="font-size: 14px;">Agent Room</div>
+                                        <div class="agent-room-subtitle">2 Agents</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="agent-container" style="padding: 16px; min-height: 100px;">
+                                <div class="mini-agent" style="width: 80px; padding: 12px 8px;">
+                                    <div class="mini-agent-icon" style="width: 32px; height: 32px; font-size: 16px;">🔍</div>
+                                    <div class="mini-agent-name">Agent 1</div>
+                                </div>
+                                <span style="color: rgba(255,255,255,0.3);">↔</span>
+                                <div class="mini-agent speaking" style="width: 80px; padding: 12px 8px;">
+                                    <div class="mini-agent-icon" style="width: 32px; height: 32px; font-size: 16px;">✍️</div>
+                                    <div class="mini-agent-name">Agent 2</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="comparison-row">
+                <div class="comparison-label">TIER 2<br>PROCESS</div>
+                
+                <div class="node-option">
+                    <div class="node-idle" style="width: 200px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 0 30px rgba(167, 139, 250, 0.1);">
+                        <div class="node-header" style="background: rgba(167, 139, 250, 0.08);">
+                            <div class="node-icon" style="background: rgba(167, 139, 250, 0.15); width: 30px; height: 30px; font-size: 14px;">🧬</div>
+                            <div>
+                                <div class="node-title" style="font-size: 12px;">Embed</div>
+                                <div class="node-subtitle">embedding</div>
+                            </div>
+                        </div>
+                        <div class="node-body" style="padding: 10px 14px; font-size: 11px;">
+                            Model: text-embedding-3
+                        </div>
+                    </div>
+                </div>
+
+                <div class="node-option">
+                    <div class="node-idle" style="width: 200px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 0 30px rgba(251, 146, 60, 0.1);">
+                        <div class="node-header" style="background: rgba(251, 146, 60, 0.08);">
+                            <div class="node-icon" style="background: rgba(251, 146, 60, 0.15); width: 30px; height: 30px; font-size: 14px;">✂️</div>
+                            <div>
+                                <div class="node-title" style="font-size: 12px;">Chunk</div>
+                                <div class="node-subtitle">processing</div>
+                            </div>
+                        </div>
+                        <div class="node-body" style="padding: 10px 14px; font-size: 11px;">
+                            Size: 512 tokens
+                        </div>
+                    </div>
+                </div>
+
+                <div class="node-option">
+                    <div class="node-idle" style="width: 200px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 0 30px rgba(96, 165, 250, 0.1);">
+                        <div class="node-header" style="background: rgba(96, 165, 250, 0.08);">
+                            <div class="node-icon" style="background: rgba(96, 165, 250, 0.15); width: 30px; height: 30px; font-size: 14px;">🔎</div>
+                            <div>
+                                <div class="node-title" style="font-size: 12px;">Vector Search</div>
+                                <div class="node-subtitle">retrieval</div>
+                            </div>
+                        </div>
+                        <div class="node-body" style="padding: 10px 14px; font-size: 11px;">
+                            Top K: 5
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="comparison-row">
+                <div class="comparison-label">TIER 3<br>I/O</div>
+                
+                <div class="node-option">
+                    <div class="node-input-simple">
+                        <div class="handle handle-right" style="background: #22d3ee; box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);"></div>
+                        <div class="node-header">
+                            <div class="node-icon">📝</div>
+                            <div>
+                                <div class="node-title">Text Input</div>
+                            </div>
+                        </div>
+                        <div class="node-body">
+                            <textarea placeholder="Type your prompt..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="node-option">
+                    <div class="node-input-simple" style="border-color: rgba(52, 211, 153, 0.3);">
+                        <div class="handle handle-left" style="background: #34d399; box-shadow: 0 0 10px rgba(52, 211, 153, 0.5);"></div>
+                        <div class="node-header">
+                            <div class="node-icon" style="background: rgba(52, 211, 153, 0.1);">📄</div>
+                            <div>
+                                <div class="node-title">Output</div>
+                            </div>
+                        </div>
+                        <div class="node-body" style="font-size: 11px; color: rgba(255,255,255,0.6);">
+                            Generated content will appear here...
+                        </div>
+                    </div>
+                </div>
+
+                <div class="node-option">
+                    <div class="node-idle" style="width: 180px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 20px rgba(52, 211, 153, 0.08);">
+                        <div class="node-header" style="background: rgba(52, 211, 153, 0.05); padding: 10px 12px;">
+                            <div class="node-icon" style="background: rgba(52, 211, 153, 0.1); width: 26px; height: 26px; font-size: 12px;">🗄️</div>
+                            <div>
+                                <div class="node-title" style="font-size: 11px;">Vector Store</div>
+                                <div class="node-subtitle" style="font-size: 9px;">storage</div>
+                            </div>
+                        </div>
+                        <div class="node-body" style="padding: 8px 12px; font-size: 10px;">
+                            Collection: docs
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>

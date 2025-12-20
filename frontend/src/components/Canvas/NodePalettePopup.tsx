@@ -4,7 +4,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { X, Search, ChevronDown, ChevronRight } from 'lucide-react';
+import { X, Search, ChevronRight } from 'lucide-react';
 import { listNodes } from '@/services/nodes';
 import { NodeCard } from '@/components/Sidebar/NodeCard';
 import { NODE_CATEGORY_COLORS } from '@/constants';
@@ -81,6 +81,12 @@ const categoryLabels: Record<string, string> = {
   agent: 'Agent',
   communication: 'Communication',
   integration: 'Integration',
+  // New AI categories
+  intelligence: 'Intelligence',
+  business: 'Business',
+  content: 'Content',
+  developer: 'Developer',
+  sales: 'Sales',
 };
 
 export function NodePalettePopup({ isOpen, onClose, position, isMobile = false }: NodePalettePopupProps) {
@@ -90,18 +96,24 @@ export function NodePalettePopup({ isOpen, onClose, position, isMobile = false }
   const { addNode } = useWorkflowStore();
   const dragStartedRef = useRef<Record<string, boolean>>({});
   const mouseDownTimeRef = useRef<Record<string, number>>({});
+  // Categories collapsed by default for cleaner UI - expand on click
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
-    input: true,
-    processing: true,
-    embedding: true,
-    storage: true,
-    retrieval: true,
-    llm: true,
-    tool: true,
-    memory: true,
-    agent: true,
-    communication: true,
-    integration: true,
+    input: false,
+    processing: false,
+    embedding: false,
+    storage: false,
+    retrieval: false,
+    llm: false,
+    tool: false,
+    memory: false,
+    agent: false,
+    communication: false,
+    integration: false,
+    intelligence: false,
+    business: false,
+    content: false,
+    developer: false,
+    sales: false,
   });
 
   // Handle node click - insert at canvas center
@@ -312,31 +324,52 @@ export function NodePalettePopup({ isOpen, onClose, position, isMobile = false }
               const isExpanded = expandedCategories[category];
 
               return (
-                <div key={category} className="mb-2">
-                  {/* Category header */}
+                <div key={category} className="mb-1">
+                  {/* Category header with colored left border */}
                   <button
                     onClick={() => toggleCategory(category)}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-md hover:bg-white/5 transition-colors"
+                    className={cn(
+                      "w-full flex items-center justify-between px-3 py-2.5 rounded-lg",
+                      "hover:bg-white/5 transition-all duration-200",
+                      "border-l-4",
+                      isExpanded && "bg-white/[0.03]"
+                    )}
+                    style={{ 
+                      borderLeftColor: categoryColor,
+                    }}
                   >
-                    <div className="flex items-center gap-2">
-                      {isExpanded ? (
-                        <ChevronDown className="w-4 h-4 text-slate-400" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4 text-slate-400" />
-                      )}
+                    <div className="flex items-center gap-2.5">
+                      {/* Colored icon indicator */}
+                      <div 
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: categoryColor }}
+                      />
                       <span
-                        className="text-sm font-semibold"
+                        className="text-sm font-semibold tracking-wide"
                         style={{ color: categoryColor }}
                       >
                         {categoryLabel}
                       </span>
-                      <span className="text-xs text-slate-500">({categoryNodes.length})</span>
+                      <span className="text-xs text-slate-500 bg-white/5 px-1.5 py-0.5 rounded">
+                        {categoryNodes.length}
+                      </span>
+                    </div>
+                    <div 
+                      className="transition-transform duration-200"
+                      style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+                    >
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
                     </div>
                   </button>
 
-                  {/* Category nodes */}
-                  {isExpanded && (
-                    <div className="ml-4 mt-1 space-y-1">
+                  {/* Category nodes with animation */}
+                  <div 
+                    className={cn(
+                      "overflow-hidden transition-all duration-200 ease-out",
+                      isExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
+                    )}
+                  >
+                    <div className="ml-4 mt-1 space-y-1 pb-1">
                       {categoryNodes.map((node, index) => {
                         const nodeKey = `${node.type}-${index}`;
                         
@@ -347,8 +380,8 @@ export function NodePalettePopup({ isOpen, onClose, position, isMobile = false }
                             nodeKey={nodeKey}
                             onDragStart={() => {
                               dragStartedRef.current[nodeKey] = true;
-                              isDraggingRef.current = true; // Set immediately
-                              setIsDragging(true); // Also set state for UI updates
+                              isDraggingRef.current = true;
+                              setIsDragging(true);
                             }}
                             onClick={() => {
                               const clickDuration = Date.now() - (mouseDownTimeRef.current[nodeKey] || 0);
@@ -364,7 +397,7 @@ export function NodePalettePopup({ isOpen, onClose, position, isMobile = false }
                         );
                       })}
                     </div>
-                  )}
+                  </div>
                 </div>
               );
             })

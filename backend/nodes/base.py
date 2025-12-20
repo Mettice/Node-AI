@@ -123,21 +123,97 @@ class BaseNode(ABC):
         Raises:
             NodeValidationError: If validation fails (with details)
         """
-        # Basic validation - check required fields from schema
+        # Enhanced validation with type checking and value constraints
         schema = self.get_schema()
+        properties = schema.get("properties", {})
         required = schema.get("required", [])
-
+        
+        validation_errors = []
+        
+        # Apply schema defaults for missing fields BEFORE validation
+        # This ensures nodes work with their default values even if not explicitly configured
+        for field_name, field_schema in properties.items():
+            if field_name not in config or config[field_name] is None:
+                if "default" in field_schema:
+                    config[field_name] = field_schema["default"]
+        
+        # Check required fields (after applying defaults)
         missing_fields = []
         for field in required:
             if field not in config or config[field] is None:
                 missing_fields.append(field)
-
+        
         if missing_fields:
+            validation_errors.extend(missing_fields)
+        
+        # Type and value validation
+        for field_name, field_schema in properties.items():
+            if field_name in config:
+                value = config[field_name]
+                
+                # Skip validation for None values if field is not required
+                if value is None and field_name not in required:
+                    continue
+                
+                # Type validation
+                expected_type = field_schema.get("type", "any")
+                if expected_type != "any" and not self._validate_type(value, expected_type):
+                    validation_errors.append(f"Field '{field_name}' must be of type {expected_type}, got {type(value).__name__}")
+                
+                # Value constraints
+                if "minimum" in field_schema and isinstance(value, (int, float)) and value < field_schema["minimum"]:
+                    validation_errors.append(f"Field '{field_name}' must be >= {field_schema['minimum']}, got {value}")
+                
+                if "maximum" in field_schema and isinstance(value, (int, float)) and value > field_schema["maximum"]:
+                    validation_errors.append(f"Field '{field_name}' must be <= {field_schema['maximum']}, got {value}")
+                
+                if "minLength" in field_schema and isinstance(value, str) and len(value) < field_schema["minLength"]:
+                    validation_errors.append(f"Field '{field_name}' must be at least {field_schema['minLength']} characters")
+                
+                if "maxLength" in field_schema and isinstance(value, str) and len(value) > field_schema["maxLength"]:
+                    validation_errors.append(f"Field '{field_name}' must be at most {field_schema['maxLength']} characters")
+                
+                if "enum" in field_schema and value not in field_schema["enum"]:
+                    validation_errors.append(f"Field '{field_name}' must be one of {field_schema['enum']}, got {value}")
+
+        if validation_errors:
             raise NodeValidationError(
-                f"Missing required fields: {', '.join(missing_fields)}",
-                errors=missing_fields,
+                f"Configuration validation failed: {'; '.join(validation_errors)}",
+                errors=validation_errors,
             )
 
+        return True
+    
+    def _validate_type(self, value: Any, expected_type: str) -> bool:
+        """
+        Validate that a value matches the expected JSON Schema type.
+        
+        Args:
+            value: Value to validate
+            expected_type: JSON Schema type string
+            
+        Returns:
+            True if value matches expected type
+        """
+        type_mapping = {
+            "string": str,
+            "integer": int,
+            "number": (int, float),
+            "boolean": bool,
+            "array": list,
+            "object": dict,
+            "null": type(None),
+        }
+        
+        # Handle nullable types (e.g., ["string", "null"])
+        if isinstance(expected_type, list):
+            return any(self._validate_type(value, t) for t in expected_type)
+        
+        if expected_type in type_mapping:
+            expected_python_type = type_mapping[expected_type]
+            return isinstance(value, expected_python_type)
+        
+        # Default to True for unknown types
         return True
 
     def estimate_cost(
@@ -170,11 +246,48 @@ class BaseNode(ABC):
         Returns:
             NodeMetadata object
         """
+        from backend.core.models import NodeInputSchema, NodeOutputSchema
+        
+        # Convert input schema to NodeInputSchema objects
+        input_schema = self.get_input_schema()
+        inputs = []
+        for name, schema_info in input_schema.items():
+            # Handle nullable types (JSON schema uses ['string', 'null'] format)
+            schema_type = schema_info.get('type', 'any')
+            if isinstance(schema_type, list):
+                # Extract the non-null type (first non-null value)
+                schema_type = next((t for t in schema_type if t != 'null'), schema_type[0] if schema_type else 'any')
+            
+            inputs.append(NodeInputSchema(
+                name=name,
+                type=str(schema_type) if schema_type else 'any',
+                description=schema_info.get('description') or schema_info.get('title'),
+                required=schema_info.get('required', False),
+            ))
+        
+        # Convert output schema to NodeOutputSchema objects
+        output_schema = self.get_output_schema()
+        outputs = []
+        for name, schema_info in output_schema.items():
+            # Handle nullable types (JSON schema uses ['string', 'null'] format)
+            schema_type = schema_info.get('type', 'any')
+            if isinstance(schema_type, list):
+                # Extract the non-null type (first non-null value)
+                schema_type = next((t for t in schema_type if t != 'null'), schema_type[0] if schema_type else 'any')
+            
+            outputs.append(NodeOutputSchema(
+                name=name,
+                type=str(schema_type) if schema_type else 'any',
+                description=schema_info.get('description'),
+            ))
+        
         return NodeMetadata(
             type=self.node_type,
             name=self.name or self.node_type,
             description=self.description or f"{self.name} node",
             category=self.category or "misc",
+            inputs=inputs,
+            outputs=outputs,
             config_schema=self.get_schema(),
         )
 

@@ -15,12 +15,27 @@ export interface StreamEvent {
   // Progress and message can be at top level (for node_progress events) or in data
   progress?: number;
   message?: string;
+  // Token usage can be at top level or in data
+  input_tokens?: number;
+  output_tokens?: number;
+  total_tokens?: number;
   data: {
     message?: string;
     progress?: number;
     output?: any;
     thought?: string;
     tool?: string;
+    input_tokens?: number;
+    output_tokens?: number;
+    total_tokens?: number;
+    tokens_used?: {
+      input_tokens?: number;
+      output_tokens?: number;
+      total_tokens?: number;
+      input?: number;
+      output?: number;
+      total?: number;
+    };
     [key: string]: any;
   };
   timestamp: string;

@@ -6,6 +6,7 @@ This node creates a multi-agent crew that can work together on tasks.
 
 from typing import Any, Dict, List, Optional
 import json
+import asyncio
 
 from backend.nodes.base import BaseNode
 from backend.core.models import NodeMetadata
@@ -19,6 +20,7 @@ from backend.utils.model_pricing import (
     get_available_models,
     ModelType,
 )
+from backend.nodes.agent.crewai_event_listener import CrewAIStreamingEventListener
 
 logger = get_logger(__name__)
 
@@ -116,14 +118,57 @@ class CrewAINode(BaseNode):
             task = self._create_task(task_config, agents, inputs)
             tasks.append(task)
         
+        # Prepare inputs for CrewAI - format all inputs as strings for interpolation
+        crew_inputs = {}
+        if inputs:
+            for key, value in inputs.items():
+                if isinstance(value, (str, int, float)):
+                    crew_inputs[key] = str(value)
+                elif isinstance(value, dict):
+                    # Convert dict to JSON string
+                    try:
+                        crew_inputs[key] = json.dumps(value)
+                    except:
+                        crew_inputs[key] = str(value)
+                elif isinstance(value, list):
+                    # Convert list to comma-separated string or JSON
+                    try:
+                        crew_inputs[key] = json.dumps(value)
+                    except:
+                        crew_inputs[key] = ", ".join(str(v) for v in value)
+        
         # Create crew with callbacks for streaming
         process = config.get("process", "sequential")
         
-        # Define callbacks for streaming agent actions
-        # Note: CrewAI callbacks are synchronous, so we need to properly schedule async operations
-        import asyncio
+        # Create and register CrewAI event listener for streaming
+        # This captures agent activities, thoughts, tool usage, etc.
+        # The listener will auto-register when instantiated (via BaseEventListener.__init__)
+        event_listener = None
+        try:
+            # Get the main event loop to pass to the listener
+            # This allows the listener to schedule coroutines from worker threads
+            main_loop = None
+            try:
+                main_loop = asyncio.get_running_loop()
+            except RuntimeError:
+                try:
+                    main_loop = asyncio.get_event_loop()
+                except RuntimeError:
+                    logger.warning("No event loop available for event listener")
+            
+            event_listener = CrewAIStreamingEventListener(
+                node_instance=self,
+                node_id=node_id,
+                execution_id=self.execution_id,
+                main_event_loop=main_loop
+            )
+            logger.info(f"CrewAI event listener created for node {node_id}")
+        except Exception as e:
+            logger.warning(f"Failed to create event listener: {e}, falling back to callbacks", exc_info=True)
         
-        # Get the running event loop
+        # Define callbacks for streaming agent actions (fallback if event listener fails)
+        # Note: CrewAI callbacks are synchronous, so we need to properly schedule async operations
+        # Get the running event loop (asyncio already imported at top of file)
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
@@ -207,9 +252,24 @@ class CrewAINode(BaseNode):
                 
                 # Schedule async operations on the event loop
                 # CrewAI callbacks are sync, so we need to schedule coroutines properly
+                # Use the main event loop if available (from event_listener)
                 try:
-                    loop = asyncio.get_event_loop()
-                    if loop.is_running():
+                    # Try to get the main event loop (should be set when listener was created)
+                    loop = None
+                    if event_listener and hasattr(event_listener, 'listener') and hasattr(event_listener.listener, 'main_event_loop'):
+                        loop = event_listener.listener.main_event_loop
+                    
+                    if not loop:
+                        try:
+                            loop = asyncio.get_running_loop()
+                        except RuntimeError:
+                            try:
+                                loop = asyncio.get_event_loop()
+                            except RuntimeError:
+                                logger.debug("No event loop available for task_callback (event listener should handle this)")
+                                return
+                    
+                    if loop and loop.is_running():
                         # Schedule the coroutines to run on the event loop
                         asyncio.run_coroutine_threadsafe(
                             self.stream_progress(
@@ -224,12 +284,13 @@ class CrewAINode(BaseNode):
                                 "task_completed",
                                 node_id,
                                 {"task": task_description, "agent": agent_role},
+                                agent=agent_role,
                                 task=task_description,
                             ),
                             loop
                         )
                 except Exception as stream_error:
-                    logger.warning(f"Error streaming progress: {stream_error}")
+                    logger.debug(f"Error streaming progress from task_callback: {stream_error} (event listener should handle this)")
             except Exception as e:
                 # Don't let callback errors break execution
                 logger.warning(f"Error in task_callback: {e}", exc_info=True)
@@ -312,7 +373,7 @@ class CrewAINode(BaseNode):
         # CrewAI execution is synchronous, so we run it in an executor to avoid blocking
         import warnings
         import concurrent.futures
-        import asyncio
+        # asyncio already imported at top of file
         
         # Create executor for running CrewAI
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
@@ -321,7 +382,8 @@ class CrewAINode(BaseNode):
             """Execute CrewAI in a separate thread."""
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=UserWarning)
-                return crew.kickoff()
+                # Pass inputs to crew.kickoff() so CrewAI can interpolate them into task descriptions
+                return crew.kickoff(inputs=crew_inputs if crew_inputs else None)
         
         # Submit the crew execution
         future = executor.submit(execute_crew)
@@ -366,6 +428,7 @@ class CrewAINode(BaseNode):
         # Extract token usage from CrewAI's usage_metrics
         tokens_used = {"input": 0, "output": 0, "total": 0}
         cost = 0.0
+        per_agent_tokens = {}  # Initialize per-agent token tracking
         
         if hasattr(crew, 'usage_metrics') and crew.usage_metrics:
             usage = crew.usage_metrics
@@ -387,6 +450,23 @@ class CrewAINode(BaseNode):
                 "total": total_tokens or (prompt_tokens + completion_tokens),
             }
             logger.info(f"CrewAI token usage extracted: {tokens_used}")
+            
+            # Try to distribute tokens per agent if we have task outputs
+            if hasattr(result, 'tasks_output') and result.tasks_output and total_tokens > 0:
+                num_tasks = len(result.tasks_output)
+                if num_tasks > 0:
+                    for task_output in result.tasks_output:
+                        agent_role = None
+                        if hasattr(task_output, 'agent') and task_output.agent:
+                            agent_obj = task_output.agent
+                            agent_role = getattr(agent_obj, 'role', None) or str(agent_obj)
+                        
+                        if agent_role:
+                            per_agent_tokens[agent_role] = {
+                                "input": prompt_tokens // num_tasks,
+                                "output": completion_tokens // num_tasks,
+                                "total": total_tokens // num_tasks,
+                            }
         
         # Calculate cost using actual token usage if available
         if tokens_used["total"] > 0:
@@ -422,8 +502,159 @@ class CrewAINode(BaseNode):
             except Exception as e:
                 logger.warning(f"Failed to emit Agent Lightning reward: {e}")
         
-        # Stream the full output (not just first 500 chars)
-        await self.stream_output(node_id, result_text, partial=False)
+        # Stream the full output with token information
+        # Also stream per-agent token information
+        for agent_role, agent_tokens in per_agent_tokens.items():
+            await self.stream_event(
+                "agent_completed",
+                node_id,
+                {
+                    "agent": agent_role,
+                    "tokens_used": agent_tokens,
+                    "input_tokens": agent_tokens.get("input", 0),
+                    "output_tokens": agent_tokens.get("output", 0),
+                    "total_tokens": agent_tokens.get("total", 0),
+                },
+                agent=agent_role,
+            )
+        
+        # Extract individual agent outputs from CrewAI result BEFORE sending node_output event
+        agent_outputs = {}
+        if hasattr(result, 'tasks_output') and result.tasks_output:
+            logger.info(f"Extracting agent outputs from {len(result.tasks_output)} task outputs")
+            
+            # Also try to get agent outputs from crew.tasks_output if available
+            crew_tasks_output = None
+            if hasattr(crew, 'tasks_output') and crew.tasks_output:
+                crew_tasks_output = crew.tasks_output
+                logger.info(f"Found crew.tasks_output with {len(crew_tasks_output)} tasks")
+            
+            # Use crew.tasks_output if available, otherwise use result.tasks_output
+            tasks_to_process = crew_tasks_output if crew_tasks_output else result.tasks_output
+            
+            for idx, task_output in enumerate(tasks_to_process):
+                agent_role = None
+                task_desc = None
+                output_text = None
+                
+                # Get agent role - try multiple methods with more fallbacks
+                if hasattr(task_output, 'agent') and task_output.agent:
+                    agent_obj = task_output.agent
+                    if hasattr(agent_obj, 'role'):
+                        agent_role = agent_obj.role
+                    elif hasattr(agent_obj, 'name'):
+                        agent_role = agent_obj.name
+                    else:
+                        agent_role = str(agent_obj)
+                elif hasattr(task_output, 'agent_role'):
+                    agent_role = task_output.agent_role
+                elif hasattr(task_output, 'agent_name'):
+                    agent_role = task_output.agent_name
+                
+                # If we still don't have agent_role, try to match from tasks
+                if not agent_role and hasattr(task_output, 'task') and task_output.task:
+                    task_obj = task_output.task
+                    if hasattr(task_obj, 'agent') and task_obj.agent:
+                        agent_obj = task_obj.agent
+                        if hasattr(agent_obj, 'role'):
+                            agent_role = agent_obj.role
+                        elif hasattr(agent_obj, 'name'):
+                            agent_role = agent_obj.name
+                
+                # Get task description
+                if hasattr(task_output, 'task') and task_output.task:
+                    task_obj = task_output.task
+                    if hasattr(task_obj, 'description'):
+                        task_desc = task_obj.description
+                    elif hasattr(task_obj, 'name'):
+                        task_desc = task_obj.name
+                    else:
+                        task_desc = str(task_obj)
+                elif hasattr(task_output, 'task_description'):
+                    task_desc = task_output.task_description
+                elif hasattr(task_output, 'task_name'):
+                    task_desc = task_output.task_name
+                
+                # Get output text - try multiple methods with more fallbacks
+                if hasattr(task_output, 'raw') and task_output.raw:
+                    output_text = str(task_output.raw)
+                elif hasattr(task_output, 'output') and task_output.output:
+                    output_text = str(task_output.output)
+                elif hasattr(task_output, 'description') and task_output.description:
+                    output_text = str(task_output.description)
+                elif hasattr(task_output, 'summary') and task_output.summary:
+                    output_text = str(task_output.summary)
+                elif hasattr(task_output, 'result') and task_output.result:
+                    output_text = str(task_output.result)
+                elif hasattr(task_output, 'content') and task_output.content:
+                    output_text = str(task_output.content)
+                
+                logger.info(f"Task output {idx}: agent={agent_role}, task={task_desc}, has_output={bool(output_text)}, output_length={len(output_text) if output_text else 0}")
+                
+                # Only add if we have both agent_role and output_text
+                if agent_role and output_text:
+                    if agent_role not in agent_outputs:
+                        agent_outputs[agent_role] = []
+                    agent_outputs[agent_role].append({
+                        "task": task_desc or f"Task {idx + 1}",
+                        "output": output_text,
+                    })
+                elif agent_role:
+                    logger.warning(f"Task output {idx} has agent_role '{agent_role}' but no output text")
+                elif output_text:
+                    logger.warning(f"Task output {idx} has output text but no agent_role")
+            
+            logger.info(f"Extracted agent outputs for {len(agent_outputs)} agents: {list(agent_outputs.keys())}")
+            for role, outputs in agent_outputs.items():
+                logger.info(f"  - {role}: {len(outputs)} task(s)")
+        
+        # Fallback: If we have agents but no outputs for some, create empty entries
+        # This ensures all agents are represented in the output
+        if agents and len(agent_outputs) < len(agents):
+            agent_roles_in_output = set(agent_outputs.keys())
+            for agent in agents:
+                agent_role = agent.role
+                if agent_role not in agent_roles_in_output:
+                    logger.warning(f"Agent '{agent_role}' has no outputs extracted, creating empty entry")
+                    agent_outputs[agent_role] = []
+        
+        logger.info(f"Final agent outputs count: {len(agent_outputs)} agents")
+        
+        # Agent Lightning integration (optional)
+        agl_wrapper = get_agent_lightning_wrapper(config)
+        if agl_wrapper.enabled:
+            try:
+                # Calculate reward based on result quality
+                result_dict = {
+                    "output": result_text,
+                    "tokens_used": tokens_used,
+                    "cost": cost,
+                }
+                reward = calculate_simple_reward(result_dict)
+                agl_wrapper.emit_reward(reward, {
+                    "node_id": node_id,
+                    "provider": provider,
+                    "model": model,
+                    "tokens_used": tokens_used,
+                    "cost": cost,
+                })
+            except Exception as e:
+                logger.warning(f"Agent Lightning reward calculation failed: {e}")
+        
+        # Stream node_output event WITH agent_outputs included
+        await self.stream_event(
+            "node_output",
+            node_id,
+            {
+                "output": result_text,
+                "partial": False,
+                "tokens_used": tokens_used,
+                "agent_outputs": agent_outputs,  # Include agent outputs in the event
+                "agents": [agent.role for agent in agents],
+                "tasks": [task.description for task in tasks],
+                "per_agent_tokens": per_agent_tokens,
+            },
+        )
         await self.stream_progress(node_id, 1.0, "CrewAI execution completed")
         
         # Return structured output with the report
@@ -432,6 +663,8 @@ class CrewAINode(BaseNode):
             "output": result_text,  # Also keep 'output' for compatibility
             "agents": [agent.role for agent in agents],
             "tasks": [task.description for task in tasks],
+            "agent_outputs": agent_outputs,  # Individual agent outputs
+            "per_agent_tokens": per_agent_tokens,  # Token usage per agent
             "provider": provider,
             "model": model,
             "cost": cost,

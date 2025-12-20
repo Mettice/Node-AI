@@ -24,8 +24,17 @@ export function shouldShowField(
 ): boolean {
   const { nodeType, formValues, properties, isGenericNode, isToolNode, isRerankNode, isKnowledgeGraphNode, isHybridRetrievalNode, currentProvider } = context;
 
-  // Skip provider field if it's a generic node (handled by ProviderSelector)
-  if (isGenericNode && key === 'provider') {
+  // Check if this node has LLM provider configuration (for nodes using LLMConfigMixin)
+  const hasLLMProviderConfig = properties['provider'] && 
+    (properties['openai_model'] || properties['anthropic_model'] || properties['gemini_model']);
+
+  // Hide all secret_id fields - they're handled internally by the vault component
+  if (key.endsWith('_secret_id') || key.includes('_secret_id')) {
+    return false;
+  }
+
+  // Skip provider field if it's a generic node or has LLM config (handled by ProviderSelector)
+  if ((isGenericNode || hasLLMProviderConfig) && key === 'provider') {
     return false;
   }
 
@@ -39,8 +48,8 @@ export function shouldShowField(
     return false;
   }
 
-  // For generic nodes, hide the generic "model" field if provider-specific model fields exist
-  if (isGenericNode && key === 'model') {
+  // For generic nodes or nodes with LLM config, hide the generic "model" field if provider-specific model fields exist
+  if ((isGenericNode || hasLLMProviderConfig) && key === 'model') {
     const hasProviderSpecificModel = 
       (formValues.provider === 'openai' && properties['openai_model']) ||
       (formValues.provider === 'anthropic' && properties['anthropic_model']) ||
@@ -118,9 +127,24 @@ export function shouldShowField(
     return true;
   }
 
-  // For generic nodes, filter provider-specific fields
-  if (isGenericNode && (formValues.provider || currentProvider)) {
+  // For generic nodes OR nodes with LLM provider config, filter provider-specific fields
+  if (isGenericNode || hasLLMProviderConfig) {
     const currentProviderValue = formValues.provider || currentProvider;
+    
+    // If no provider is selected, hide all provider-specific model fields
+    if (!currentProviderValue) {
+      // Hide all provider-specific model and API key fields until provider is selected
+      if (key === 'openai_model' || key === 'anthropic_model' || key === 'gemini_model' ||
+          key === 'openai_api_key' || key === 'anthropic_api_key' || key === 'gemini_api_key') {
+        return false;
+      }
+    }
+    
+    // Only proceed with provider-specific filtering if provider is selected
+    if (!currentProviderValue) {
+      return true; // Show common fields even when no provider is selected
+    }
+    
     const providerPrefixes: Record<string, string[]> = {
       openai: ['openai_'],
       azure_openai: ['azure_openai_', 'azure_'],

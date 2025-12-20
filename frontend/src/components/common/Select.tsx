@@ -19,11 +19,14 @@ interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onC
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({ className, options, error, onChange, value, ...props }, ref) => {
+    // Ensure value is never null - convert to empty string
+    const safeValue = value ?? '';
+    
     return (
       <div>
         <select
           ref={ref}
-          value={value}
+          value={safeValue}
           onChange={onChange}
           className={cn(
             'w-full px-3 py-2.5 rounded-lg transition-all',
@@ -37,7 +40,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           )}
           {...props}
         >
-          {!value && <option value="" className="bg-slate-800 text-slate-300">Select an option...</option>}
+          {!safeValue && <option value="" className="bg-slate-800 text-slate-300">Select an option...</option>}
           {options.map((option) => (
             <option key={option.value} value={option.value} className="bg-slate-800 text-slate-200">
               {option.label}

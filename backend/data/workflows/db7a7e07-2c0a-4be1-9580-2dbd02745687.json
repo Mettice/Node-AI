@@ -1,0 +1,45 @@
+{
+  "id": "db7a7e07-2c0a-4be1-9580-2dbd02745687",
+  "name": "Bug Triage Workflow",
+  "description": "Triage GitHub issues and assign priorities",
+  "nodes": [
+    {
+      "id": "text_input_1",
+      "type": "text_input",
+      "position": {
+        "x": 100.0,
+        "y": 100.0
+      },
+      "data": {
+        "text": "[{\"id\": 1, \"title\": \"Critical security vulnerability in auth\", \"body\": \"SQL injection found in login endpoint\", \"user\": {\"login\": \"security-team\"}}, {\"id\": 2, \"title\": \"UI improvement for dashboard\", \"body\": \"Add dark mode toggle\", \"user\": {\"login\": \"designer\"}}]"
+      }
+    },
+    {
+      "id": "bug_triager_2",
+      "type": "bug_triager",
+      "position": {
+        "x": 400.0,
+        "y": 100.0
+      },
+      "data": {
+        "provider": "openai"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_1",
+      "source": "text_input_1",
+      "target": "bug_triager_2",
+      "sourceHandle": "output",
+      "targetHandle": "issues"
+    }
+  ],
+  "created_at": "2025-12-13T13:35:17.867395",
+  "updated_at": "2025-12-13T13:35:17.867395",
+  "tags": [],
+  "is_template": true,
+  "is_deployed": false,
+  "deployed_at": null,
+  "owner_id": null
+}

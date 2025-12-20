@@ -64,7 +64,7 @@ export function EmailNodeForm({ initialData, onChange, schema }: EmailNodeFormPr
     if (body) config.email_body = body;
 
     onChangeRef.current(config);
-  }, [provider, apiKey, fromEmail, fromName, replyTo, toEmail, cc, bcc, subject, emailType, body, onChange]);
+  }, [provider, apiKey, fromEmail, fromName, replyTo, toEmail, cc, bcc, subject, emailType, body]); // Removed onChange from dependencies
 
   const handleTestConnection = async () => {
     if (!apiKey) {

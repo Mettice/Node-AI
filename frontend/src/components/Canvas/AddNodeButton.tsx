@@ -2,35 +2,47 @@
  * Floating Plus Button - Opens node palette popup (draggable within canvas)
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Plus } from 'lucide-react';
 import { NodePalettePopup } from './NodePalettePopup';
 import { cn } from '@/utils/cn';
+import { useWorkflowStore } from '@/store/workflowStore';
 
 export function AddNodeButton() {
   const [isOpen, setIsOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [position, setPosition] = useState(() => {
-    // Load saved position from localStorage or use default
-    const saved = localStorage.getItem('addNodeButtonPosition');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return { x: 100, y: 100 };
-      }
-    }
-    return { x: 100, y: 100 };
-  });
+  const [isHovered, setIsHovered] = useState(false);
+  const [position, setPosition] = useState({ x: 400, y: 80 });
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [dragStartTime, setDragStartTime] = useState(0);
+  const [hasDragged, setHasDragged] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  
+  // Get nodes from store to check if canvas is empty
+  const { nodes } = useWorkflowStore();
 
-  // Detect mobile screen size
+  // Initialize position from localStorage and detect mobile screen size
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);
+    
+    // Load saved position from localStorage
+    const saved = localStorage.getItem('addNodeButtonPosition');
+    if (saved) {
+      try {
+        const savedPosition = JSON.parse(saved);
+        setPosition(savedPosition);
+      } catch {
+        // Use default position if parsing fails
+        setPosition({ x: 400, y: 80 });
+      }
+    } else {
+      // Set initial position to top-right area
+      setPosition({ x: 400, y: 80 });
+    }
+    
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
@@ -40,17 +52,36 @@ export function AddNodeButton() {
   }, [position]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    // Disable drag on mobile
-    if (isMobile || e.button !== 0) return; 
+    // Allow dragging on all devices now
+    if (e.button !== 0) return; 
     e.preventDefault();
     e.stopPropagation();
     
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      setDragOffset({
-        x: e.clientX - rect.left - rect.width / 2,
-        y: e.clientY - rect.top - rect.height / 2,
-      });
+      // Calculate offset from mouse position to button center
+      const offsetX = e.clientX - (rect.left + rect.width / 2);
+      const offsetY = e.clientY - (rect.top + rect.height / 2);
+      setDragOffset({ x: offsetX, y: offsetY });
+      setDragStartTime(Date.now());
+      setHasDragged(false);
+      setIsDragging(true);
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (buttonRef.current && e.touches.length === 1) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const touch = e.touches[0];
+      // Calculate offset from touch position to button center
+      const offsetX = touch.clientX - (rect.left + rect.width / 2);
+      const offsetY = touch.clientY - (rect.top + rect.height / 2);
+      setDragOffset({ x: offsetX, y: offsetY });
+      setDragStartTime(Date.now());
+      setHasDragged(false);
       setIsDragging(true);
     }
   };
@@ -59,70 +90,155 @@ export function AddNodeButton() {
     if (!isDragging) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      // Find the canvas container (the relative positioned parent)
-      const canvasContainer = buttonRef.current?.parentElement;
-      if (!canvasContainer) return;
-
-      const containerRect = canvasContainer.getBoundingClientRect();
-      const newX = e.clientX - containerRect.left - dragOffset.x - 28; // Center the button
-      const newY = e.clientY - containerRect.top - dragOffset.y - 28;
-
-      // Constrain to canvas bounds
-      const buttonSize = 56; // w-14 = 56px
-      const constrainedX = Math.max(0, Math.min(newX, containerRect.width - buttonSize));
-      const constrainedY = Math.max(0, Math.min(newY, containerRect.height - buttonSize));
-
-      setPosition({ x: constrainedX, y: constrainedY });
+      e.preventDefault();
+      e.stopPropagation();
+      updatePosition(e.clientX, e.clientY);
     };
 
-    const handleMouseUp = () => {
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        updatePosition(touch.clientX, touch.clientY);
+      }
+    };
+
+    const updatePosition = (clientX: number, clientY: number) => {
+      // Find the canvas container (the relative positioned parent)
+      // The button is inside a wrapper div, so we need the parent of the wrapper
+      const wrapperDiv = buttonRef.current?.parentElement;
+      const canvasContainer = wrapperDiv?.parentElement;
+      
+      if (!canvasContainer || !buttonRef.current) {
+        return;
+      }
+
+      const containerRect = canvasContainer.getBoundingClientRect();
+      
+      // Calculate new position: mouse position minus container offset minus drag offset
+      // This positions the button center at the mouse position accounting for where we clicked
+      const newX = clientX - containerRect.left - dragOffset.x;
+      const newY = clientY - containerRect.top - dragOffset.y;
+
+      // Constrain to canvas bounds with reasonable padding
+      const buttonSize = isMobile ? 48 : 56;
+      const padding = 20;
+      const constrainedX = Math.max(padding, Math.min(newX, containerRect.width - buttonSize - padding));
+      const constrainedY = Math.max(padding, Math.min(newY, containerRect.height - buttonSize - padding));
+
+      setPosition({ x: constrainedX, y: constrainedY });
+      setHasDragged(true);
+    };
+
+    const handleEnd = (e?: MouseEvent | TouchEvent) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
       setIsDragging(false);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleEnd);
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleEnd);
     };
-  }, [isDragging, dragOffset]);
+  }, [isDragging, dragOffset, isMobile]);
 
-  const handleClick = () => {
-    // Only open if we didn't just drag
-    if (!isDragging) {
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    // Only open if we didn't just drag or if it was a very quick click
+    const timeSinceStart = Date.now() - dragStartTime;
+    if (!hasDragged && timeSinceStart < 200) {
       setIsOpen(!isOpen);
+    } else {
+      e.preventDefault();
+      e.stopPropagation();
     }
-  };
+  }, [hasDragged, dragStartTime, isOpen]);
+
+  const isEmpty = nodes.length === 0;
 
   return (
     <>
-      {/* Add Node Button - Fixed position on mobile, draggable on desktop */}
-      <button
-        ref={buttonRef}
-        onMouseDown={handleMouseDown}
-        onClick={handleClick}
-        className={cn(
-          'z-50 rounded-full',
-          'bg-purple-500 hover:bg-purple-600',
-          'text-white shadow-lg shadow-purple-500/50',
-          'flex items-center justify-center',
-          'transition-all duration-200',
-          'hover:scale-110 active:scale-95',
-          'border-2 border-purple-400/30',
-          'select-none',
-          // Mobile: Fixed bottom position
-          isMobile ? 'fixed bottom-4 right-4 w-12 h-12 cursor-pointer' : 'absolute w-14 h-14 cursor-move',
-          isDragging && 'scale-105'
-        )}
-        style={isMobile ? {} : {
+      {/* Add Node Button - Draggable with subtle amber glow */}
+      <div
+        className="absolute z-50 pointer-events-none"
+        style={{
           left: `${position.x}px`,
           top: `${position.y}px`,
         }}
-        title={isMobile ? "Add Node" : "Add Node (Drag to move)"}
       >
-        <Plus className={cn(isMobile ? "w-5 h-5" : "w-6 h-6")} />
-      </button>
+        {/* Subtle ambient glow - much more subtle */}
+        <div
+          className={cn(
+            'absolute inset-0 rounded-full transition-all duration-1000',
+            'bg-amber-400/10 blur-xl scale-125',
+            isHovered && 'bg-amber-400/20 scale-150',
+            isEmpty && 'animate-pulse-slow'
+          )}
+        />
+        
+        {/* Main button */}
+        <button
+          ref={buttonRef}
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
+          onClick={handleClick}
+          onDragStart={(e) => e.preventDefault()}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+          className={cn(
+            'relative rounded-full pointer-events-auto',
+            'bg-gradient-to-br from-amber-400 to-amber-500',
+            'hover:from-amber-300 hover:to-amber-400',
+            'text-black shadow-lg shadow-amber-500/25',
+            'flex items-center justify-center gap-2',
+            'transition-all duration-200 ease-out',
+            'border border-amber-300/40',
+            'select-none overflow-hidden',
+            // Size and interaction - always draggable
+            isMobile ? 'w-12 h-12' : 'w-14 h-14',
+            'cursor-move',
+            // Hover expansion - more subtle
+            isHovered && !isMobile && 'px-4 min-w-[120px]',
+            // Drag and active states - less dramatic
+            isDragging && 'scale-105 shadow-xl shadow-amber-500/40',
+            !isDragging && 'hover:scale-105 active:scale-95'
+          )}
+          title="Add Node (Drag to move)"
+        >
+          {/* Subtle inner highlight */}
+          <div
+            className={cn(
+              'absolute inset-0 rounded-full',
+              'bg-gradient-to-t from-transparent via-white/10 to-white/20',
+              'transition-opacity duration-200',
+              isHovered ? 'opacity-100' : 'opacity-70'
+            )}
+          />
+          
+          {/* Icon */}
+          <Plus className={cn(
+            'relative z-10 transition-all duration-200',
+            isMobile ? "w-5 h-5" : "w-6 h-6",
+            isHovered && !isMobile && 'mr-2'
+          )} />
+          
+          {/* Hover text - only on desktop */}
+          {isHovered && !isMobile && (
+            <span className="relative z-10 font-medium text-sm whitespace-nowrap animate-fade-in">
+              Add Node
+            </span>
+          )}
+        </button>
+      </div>
 
       {/* Node Palette - Bottom drawer on mobile, popup on desktop */}
       {isOpen && (
