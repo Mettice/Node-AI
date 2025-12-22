@@ -42,7 +42,7 @@ export function Hero() {
                     className="text-lg md:text-xl text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed"
                 >
                     The visual platform for building RAG pipelines, multi-agent systems, and AI automation.
-                    Connect 52+ nodes, watch your agents think, deploy in minutes.
+                    Watch your agents think, deploy in minutes.
                 </motion.p>
 
                 {/* CTA Buttons */}
@@ -81,8 +81,8 @@ export function Hero() {
                         {/* Content */}
                         <div className="relative aspect-video bg-gradient-to-br from-slate-900 to-slate-950 flex flex-col items-center justify-center gap-4 p-8">
                             <span className="text-5xl mb-4">🎬</span>
-                            <span className="text-slate-300 text-lg">Your App Screenshot Here</span>
-                            <span className="text-slate-500 text-sm">Use the Research Crew execution screenshot</span>
+                            <span className="text-slate-300 text-lg">App Screenshot Here</span>
+                            <span className="text-slate-500 text-sm">App Screenshot Here</span>
                         </div>
                     </div>
 

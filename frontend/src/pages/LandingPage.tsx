@@ -11,7 +11,7 @@ import { ProblemSection } from '@/components/landing/ProblemSection';
 import { AgentRoomsSection } from '@/components/landing/AgentRoomsSection';
 import { FeaturesSection } from '@/components/landing/FeaturesSection';
 import { UseCasesSection } from '@/components/landing/UseCasesSection';
-import { IntegrationsSection } from '@/components/landing/IntegrationsSection';
+import { TechStackSection } from '@/components/landing/TechStackSection';
 import { EnterpriseSection } from '@/components/landing/EnterpriseSection';
 import { CTASection } from '@/components/landing/CTASection';
 import { Footer } from '@/components/landing/Footer';
@@ -28,7 +28,7 @@ export function LandingPage() {
         <AgentRoomsSection />
         <FeaturesSection />
         <UseCasesSection />
-        <IntegrationsSection />
+        <TechStackSection />
         <EnterpriseSection />
         <CTASection />
       </main>

@@ -1,20 +1,36 @@
 import { motion } from 'framer-motion';
+import * as simpleIcons from 'simple-icons';
 
 export function IntegrationsSection() {
 
+  // Get CrewAI icon from simple-icons
+  const getCrewAIIcon = () => {
+    try {
+      const icon = (simpleIcons as any).siCrewai;
+      if (icon && icon.path && icon.hex) {
+        return { path: icon.path, color: `#${icon.hex}` };
+      }
+    } catch {
+      // Fallback if icon not found
+    }
+    return { path: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z', color: '#FF6B35' };
+  };
+
+  const crewAIIcon = getCrewAIIcon();
+
   const integrations = [
-    { icon: '🤖', name: 'OpenAI' },
-    { icon: '🧠', name: 'Anthropic' },
-    { icon: '🔷', name: 'Google AI' },
-    { icon: '☁️', name: 'Azure' },
-    { icon: '🌲', name: 'Pinecone' },
-    { icon: '🔗', name: 'LangChain' },
-    { icon: '👥', name: 'CrewAI' },
-    { icon: '💬', name: 'Slack' },
-    { icon: '📧', name: 'Email' },
-    { icon: '🪣', name: 'AWS S3' },
-    { icon: '📁', name: 'Google Drive' },
-    { icon: '🗄️', name: 'PostgreSQL' },
+    { icon: '🤖', name: 'OpenAI', type: 'emoji' },
+    { icon: '🧠', name: 'Anthropic', type: 'emoji' },
+    { icon: '🔷', name: 'Google AI', type: 'emoji' },
+    { icon: '☁️', name: 'Azure', type: 'emoji' },
+    { icon: '🌲', name: 'Pinecone', type: 'emoji' },
+    { icon: '🔗', name: 'LangChain', type: 'emoji' },
+    { icon: crewAIIcon, name: 'CrewAI', type: 'svg' },
+    { icon: '💬', name: 'Slack', type: 'emoji' },
+    { icon: '📧', name: 'Email', type: 'emoji' },
+    { icon: '🪣', name: 'AWS S3', type: 'emoji' },
+    { icon: '📁', name: 'Google Drive', type: 'emoji' },
+    { icon: '🗄️', name: 'PostgreSQL', type: 'emoji' },
   ];
 
   return (
@@ -49,8 +65,19 @@ export function IntegrationsSection() {
               transition={{ duration: 0.4, delay: 0.05 * index }}
               className="bg-slate-900/50 border border-slate-800 rounded-2xl p-7 flex flex-col items-center gap-4 hover:bg-slate-900/70 hover:border-slate-700 hover:-translate-y-1 transition-all cursor-pointer group"
             >
-              <div className="text-4xl group-hover:scale-125 transition-transform">
-                {integration.icon}
+              <div className="text-4xl group-hover:scale-125 transition-transform flex items-center justify-center">
+                {integration.type === 'svg' ? (
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="w-10 h-10"
+                    fill="currentColor"
+                    style={{ color: (integration.icon as any).color }}
+                  >
+                    <path d={(integration.icon as any).path} />
+                  </svg>
+                ) : (
+                  integration.icon as string
+                )}
               </div>
               <div className="text-sm font-medium text-slate-300">{integration.name}</div>
             </motion.div>
