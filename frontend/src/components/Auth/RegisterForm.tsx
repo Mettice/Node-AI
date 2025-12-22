@@ -47,7 +47,7 @@ export function RegisterForm() {
   if (success) {
     return (
       <div className="w-full max-w-md mx-auto">
-        <div className="glass rounded-lg p-8 text-center">
+        <div className="text-center">
           <div className="mb-4 flex justify-center">
             <div className="p-3 bg-green-500/20 rounded-full">
               <CheckCircle className="w-8 h-8 text-green-400" />
@@ -64,10 +64,10 @@ export function RegisterForm() {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <div className="glass rounded-lg p-8">
+      <div>
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-purple-500/20 rounded-lg">
-            <UserPlus className="w-6 h-6 text-purple-400" />
+          <div className="p-2 bg-amber-500/20 rounded-lg">
+            <UserPlus className="w-6 h-6 text-amber-400" />
           </div>
           <h2 className="text-2xl font-bold text-white">Create Account</h2>
         </div>
@@ -91,7 +91,7 @@ export function RegisterForm() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 placeholder="Your name"
               />
             </div>
@@ -109,7 +109,7 @@ export function RegisterForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 placeholder="you@example.com"
               />
             </div>
@@ -128,7 +128,7 @@ export function RegisterForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
-                className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 placeholder="••••••••"
               />
             </div>
@@ -148,7 +148,7 @@ export function RegisterForm() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 minLength={8}
-                className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 placeholder="••••••••"
               />
             </div>
@@ -157,7 +157,7 @@ export function RegisterForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 px-4 bg-purple-500 hover:bg-purple-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40"
           >
             {loading ? 'Creating account...' : 'Create Account'}
           </button>

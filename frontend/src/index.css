@@ -175,6 +175,10 @@
   animation: celebration 1s ease-out forwards;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--canvas-bg);
@@ -182,8 +186,15 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  overflow: hidden;
-  height: 100vh;
+  /* Allow scrolling for landing page - remove overflow: hidden and fixed height */
+  /* overflow: hidden; */
+  /* height: 100vh; */
+}
+
+/* Landing page specific styles */
+.landing-page {
+  overflow-x: hidden; /* Only hide horizontal scroll */
+  overflow-y: auto;   /* Allow vertical scroll */
 }
 
 * {
@@ -201,7 +212,9 @@ body {
   width: 100%;
   height: 100vh;
   background: var(--canvas-bg-gradient);
-  overflow: hidden;
+  /* Only hide horizontal overflow, allow vertical scroll */
+  overflow-x: hidden;
+  /* overflow: hidden; */
 }
 
 /* Subtle grid pattern */

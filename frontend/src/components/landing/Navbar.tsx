@@ -26,10 +26,7 @@ export function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <Workflow className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-lg font-bold text-white tracking-tight">
+            <span className="text-2xl font-black bg-gradient-to-r from-amber-400 to-pink-400 bg-clip-text text-transparent">
               NodeAI
             </span>
           </div>
@@ -53,9 +50,9 @@ export function Navbar() {
             </Link>
             <Link 
               to="/register" 
-              className="bg-white text-slate-950 px-4 py-2 rounded-md text-sm font-semibold hover:bg-slate-200 transition-all"
+              className="bg-gradient-to-r from-amber-500 to-orange-600 text-slate-950 px-4 py-2 rounded-lg text-sm font-bold hover:shadow-lg hover:shadow-amber-500/40 transition-all"
             >
-              Start Building
+              Start Free →
             </Link>
           </div>
           

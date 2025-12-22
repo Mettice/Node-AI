@@ -54,6 +54,10 @@ export default {
       animation: {
         'breathing': 'breathing 3s ease-in-out infinite',
         'glow-pulse': 'glowPulse 2s ease-in-out infinite',
+        'gradient': 'gradient 5s ease infinite',
+        'gradient-x': 'gradient-x 8s ease infinite',
+        'shimmer': 'shimmer 2s ease-in-out infinite',
+        'scroll': 'scroll 30s linear infinite',
       },
       keyframes: {
         breathing: {
@@ -64,6 +68,25 @@ export default {
           '0%, 100%': { opacity: '0.6' },
           '50%': { opacity: '1' },
         },
+        gradient: {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
+        'gradient-x': {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
+        shimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
+        },
+        scroll: {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
+      },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
       },
     },
   },
