@@ -55,9 +55,13 @@ logs/
 backend/data/executions/*
 backend/data/uploads/*
 backend/data/vectors/*
+backend/data/workflows/*
 !backend/data/executions/.gitkeep
 !backend/data/uploads/.gitkeep
 !backend/data/vectors/.gitkeep
+!backend/data/workflows/.gitkeep
+# Keep template files
+!backend/data/workflows/*-template.json
 
 # Uploads
 uploads/*
