@@ -122,9 +122,25 @@ class DataCollector:
             # DIRECT SOURCES: Always set fields (no conditionals)
             if node_type == "text_input":
                 # text_input → primary data (topic, brand, tone, etc.)
+                # DIRECT SOURCE: Merge text instead of overwrite
                 if "text" in outputs:
                     text_value = outputs["text"]
-                    available_data["text"] = text_value  # ✅ Always set (direct source)
+                    
+                    # PATCH: Check if text already exists and merge instead of overwrite
+                    if "text" in available_data:
+                        existing_text = available_data["text"]
+                        if isinstance(existing_text, str) and isinstance(text_value, str):
+                            # Concatenate with clear separator
+                            available_data["text"] = f"{existing_text}\n\n--- Text Input from {source_id} ---\n{text_value}"
+                            logger.info(f"   🔄 Direct source {source_id} ({node_type}) MERGED text field (new length: {len(available_data['text'])})")
+                        else:
+                            # Convert to list if mixed types
+                            available_data["text"] = [existing_text, text_value]
+                            logger.info(f"   🔄 Direct source {source_id} ({node_type}) CONVERTED text to list")
+                    else:
+                        available_data["text"] = text_value  # First source sets it normally
+                        logger.info(f"   ✅ Direct source {source_id} ({node_type}) set text field (length: {len(text_value) if isinstance(text_value, str) else 'N/A'})")
+                    
                     available_data[source_id] = text_value  # Also by node ID
                     
                     # Semantic mapping based on label
@@ -149,27 +165,54 @@ class DataCollector:
                         
             elif node_type == "file_loader" or node_type == "file_upload":
                 # file_loader → context/content
-                # DIRECT SOURCE: Always set text (no conditional)
+                # DIRECT SOURCE: Merge text instead of overwrite
                 if "text" in outputs:
                     file_content = outputs["text"]
-                    available_data["text"] = file_content  # ✅ Always set (direct source)
+                    
+                    # PATCH: Check if text already exists and merge instead of overwrite
+                    if "text" in available_data:
+                        existing_text = available_data["text"]
+                        if isinstance(existing_text, str) and isinstance(file_content, str):
+                            # Concatenate with clear separator
+                            available_data["text"] = f"{existing_text}\n\n--- File Content from {source_id} ---\n{file_content}"
+                            logger.info(f"   🔄 Direct source {source_id} ({node_type}) MERGED text field (new length: {len(available_data['text'])})")
+                        else:
+                            # Convert to list if mixed types
+                            available_data["text"] = [existing_text, file_content]
+                            logger.info(f"   🔄 Direct source {source_id} ({node_type}) CONVERTED text to list")
+                    else:
+                        available_data["text"] = file_content  # First source sets it normally
+                        logger.info(f"   ✅ Direct source {source_id} ({node_type}) set text field (length: {len(file_content) if isinstance(file_content, str) else 'N/A'})")
+                    
                     available_data["file_content"] = file_content
                     available_data["context"] = file_content
                     available_data["content"] = file_content
                     available_data[f"{source_id}_content"] = file_content  # Preserve with source prefix
-                    logger.info(f"   ✅ Direct source {source_id} ({node_type}) set text field (length: {len(file_content) if isinstance(file_content, str) else 'N/A'})")
                 else:
                     logger.warning(f"   ⚠️ Direct source {source_id} ({node_type}) has no 'text' field in outputs: {list(outputs.keys())}")
                         
             elif node_type == "advanced_nlp":
                 # advanced_nlp → summary/content/analysis
-                # DIRECT SOURCE: Always set fields
+                # DIRECT SOURCE: Merge fields instead of overwrite
                 if "output" in outputs:
                     nlp_output = outputs["output"]
+                    
+                    # PATCH: Merge text instead of overwrite
+                    if "text" in available_data:
+                        existing_text = available_data["text"]
+                        if isinstance(existing_text, str) and isinstance(nlp_output, str):
+                            available_data["text"] = f"{existing_text}\n\n--- NLP Analysis from {source_id} ---\n{nlp_output}"
+                            logger.info(f"   🔄 Direct source {source_id} ({node_type}) MERGED text field")
+                        else:
+                            available_data["text"] = [existing_text, nlp_output]
+                            logger.info(f"   🔄 Direct source {source_id} ({node_type}) CONVERTED text to list")
+                    else:
+                        available_data["text"] = nlp_output
+                        logger.info(f"   ✅ Direct source {source_id} ({node_type}) set text field")
+                    
                     available_data["summary"] = nlp_output  # ✅ Always set
                     available_data["content"] = nlp_output  # ✅ Always set
                     available_data["analysis"] = nlp_output  # ✅ Always set
-                    available_data["text"] = nlp_output  # ✅ Always set (direct source)
                 elif "summary" in outputs:
                     available_data["summary"] = outputs["summary"]  # ✅ Always set
                     available_data["content"] = outputs["summary"]  # ✅ Always set
@@ -177,9 +220,23 @@ class DataCollector:
             elif node_type in ["blog_generator", "proposal_generator", "brand_generator"]:
                 # Content generators → structured output for downstream nodes
                 if "output" in outputs:
-                    available_data["text"] = outputs["output"]
-                    available_data["content"] = outputs["output"]
-                    available_data["topic"] = outputs["output"]  # For blog chaining
+                    generator_output = outputs["output"]
+                    
+                    # PATCH: Merge text instead of overwrite
+                    if "text" in available_data:
+                        existing_text = available_data["text"]
+                        if isinstance(existing_text, str) and isinstance(generator_output, str):
+                            available_data["text"] = f"{existing_text}\n\n--- Generated Content from {source_id} ---\n{generator_output}"
+                            logger.info(f"   🔄 Direct source {source_id} ({node_type}) MERGED text field")
+                        else:
+                            available_data["text"] = [existing_text, generator_output]
+                            logger.info(f"   🔄 Direct source {source_id} ({node_type}) CONVERTED text to list")
+                    else:
+                        available_data["text"] = generator_output
+                        logger.info(f"   ✅ Direct source {source_id} ({node_type}) set text field")
+                    
+                    available_data["content"] = generator_output
+                    available_data["topic"] = generator_output  # For blog chaining
                 elif "blog_post" in outputs:
                     # Extract text content from blog post structure
                     blog_post = outputs["blog_post"]
@@ -239,11 +296,31 @@ class DataCollector:
             if "output" in outputs:
                 output_value = outputs["output"]
                 if isinstance(output_value, str):
-                    available_data["text"] = output_value  # ✅ Always set (direct source)
+                    # PATCH: Merge text instead of overwrite
+                    if "text" in available_data:
+                        existing_text = available_data["text"]
+                        if isinstance(existing_text, str):
+                            available_data["text"] = f"{existing_text}\n\n--- Output from {source_id} ---\n{output_value}"
+                            logger.info(f"   🔄 Direct source {source_id} MERGED common text field")
+                        else:
+                            available_data["text"] = [existing_text, output_value]
+                            logger.info(f"   🔄 Direct source {source_id} CONVERTED common text to list")
+                    else:
+                        available_data["text"] = output_value  # First source sets it normally
+                        logger.info(f"   ✅ Direct source {source_id} set common text field")
                 elif isinstance(output_value, dict):
                     # Extract nested output string if it exists
                     if "output" in output_value and isinstance(output_value["output"], str):
-                        available_data["text"] = output_value["output"]  # ✅ Always set
+                        nested_output = output_value["output"]
+                        # PATCH: Merge nested text too
+                        if "text" in available_data:
+                            existing_text = available_data["text"]
+                            if isinstance(existing_text, str):
+                                available_data["text"] = f"{existing_text}\n\n--- Nested Output from {source_id} ---\n{nested_output}"
+                            else:
+                                available_data["text"] = [existing_text, nested_output]
+                        else:
+                            available_data["text"] = nested_output
                     # Extract other string fields
                     for nested_key, nested_value in output_value.items():
                         if isinstance(nested_value, str):
@@ -480,20 +557,10 @@ class DataCollector:
         Returns:
             Combined inputs dictionary
         """
-        # Determine intelligent routing setting with clear priority order
-        if use_intelligent_routing is None:
-            # Priority: 1. Workflow config, 2. Global settings, 3. Default False
-            workflow_config = getattr(workflow, 'config', {})
-            if isinstance(workflow_config, dict) and 'use_intelligent_routing' in workflow_config:
-                use_intelligent_routing = workflow_config['use_intelligent_routing']
-                logger.debug(f"Using workflow-level intelligent routing setting: {use_intelligent_routing}")
-            else:
-                # Fall back to global settings
-                from backend.config import settings
-                use_intelligent_routing = getattr(settings, 'enable_intelligent_routing', False)
-                logger.debug(f"Using global intelligent routing setting: {use_intelligent_routing}")
-        else:
-            logger.debug(f"Using explicit intelligent routing setting: {use_intelligent_routing}")
+        # STRATEGIC DECISION: Disable intelligent routing to eliminate complexity
+        # Focus on Universal Data Envelope instead
+        use_intelligent_routing = False
+        logger.debug(f"Intelligent routing DISABLED - using enhanced smart merge instead")
         
         # STEP 1: Collect source data WITHOUT merging (preserve all sources)
         source_data = DataCollector.collect_source_data(workflow, node_id, node_outputs)
@@ -567,10 +634,41 @@ class DataCollector:
                 )
                 
                 # Merge intelligent routing results with source data
-                # Intelligent routing provides the mapped fields, but we also need to preserve
-                # any additional data that wasn't mapped
-                # IMPORTANT: intelligent_inputs should take precedence (it has the mapped fields)
-                inputs = {**available_data, **intelligent_inputs}
+                # CRITICAL FIX: Merge multiple text sources instead of letting LLM pick just one
+                
+                # Start with available data (all prefixed keys)
+                inputs = dict(available_data)
+                
+                # For each field in intelligent_inputs, check if we should merge or overwrite
+                logger.info(f"   🔍 Intelligent routing merging: available_data keys={list(available_data.keys())}")
+                logger.info(f"   🔍 Intelligent routing merging: intelligent_inputs keys={list(intelligent_inputs.keys())}")
+                
+                for key, value in intelligent_inputs.items():
+                    logger.info(f"   🔍 Processing intelligent field: {key} = {type(value).__name__}")
+                    
+                    if key == "text":
+                        # ALWAYS merge multiple text sources for text field
+                        logger.info(f"   🔍 Found text field in intelligent_inputs")
+                        
+                        # Find all text sources in available_data
+                        text_sources = []
+                        for source_key, source_value in available_data.items():
+                            if "_text" in source_key and isinstance(source_value, str):
+                                source_id = source_key.replace("_text", "")
+                                text_sources.append(f"--- Content from {source_id} ---\n{source_value}")
+                                logger.info(f"   🔍 Found text source: {source_key} (length: {len(source_value)})")
+                        
+                        if len(text_sources) > 1:
+                            # Combine all sources when multiple exist
+                            inputs[key] = "\n\n".join(text_sources)
+                            logger.info(f"   🔄 Intelligent routing MERGED {len(text_sources)} text sources for {node_id}")
+                        else:
+                            # Single source or no sources found, use LLM's choice
+                            inputs[key] = value
+                            logger.info(f"   ✅ Intelligent routing used LLM choice for text (sources: {len(text_sources)})")
+                    else:
+                        # For non-text fields, use LLM's mapping
+                        inputs[key] = value
                 
                 # Extract attachments if any
                 if "_email_attachments" in available_data:
