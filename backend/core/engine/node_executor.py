@@ -73,7 +73,15 @@ class NodeExecutor:
                 node_instance.execution_id = execution_id
             
             # Add node_id to config for streaming (nodes may need it)
-            node_config = node.data.copy() if node.data else {}
+            # Handle both node.data (direct config) and node.data.config (nested config)
+            node_data = node.data or {}
+            if isinstance(node_data, dict) and "config" in node_data and isinstance(node_data.get("config"), dict):
+                # Config is nested in node.data.config
+                node_config = node_data["config"].copy()
+            else:
+                # Config is directly in node.data
+                node_config = node_data.copy() if node_data else {}
+            
             node_config["_node_id"] = node.id
             node_config["_execution_id"] = execution_id
             # Add user_id for vault access

@@ -679,10 +679,17 @@ class CrewAINode(BaseNode):
         user_id = config.get("_user_id")
         
         if provider == "openai":
-            # Resolve API key from vault, config, or settings
-            api_key = resolve_api_key(config, "openai_api_key", user_id=user_id)
+            # Resolve API key from vault, config, or settings (in that order)
+            # In production, users should configure via node settings or vault, not env vars
+            api_key = resolve_api_key(config, "openai_api_key", user_id=user_id, fallback_to_settings=True)
             if not api_key:
-                raise ValueError("OpenAI API key not found. Please configure it in the node settings or environment variables.")
+                raise ValueError(
+                    "OpenAI API key not found. Please configure it in the CrewAI node settings:\n"
+                    "1. Open the CrewAI node properties\n"
+                    "2. Enter your OpenAI API key in the 'OpenAI API Key' field, OR\n"
+                    "3. Select a key from your Secrets Vault\n"
+                    "Note: In production, API keys should be configured per-node or via vault, not environment variables."
+                )
             try:
                 from langchain_openai import ChatOpenAI
             except ImportError:
@@ -696,9 +703,15 @@ class CrewAINode(BaseNode):
             )
         elif provider == "anthropic":
             # Use API key from config if provided, otherwise fall back to environment variable
-            api_key = resolve_api_key(config, "anthropic_api_key", user_id=user_id)
+            api_key = resolve_api_key(config, "anthropic_api_key", user_id=user_id, fallback_to_settings=True)
             if not api_key:
-                raise ValueError("Anthropic API key not found. Please configure it in the node settings or environment variables.")
+                raise ValueError(
+                    "Anthropic API key not found. Please configure it in the CrewAI node settings:\n"
+                    "1. Open the CrewAI node properties\n"
+                    "2. Enter your Anthropic API key in the 'Anthropic API Key' field, OR\n"
+                    "3. Select a key from your Secrets Vault\n"
+                    "Note: In production, API keys should be configured per-node or via vault, not environment variables."
+                )
             try:
                 from langchain_anthropic import ChatAnthropic
             except ImportError:
@@ -712,9 +725,15 @@ class CrewAINode(BaseNode):
             )
         elif provider == "gemini" or provider == "google":
             # Use API key from config if provided, otherwise fall back to environment variable
-            api_key = resolve_api_key(config, "gemini_api_key", user_id=user_id)
+            api_key = resolve_api_key(config, "gemini_api_key", user_id=user_id, fallback_to_settings=True)
             if not api_key:
-                raise ValueError("Gemini API key not found. Please configure it in the node settings or environment variables.")
+                raise ValueError(
+                    "Gemini API key not found. Please configure it in the CrewAI node settings:\n"
+                    "1. Open the CrewAI node properties\n"
+                    "2. Enter your Gemini API key in the 'Gemini API Key' field, OR\n"
+                    "3. Select a key from your Secrets Vault\n"
+                    "Note: In production, API keys should be configured per-node or via vault, not environment variables."
+                )
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
             except ImportError:
