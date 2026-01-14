@@ -6,7 +6,7 @@ and converts them to StreamEvents for real-time visualization in the frontend.
 """
 
 import asyncio
-from typing import Optional
+from typing import Dict, Optional
 
 from backend.utils.logger import get_logger
 

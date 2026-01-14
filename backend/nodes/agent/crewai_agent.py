@@ -554,44 +554,98 @@ class CrewAINode(BaseNode):
         agent_outputs = {}
         if hasattr(result, 'tasks_output') and result.tasks_output:
             logger.info(f"Extracting agent outputs from {len(result.tasks_output)} task outputs")
-            
+
             # Also try to get agent outputs from crew.tasks_output if available
             crew_tasks_output = None
             if hasattr(crew, 'tasks_output') and crew.tasks_output:
                 crew_tasks_output = crew.tasks_output
                 logger.info(f"Found crew.tasks_output with {len(crew_tasks_output)} tasks")
-            
+
             # Use crew.tasks_output if available, otherwise use result.tasks_output
             tasks_to_process = crew_tasks_output if crew_tasks_output else result.tasks_output
-            
+
+            # Log the tasks we're about to process
+            logger.info(f"Processing {len(tasks_to_process)} task outputs for agent extraction")
+
             for idx, task_output in enumerate(tasks_to_process):
                 agent_role = None
                 task_desc = None
                 output_text = None
-                
-                # Get agent role - try multiple methods with more fallbacks
+
+                # Log task_output type and available attributes for debugging
+                task_output_type = type(task_output).__name__
+                logger.info(f"Task output {idx}: type={task_output_type}")
+
+                # Get agent role - CrewAI 1.5.0+ uses string directly for agent field
                 if hasattr(task_output, 'agent') and task_output.agent:
-                    agent_obj = task_output.agent
-                    if hasattr(agent_obj, 'role'):
-                        agent_role = agent_obj.role
-                    elif hasattr(agent_obj, 'name'):
-                        agent_role = agent_obj.name
+                    agent_value = task_output.agent
+                    # CrewAI 1.5.0: agent is a string (the role name directly)
+                    if isinstance(agent_value, str):
+                        agent_role = agent_value
+                        logger.info(f"Task output {idx}: agent is string: '{agent_role}'")
+                    # Older versions: agent might be an Agent object
+                    elif hasattr(agent_value, 'role'):
+                        agent_role = agent_value.role
+                        logger.info(f"Task output {idx}: agent.role: '{agent_role}'")
+                    elif hasattr(agent_value, 'name'):
+                        agent_role = agent_value.name
+                        logger.info(f"Task output {idx}: agent.name: '{agent_role}'")
                     else:
-                        agent_role = str(agent_obj)
+                        agent_role = str(agent_value)
+                        logger.info(f"Task output {idx}: agent str(): '{agent_role}'")
                 elif hasattr(task_output, 'agent_role'):
                     agent_role = task_output.agent_role
+                    logger.info(f"Task output {idx}: agent_role attr: '{agent_role}'")
                 elif hasattr(task_output, 'agent_name'):
                     agent_role = task_output.agent_name
-                
-                # If we still don't have agent_role, try to match from tasks
+                    logger.info(f"Task output {idx}: agent_name attr: '{agent_role}'")
+
+                # If we still don't have agent_role, try to match from original tasks list
+                if not agent_role and idx < len(tasks):
+                    original_task = tasks[idx]
+                    if hasattr(original_task, 'agent') and original_task.agent:
+                        agent_obj = original_task.agent
+                        if isinstance(agent_obj, str):
+                            agent_role = agent_obj
+                        elif hasattr(agent_obj, 'role'):
+                            agent_role = agent_obj.role
+                        elif hasattr(agent_obj, 'name'):
+                            agent_role = agent_obj.name
+                        if agent_role:
+                            logger.info(f"Task output {idx}: matched from original tasks[{idx}]: '{agent_role}'")
+
+                # If we still don't have agent_role, try to match from task_output.task
                 if not agent_role and hasattr(task_output, 'task') and task_output.task:
                     task_obj = task_output.task
                     if hasattr(task_obj, 'agent') and task_obj.agent:
                         agent_obj = task_obj.agent
-                        if hasattr(agent_obj, 'role'):
+                        if isinstance(agent_obj, str):
+                            agent_role = agent_obj
+                        elif hasattr(agent_obj, 'role'):
                             agent_role = agent_obj.role
                         elif hasattr(agent_obj, 'name'):
                             agent_role = agent_obj.name
+                        if agent_role:
+                            logger.info(f"Task output {idx}: from task_output.task.agent: '{agent_role}'")
+
+                # Final fallback: if we have description/name info, try to match to configured agents
+                if not agent_role:
+                    # Try task name matching
+                    task_name = getattr(task_output, 'name', None) or getattr(task_output, 'description', '')
+                    if task_name:
+                        task_name_lower = task_name.lower()
+                        for agent in agents:
+                            agent_role_lower = agent.role.lower()
+                            # Check if agent role appears in task name
+                            if agent_role_lower in task_name_lower or any(word in task_name_lower for word in agent_role_lower.split()):
+                                agent_role = agent.role
+                                logger.info(f"Task output {idx}: matched agent by task name: '{agent_role}'")
+                                break
+
+                # Ultimate fallback: use agent at same index (assumes 1:1 task-agent mapping)
+                if not agent_role and idx < len(agents):
+                    agent_role = agents[idx].role
+                    logger.info(f"Task output {idx}: using agent at index {idx} as fallback: '{agent_role}'")
                 
                 # Get task description
                 if hasattr(task_output, 'task') and task_output.task:

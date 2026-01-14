@@ -151,13 +151,20 @@ class StreamManager:
     async def subscribe(self, execution_id: str) -> AsyncIterator[StreamEvent]:
         """Subscribe to events for an execution."""
         await self.create_stream(execution_id)
-        
+
         while True:
             try:
+                # Check if stream still exists before trying to access it
+                async with self._lock:
+                    if execution_id not in self._streams:
+                        logger.info(f"Stream {execution_id} was removed, ending subscription")
+                        break
+                    queue = self._streams[execution_id]
+
                 # Wait for event with timeout to allow checking if stream still exists
                 # Use a longer timeout to avoid premature closure
                 event = await asyncio.wait_for(
-                    self._streams[execution_id].get(),
+                    queue.get(),
                     timeout=30.0  # 30 second timeout - execution might take time
                 )
                 yield event
@@ -170,6 +177,10 @@ class StreamManager:
                 # Stream still exists, continue waiting for events
                 logger.debug(f"Stream {execution_id} timeout, but stream still exists, continuing...")
                 continue
+            except KeyError:
+                # Stream was removed between check and access - this is expected on completion
+                logger.info(f"Stream {execution_id} was removed during subscription, ending gracefully")
+                break
             except Exception as e:
                 logger.error(f"Error in stream subscription: {e}", exc_info=True)
                 break
