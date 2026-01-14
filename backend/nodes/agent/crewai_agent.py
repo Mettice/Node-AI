@@ -7,8 +7,14 @@ This node creates a multi-agent crew that can work together on tasks.
 from typing import Any, Dict, List, Optional
 import json
 import asyncio
+import os
+import threading
 
 from backend.nodes.base import BaseNode
+
+# Lock for thread-safe environment variable modification during CrewAI execution
+# This prevents race conditions when multiple CrewAI nodes run concurrently
+_crewai_env_lock = threading.Lock()
 from backend.core.models import NodeMetadata
 from backend.core.node_registry import NodeRegistry
 from backend.utils.logger import get_logger
@@ -374,17 +380,43 @@ class CrewAINode(BaseNode):
         import warnings
         import concurrent.futures
         # asyncio already imported at top of file
-        
+
         # Create executor for running CrewAI
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-        
+
+        # Capture API key info for thread-safe environment variable setting
+        # CrewAI/LiteLLM internally looks for env vars, not the passed api_key
+        api_key_for_env = getattr(self, '_current_api_key', None)
+        env_var_name = getattr(self, '_current_env_var', None)
+
         def execute_crew():
-            """Execute CrewAI in a separate thread."""
+            """Execute CrewAI in a separate thread with proper env var handling."""
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=UserWarning)
-                # Pass inputs to crew.kickoff() so CrewAI can interpolate them into task descriptions
-                return crew.kickoff(inputs=crew_inputs if crew_inputs else None)
-        
+
+                # Set environment variable for CrewAI's internal LiteLLM calls
+                # Use lock to prevent race conditions in multi-tenant environment
+                if api_key_for_env and env_var_name:
+                    with _crewai_env_lock:
+                        # Store original value
+                        original_value = os.environ.get(env_var_name)
+                        try:
+                            # Set the API key for this execution
+                            os.environ[env_var_name] = api_key_for_env
+                            logger.debug(f"Set {env_var_name} for CrewAI execution")
+                            # Pass inputs to crew.kickoff() so CrewAI can interpolate them into task descriptions
+                            return crew.kickoff(inputs=crew_inputs if crew_inputs else None)
+                        finally:
+                            # Restore original value
+                            if original_value is not None:
+                                os.environ[env_var_name] = original_value
+                            elif env_var_name in os.environ:
+                                del os.environ[env_var_name]
+                            logger.debug(f"Restored {env_var_name} after CrewAI execution")
+                else:
+                    # Fallback: run without setting env var (will use existing env if any)
+                    return crew.kickoff(inputs=crew_inputs if crew_inputs else None)
+
         # Submit the crew execution
         future = executor.submit(execute_crew)
         
@@ -675,9 +707,12 @@ class CrewAINode(BaseNode):
     def _create_llm(self, provider: str, model: str, temperature: float, config: Dict[str, Any] = None):
         """Create LLM instance based on provider."""
         config = config or {}
-        
+
         user_id = config.get("_user_id")
-        
+
+        # Store provider for later use in execute_crew
+        self._current_provider = provider
+
         if provider == "openai":
             # Resolve API key from vault, config, or settings (in that order)
             # In production, users should configure via node settings or vault, not env vars
@@ -690,6 +725,9 @@ class CrewAINode(BaseNode):
                     "3. Select a key from your Secrets Vault\n"
                     "Note: In production, API keys should be configured per-node or via vault, not environment variables."
                 )
+            # Store API key for CrewAI's internal LiteLLM calls
+            self._current_api_key = api_key
+            self._current_env_var = "OPENAI_API_KEY"
             try:
                 from langchain_openai import ChatOpenAI
             except ImportError:
@@ -712,6 +750,9 @@ class CrewAINode(BaseNode):
                     "3. Select a key from your Secrets Vault\n"
                     "Note: In production, API keys should be configured per-node or via vault, not environment variables."
                 )
+            # Store API key for CrewAI's internal LiteLLM calls
+            self._current_api_key = api_key
+            self._current_env_var = "ANTHROPIC_API_KEY"
             try:
                 from langchain_anthropic import ChatAnthropic
             except ImportError:
@@ -734,6 +775,9 @@ class CrewAINode(BaseNode):
                     "3. Select a key from your Secrets Vault\n"
                     "Note: In production, API keys should be configured per-node or via vault, not environment variables."
                 )
+            # Store API key for CrewAI's internal LiteLLM calls
+            self._current_api_key = api_key
+            self._current_env_var = "GEMINI_API_KEY"
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
             except ImportError:
