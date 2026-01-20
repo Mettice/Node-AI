@@ -19,6 +19,7 @@ import {
 import { cn } from '@/utils/cn';
 import { NODE_CATEGORY_COLORS } from '@/constants';
 import { toast } from 'react-hot-toast';
+import { UnifiedNodeOutput } from './UnifiedNodeOutput';
 
 // Node tier for shape echo styling
 const NODE_TIER_MAP: Record<string, number> = {
@@ -176,6 +177,15 @@ export function ExecutionSummary() {
           else if (output.response) outputPreview = typeof output.response === 'string' ? output.response : JSON.stringify(output.response, null, 2);
           else if (output.message) outputPreview = typeof output.message === 'string' ? output.message : JSON.stringify(output.message, null, 2);
           else if (output.content) outputPreview = typeof output.content === 'string' ? output.content : JSON.stringify(output.content, null, 2);
+          // For storage nodes with structured data (Airtable, Google Sheets, Data Loader)
+          else if (output.data && Array.isArray(output.data) && output.data.length > 0) {
+            const recordCount = output.data.length;
+            const metadata = output.metadata || {};
+            const source = metadata.source || 'unknown';
+            const schema = output.schema || {};
+            const columns = schema.columns || (output.data[0] ? Object.keys(output.data[0]) : []);
+            outputPreview = `📊 ${recordCount} record${recordCount !== 1 ? 's' : ''} from ${source}\nColumns: ${columns.slice(0, 5).join(', ')}${columns.length > 5 ? '...' : ''}`;
+          }
           // For auto_chart_generator and similar nodes, show charts/data_summary
           else if (output.charts || output.data_summary || output.chart_recommendations || output.metadata) {
             const parts: string[] = [];
@@ -230,6 +240,8 @@ export function ExecutionSummary() {
           if (typeof output === 'object' && output !== null && !Array.isArray(output)) {
             const keys = Object.keys(output);
             if (keys.length > 0) return true;
+            // Check for structured data (storage nodes)
+            if (output.data && Array.isArray(output.data) && output.data.length > 0) return true;
             // Check nested output fields - including charts and visual_charts
             if (output.output || output.charts || output.visual_charts || output.data_summary || output.summary || output.text || output.content) {
               // For charts, check if array has items
@@ -783,10 +795,23 @@ function ResultCardContent({
         </div>
       )}
       
-      {/* Output Content - Special formatting for auto_chart_generator */}
+      {/* Output Content - Use UnifiedNodeOutput for structured data, special formatting for auto_chart_generator */}
       {node.type === 'auto_chart_generator' && result?.output ? (
         <FormattedChartGeneratorOutput output={result.output} isExpanded={isExpanded} onToggle={() => onToggle(node.id)} />
+      ) : (result?.output?._display_metadata || (result?.output?.data && Array.isArray(result.output.data) && result.output.data.length > 0)) ? (
+        // Use UnifiedNodeOutput for nodes with display metadata OR structured data (storage nodes)
+        <div className="p-3 bg-black/10">
+          <UnifiedNodeOutput
+            nodeId={node.id}
+            nodeType={node.type || ''}
+            nodeName={node.name}
+            output={result.output}
+            isExpanded={isExpanded}
+            categoryColor={node.categoryColor}
+          />
+        </div>
       ) : node.outputPreview ? (
+        // Fallback to JSON preview for nodes without display metadata
         <div className="p-3 bg-black/10">
           <div className={cn(
             "text-[10px] text-slate-400 whitespace-pre-wrap font-mono transition-all duration-200",

@@ -1,0 +1,13 @@
+{
+  "execution_id": "869fe15c-63c5-4e5b-973c-c1fc953e4b07",
+  "workflow_id": "unknown",
+  "workflow_version": null,
+  "status": "completed",
+  "started_at": "2026-01-18T20:09:59.938830",
+  "completed_at": "2026-01-18T20:10:09.618944",
+  "duration_ms": 9680,
+  "total_cost": 0.000463,
+  "cost_breakdown": {},
+  "error": null,
+  "metadata": {}
+}

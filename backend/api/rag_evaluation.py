@@ -46,11 +46,14 @@ class DatasetUploadResponse(BaseModel):
 
 class EvaluationRequest(BaseModel):
     """Request to evaluate a RAG workflow."""
-    workflow: Dict  # The workflow to evaluate (full workflow object)
+    workflow: Dict[str, Any]  # The workflow to evaluate (full workflow object)
     test_dataset_id: str
     max_queries: Optional[int] = None  # Limit number of queries to test
     input_node_id: Optional[str] = None  # Node ID to inject question into (default: first text_input node)
     output_node_id: Optional[str] = None  # Node ID to extract answer from (default: last chat/llm node)
+    
+    class Config:
+        extra = "allow"  # Allow extra fields for flexibility
 
 
 class EvaluationResult(BaseModel):
@@ -105,39 +108,117 @@ async def upload_test_dataset(
     try:
         # Read file content
         content = await file.read()
-        text_content = content.decode('utf-8')
+        
+        if not content:
+            raise HTTPException(
+                status_code=400,
+                detail="File is empty. Please upload a file with Q&A pairs."
+            )
+        
+        text_content = content.decode('utf-8').strip()
+        
+        if not text_content:
+            raise HTTPException(
+                status_code=400,
+                detail="File contains no data. Please upload a file with Q&A pairs."
+            )
+        
+        qa_pairs = []
+        json_parse_error = None
         
         # Try parsing as JSON first
         try:
             data = json.loads(text_content)
             if isinstance(data, list):
                 qa_pairs = data
-            else:
+            elif isinstance(data, dict):
                 qa_pairs = [data]
-        except json.JSONDecodeError:
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid JSON format. Expected an array of objects or a single object."
+                )
+        except json.JSONDecodeError as e:
+            json_parse_error = str(e)
             # Try JSONL format (one JSON object per line)
             qa_pairs = []
-            for line in text_content.strip().split('\n'):
-                if line.strip():
-                    qa_pairs.append(json.loads(line))
+            jsonl_errors = []
+            for line_num, line in enumerate(text_content.split('\n'), 1):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    parsed = json.loads(line)
+                    qa_pairs.append(parsed)
+                except json.JSONDecodeError as line_error:
+                    jsonl_errors.append(f"Line {line_num}: {str(line_error)}")
+            
+            # If JSONL parsing also failed completely
+            if not qa_pairs and jsonl_errors:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Failed to parse file as JSON or JSONL. JSON error: {json_parse_error}. JSONL errors: {'; '.join(jsonl_errors[:3])}"
+                )
         
         # Validate format
         validated_pairs = []
-        for pair in qa_pairs:
+        validation_errors = []
+        
+        for idx, pair in enumerate(qa_pairs, 1):
             if not isinstance(pair, dict):
+                validation_errors.append(f"Pair {idx}: Expected an object, got {type(pair).__name__}")
                 continue
-            if 'question' not in pair or 'expected_answer' not in pair:
+            
+            # Support flexible field names
+            question = pair.get("question") or pair.get("q") or pair.get("query")
+            expected_answer = pair.get("expected_answer") or pair.get("answer") or pair.get("expected") or pair.get("a")
+            
+            # Check required fields
+            if not question:
+                available_keys = list(pair.keys())[:5]
+                validation_errors.append(f"Pair {idx}: Missing 'question' field (or 'q', 'query'). Available keys: {available_keys}")
                 continue
+            
+            if not expected_answer:
+                available_keys = list(pair.keys())[:5]
+                validation_errors.append(f"Pair {idx}: Missing 'expected_answer' field (or 'answer', 'expected', 'a'). Available keys: {available_keys}")
+                continue
+            
+            # Validate field types and non-empty
+            if not isinstance(question, str):
+                question = str(question)
+            
+            if not isinstance(expected_answer, str):
+                expected_answer = str(expected_answer)
+            
+            question = question.strip()
+            expected_answer = expected_answer.strip()
+            
+            if not question:
+                validation_errors.append(f"Pair {idx}: 'question' must be a non-empty string")
+                continue
+            
+            if not expected_answer:
+                validation_errors.append(f"Pair {idx}: 'expected_answer' must be a non-empty string")
+                continue
+            
             validated_pairs.append({
-                "question": pair["question"],
-                "expected_answer": pair["expected_answer"],
-                "context": pair.get("context"),
+                "question": question,
+                "expected_answer": expected_answer,
+                "context": pair.get("context", "").strip() if pair.get("context") else None,
             })
         
         if not validated_pairs:
+            error_msg = "No valid Q&A pairs found in file."
+            if validation_errors:
+                error_msg += f" Errors: {'; '.join(validation_errors[:5])}"
+            if len(validation_errors) > 5:
+                error_msg += f" (and {len(validation_errors) - 5} more errors)"
+            error_msg += f" Expected format: [{{\"question\": \"...\", \"expected_answer\": \"...\"}}]"
+            
             raise HTTPException(
                 status_code=400,
-                detail="No valid Q&A pairs found in file. Expected format: [{\"question\": \"...\", \"expected_answer\": \"...\"}]"
+                detail=error_msg
             )
         
         # Store dataset
@@ -177,179 +258,282 @@ async def get_test_dataset(dataset_id: str, request: Request) -> Dict:
 @limiter.limit("10/minute")
 async def evaluate_rag_workflow(request_body: EvaluationRequest, request: Request) -> EvaluationSummary:
     """
-    Evaluate a RAG workflow with test Q&A pairs.
+    Evaluate a RAG (Retrieval-Augmented Generation) workflow with test Q&A pairs.
     
-    This will:
-    1. Load the test dataset
-    2. Execute the workflow for each question
-    3. Compare actual vs expected answers
-    4. Calculate metrics (accuracy, relevance, latency, cost)
+    This endpoint is specifically designed for RAG pipelines and will:
+    1. Validate the workflow contains RAG-specific nodes (vector_search, chat)
+    2. Load the test dataset
+    3. Execute the workflow for each question (injecting into input node)
+    4. Compare actual vs expected answers
+    5. Calculate metrics (accuracy, relevance, latency, cost)
+    
+    RAG Workflow Structure:
+    - Setup Phase (one-time): file_loader → chunk → embed → vector_store
+    - Query Phase (per question): text_input → (embed) → vector_search → chat
+    
+    For evaluation, questions are injected into input nodes:
+    - text_input: injects into config["text"]
+    - vector_search: injects into config["query"] (if no text_input exists)
+    - chat: injects into config["query"] (if no text_input or vector_search exists)
     """
     from backend.core.engine import engine
     from backend.core.models import Workflow, Node
     
-    # Get test dataset
-    if request_body.test_dataset_id not in _test_datasets:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Test dataset not found: {request_body.test_dataset_id}"
-        )
-    
-    test_pairs = _test_datasets[request_body.test_dataset_id]
-    
-    # Limit queries if specified
-    if request_body.max_queries:
-        test_pairs = test_pairs[:request_body.max_queries]
-    
-    evaluation_id = str(uuid.uuid4())
-    
-    # Parse workflow
     try:
-        workflow = Workflow(**request_body.workflow)
-    except Exception as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid workflow format: {str(e)}"
-        )
-    
-    # Find input and output nodes
-    input_node_id = request_body.input_node_id
-    output_node_id = request_body.output_node_id
-    
-    if not input_node_id:
-        # Find first text_input node
-        for node in workflow.nodes:
-            if node.type == "text_input":
-                input_node_id = node.id
-                break
-    
-    if not output_node_id:
-        # Find last chat/llm node
-        for node in reversed(workflow.nodes):
-            if node.type in ["chat", "langchain_agent", "crewai_agent"]:
-                output_node_id = node.id
-                break
-    
-    if not input_node_id:
-        raise HTTPException(
-            status_code=400,
-            detail="No input node found. Please specify input_node_id or add a text_input node."
-        )
-    
-    if not output_node_id:
-        raise HTTPException(
-            status_code=400,
-            detail="No output node found. Please specify output_node_id or add a chat/llm node."
-        )
-    
-    # Execute workflow for each Q&A pair
-    results: List[EvaluationResult] = []
-    total_cost = 0.0
-    total_latency = 0
-    correct_count = 0
-    total_relevance = 0.0
-    failed_count = 0
-    
-    for idx, pair in enumerate(test_pairs):
+        # Log request for debugging
+        logger.info(f"RAG evaluation request: dataset_id={request_body.test_dataset_id}, max_queries={request_body.max_queries}")
+        
+        # Validate test_dataset_id is provided
+        if not request_body.test_dataset_id:
+            raise HTTPException(
+                status_code=400,
+                detail="test_dataset_id is required"
+            )
+        
+        # Validate workflow is provided
+        if not request_body.workflow:
+            raise HTTPException(
+                status_code=400,
+                detail="workflow is required"
+            )
+        
+        # Get test dataset
+        if request_body.test_dataset_id not in _test_datasets:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Test dataset not found: {request_body.test_dataset_id}. Available datasets: {list(_test_datasets.keys())}"
+            )
+        
+        test_pairs = _test_datasets[request_body.test_dataset_id]
+        
+        # Limit queries if specified
+        if request_body.max_queries:
+            test_pairs = test_pairs[:request_body.max_queries]
+        
+        evaluation_id = str(uuid.uuid4())
+        
+        # Parse workflow
         try:
-            # Create a copy of the workflow with the question injected
-            workflow_copy = workflow.model_copy(deep=True)
-            
-            # Inject question into input node
-            for node in workflow_copy.nodes:
-                if node.id == input_node_id:
-                    if node.type == "text_input":
-                        node.data["text"] = pair["question"]
+            workflow = Workflow(**request_body.workflow)
+        except Exception as e:
+            logger.error(f"Failed to parse workflow: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid workflow format: {str(e)}"
+            )
+        
+        # Validate this is a RAG workflow
+        has_vector_search = any(node.type == "vector_search" for node in workflow.nodes)
+        has_chat = any(node.type in ["chat", "langchain_agent", "crewai_agent"] for node in workflow.nodes)
+        
+        if not has_vector_search or not has_chat:
+            raise HTTPException(
+                status_code=400,
+                detail="This endpoint is for RAG workflows only. Workflow must contain both vector_search and chat/llm nodes."
+            )
+        
+        # Find input and output nodes
+        input_node_id = request_body.input_node_id
+        output_node_id = request_body.output_node_id
+        
+        # Build edge map to find nodes with no incoming edges (entry points)
+        incoming_edges = {}
+        for edge in workflow.edges:
+            if edge.target not in incoming_edges:
+                incoming_edges[edge.target] = []
+            incoming_edges[edge.target].append(edge.source)
+        
+        # RAG input node detection priority (for query phase):
+        # 1. text_input node (explicit input node for questions)
+        # 2. vector_search node with no incoming edges (direct query injection)
+        # 3. chat node with no incoming edges (fallback)
+        # Note: file_loader, webhook, data_loader are for setup phase, not query phase
+        if not input_node_id:
+            # Priority 1: Look for text_input node (standard RAG input)
+            for node in workflow.nodes:
+                if node.type == "text_input":
+                    input_node_id = node.id
                     break
             
-            # Execute workflow
-            start_time = time.time()
-            execution = await engine.execute(workflow_copy, execution_id=f"{evaluation_id}-{idx}")
-            latency_ms = int((time.time() - start_time) * 1000)
+            # Priority 2: Look for vector_search nodes with no incoming edges
+            # This handles RAG workflows without explicit text_input
+            if not input_node_id:
+                for node in workflow.nodes:
+                    if node.type == "vector_search" and node.id not in incoming_edges:
+                        input_node_id = node.id
+                        break
             
-            # Extract answer from output node
-            actual_answer = ""
-            if output_node_id in execution.results:
-                output_result = execution.results[output_node_id]
-                if output_result.output:
-                    if isinstance(output_result.output, dict):
-                        # Try common output fields
-                        actual_answer = (
-                            output_result.output.get("response") or
-                            output_result.output.get("output") or
-                            output_result.output.get("text") or
-                            str(output_result.output)
-                        )
-                    else:
-                        actual_answer = str(output_result.output)
-            
-            # Calculate relevance score using embeddings
-            relevance_score = await _calculate_relevance(
-                pair["expected_answer"],
-                actual_answer,
-                pair.get("context"),
+            # Priority 3: Look for chat nodes with no incoming edges (fallback)
+            if not input_node_id:
+                for node in workflow.nodes:
+                    if node.type == "chat" and node.id not in incoming_edges:
+                        input_node_id = node.id
+                        break
+        
+        if not output_node_id:
+            # Find last chat/llm node
+            for node in reversed(workflow.nodes):
+                if node.type in ["chat", "langchain_agent", "crewai_agent"]:
+                    output_node_id = node.id
+                    break
+        
+        if not input_node_id:
+            available_nodes = [f"{n.type} (id: {n.id})" for n in workflow.nodes]
+            rag_nodes = [f"{n.type} (id: {n.id})" for n in workflow.nodes if n.type in ["text_input", "vector_search", "chat"]]
+            raise HTTPException(
+                status_code=400,
+                detail=f"No input node found for RAG evaluation. Please specify input_node_id or add a text_input node. "
+                       f"RAG input nodes found: {', '.join(rag_nodes) if rag_nodes else 'none'}. "
+                       f"All nodes: {', '.join(available_nodes[:10])}"
             )
-            
-            # Check if answer is correct (simple string similarity for now)
-            is_correct = _check_answer_correctness(
-                pair["expected_answer"],
-                actual_answer,
+        
+        if not output_node_id:
+            raise HTTPException(
+                status_code=400,
+                detail="No output node found. Please specify output_node_id or add a chat/llm node."
             )
-            
-            if is_correct:
-                correct_count += 1
-            
-            total_relevance += relevance_score
-            total_cost += execution.total_cost
-            total_latency += latency_ms
-            
-            result = EvaluationResult(
-                question=pair["question"],
-                expected_answer=pair["expected_answer"],
-                actual_answer=actual_answer,
-                is_correct=is_correct,
-                relevance_score=relevance_score,
-                latency_ms=latency_ms,
-                cost=execution.total_cost,
-                execution_id=execution.id,
-            )
-            results.append(result)
-            
-        except Exception as e:
-            logger.error(f"Error evaluating Q&A pair {idx}: {e}", exc_info=True)
-            failed_count += 1
-            result = EvaluationResult(
-                question=pair["question"],
-                expected_answer=pair["expected_answer"],
-                actual_answer="",
-                is_correct=False,
-                relevance_score=0.0,
-                latency_ms=0,
-                cost=0.0,
-                error=str(e),
-            )
-            results.append(result)
+        
+        # Execute workflow for each Q&A pair
+        results: List[EvaluationResult] = []
+        total_cost = 0.0
+        total_latency = 0
+        correct_count = 0
+        total_relevance = 0.0
+        failed_count = 0
+        
+        for idx, pair in enumerate(test_pairs):
+            try:
+                # Create a copy of the workflow with the question injected
+                workflow_copy = workflow.model_copy(deep=True)
+                
+                # Inject question into input node based on node type
+                # For RAG evaluation, we inject questions into the query phase input
+                for node in workflow_copy.nodes:
+                    if node.id == input_node_id:
+                        # Get or create config dict
+                        if "config" not in node.data:
+                            node.data["config"] = {}
+                        config = node.data["config"]
+                        
+                        if node.type == "text_input":
+                            # Text input nodes: inject question as "text"
+                            # This will flow through the pipeline: text_input → embed → vector_search → chat
+                            config["text"] = pair["question"]
+                        elif node.type == "vector_search":
+                            # Vector search nodes: inject question as "query"
+                            # This handles RAG workflows without explicit text_input node
+                            config["query"] = pair["question"]
+                        elif node.type == "chat":
+                            # Chat nodes: inject question as "query" (fallback)
+                            # Note: This bypasses vector_search, so results may be empty
+                            config["query"] = pair["question"]
+                        else:
+                            # For other node types, try to inject as "query"
+                            config["query"] = pair["question"]
+                        
+                        # Update node.data with modified config
+                        node.data["config"] = config
+                        logger.debug(f"Injected question into {node.type} node {node.id}: {pair['question'][:50]}...")
+                        break
+                
+                # Execute workflow
+                start_time = time.time()
+                execution = await engine.execute(workflow_copy, execution_id=f"{evaluation_id}-{idx}")
+                latency_ms = int((time.time() - start_time) * 1000)
+                
+                # Extract answer from output node
+                actual_answer = ""
+                if output_node_id in execution.results:
+                    output_result = execution.results[output_node_id]
+                    if output_result.output:
+                        if isinstance(output_result.output, dict):
+                            # Try common output fields
+                            actual_answer = (
+                                output_result.output.get("response") or
+                                output_result.output.get("output") or
+                                output_result.output.get("text") or
+                                str(output_result.output)
+                            )
+                        else:
+                            actual_answer = str(output_result.output)
+                
+                # Calculate relevance score using embeddings
+                relevance_score = await _calculate_relevance(
+                    pair["expected_answer"],
+                    actual_answer,
+                    pair.get("context"),
+                )
+                
+                # Check if answer is correct (simple string similarity for now)
+                is_correct = _check_answer_correctness(
+                    pair["expected_answer"],
+                    actual_answer,
+                )
+                
+                if is_correct:
+                    correct_count += 1
+                
+                total_relevance += relevance_score
+                total_cost += execution.total_cost
+                total_latency += latency_ms
+                
+                result = EvaluationResult(
+                    question=pair["question"],
+                    expected_answer=pair["expected_answer"],
+                    actual_answer=actual_answer,
+                    is_correct=is_correct,
+                    relevance_score=relevance_score,
+                    latency_ms=latency_ms,
+                    cost=execution.total_cost,
+                    execution_id=execution.id,
+                )
+                results.append(result)
+                
+            except Exception as e:
+                logger.error(f"Error evaluating Q&A pair {idx}: {e}", exc_info=True)
+                failed_count += 1
+                result = EvaluationResult(
+                    question=pair["question"],
+                    expected_answer=pair["expected_answer"],
+                    actual_answer="",
+                    is_correct=False,
+                    relevance_score=0.0,
+                    latency_ms=0,
+                    cost=0.0,
+                    error=str(e),
+                )
+                results.append(result)
+        
+        evaluation = EvaluationSummary(
+            evaluation_id=evaluation_id,
+            workflow_id=workflow.id or "unknown",
+            total_queries=len(test_pairs),
+            correct_answers=correct_count,
+            accuracy=correct_count / len(test_pairs) if test_pairs else 0.0,
+            average_relevance=total_relevance / len(test_pairs) if test_pairs else 0.0,
+            average_latency_ms=total_latency // len(test_pairs) if test_pairs else 0,
+            total_cost=total_cost,
+            cost_per_query=total_cost / len(test_pairs) if test_pairs else 0.0,
+            failed_queries=failed_count,
+            results=results,
+            created_at=datetime.now().isoformat(),
+        )
+        
+        _evaluations[evaluation_id] = evaluation.dict()
+        
+        logger.info(f"RAG evaluation completed: {evaluation_id} ({correct_count}/{len(test_pairs)} correct)")
+        
+        return evaluation
     
-    evaluation = EvaluationSummary(
-        evaluation_id=evaluation_id,
-        workflow_id=workflow.id or "unknown",
-        total_queries=len(test_pairs),
-        correct_answers=correct_count,
-        accuracy=correct_count / len(test_pairs) if test_pairs else 0.0,
-        average_relevance=total_relevance / len(test_pairs) if test_pairs else 0.0,
-        average_latency_ms=total_latency // len(test_pairs) if test_pairs else 0,
-        total_cost=total_cost,
-        cost_per_query=total_cost / len(test_pairs) if test_pairs else 0.0,
-        failed_queries=failed_count,
-        results=results,
-        created_at=datetime.now().isoformat(),
-    )
-    
-    _evaluations[evaluation_id] = evaluation.dict()
-    
-    logger.info(f"RAG evaluation completed: {evaluation_id} ({correct_count}/{len(test_pairs)} correct)")
-    
-    return evaluation
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        logger.error(f"Error in RAG evaluation: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to evaluate RAG workflow: {str(e)}"
+        )
 
 
 @router.get("/rag-eval", response_model=List[EvaluationSummary])

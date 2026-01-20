@@ -69,6 +69,7 @@ const NODE_TYPES: NodeTypes = {
   content_moderator: CustomNode,
   meeting_summarizer: CustomNode,
   lead_scorer: CustomNode,
+  ai_web_search: CustomNode,
   // Business nodes
   stripe_analytics: CustomNode,
   cost_optimizer: CustomNode,
@@ -110,6 +111,8 @@ const NODE_TYPES: NodeTypes = {
   slack: CustomNode,
   // Storage nodes (OAuth)
   google_drive: CustomNode,
+  google_sheets: CustomNode,
+  airtable: CustomNode,
   // Integration nodes
   reddit: CustomNode,
   // Processing nodes

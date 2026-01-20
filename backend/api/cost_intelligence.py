@@ -217,17 +217,19 @@ async def analyze_execution_cost(execution_id: str, request: Request) -> CostAna
         breakdown.append(CostBreakdown(**node_cost))
         total_cost += node_cost["cost"]
         
-        # Categorize by node type
-        node_type = node_cost.get("node_type", "unknown")
+        # Categorize by node type (handle None values)
+        node_type = node_cost.get("node_type")
+        node_type = node_type if node_type is not None else "unknown"
         cost_by_category[node_type] += node_cost["cost"]
         
-        # Categorize by provider
-        provider = node_cost.get("provider", "unknown")
+        # Categorize by provider (handle None values)
+        provider = node_cost.get("provider")
+        provider = provider if provider is not None else "unknown"
         cost_by_provider[provider] += node_cost["cost"]
         
-        # Categorize by model
-        model = node_cost.get("model", "unknown")
-        if model:
+        # Categorize by model (handle None values)
+        model = node_cost.get("model")
+        if model is not None:
             cost_by_model[model] += node_cost["cost"]
     
     # Sort by cost (highest first)

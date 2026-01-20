@@ -17,7 +17,8 @@ import {
   Wrench,
   Mail,
   Globe,
-  Rss
+  Rss,
+  FileSpreadsheet
 } from 'lucide-react';
 
 // Import Simple Icons - icons are exported as si{Name} (e.g., siOpenai, siAnthropic)
@@ -149,6 +150,22 @@ export function ProviderIcon({ provider, size = 'md', className }: ProviderIconP
     normalizedProvider = 'gemini'; // For LLM/embedding providers
   } else if (normalizedProvider === 'google_drive') {
     normalizedProvider = 'googledrive'; // For Google Drive node
+  } else if (normalizedProvider === 'googlesheets') {
+    // Google Sheets uses a special fallback icon (FileSpreadsheet with Google green)
+    const GoogleSheetsIcon = FileSpreadsheet;
+    return (
+      <div
+        className={cn(
+          'rounded flex items-center justify-center',
+          SIZE_CLASSES[size],
+          className
+        )}
+        style={{ backgroundColor: '#0F9D58' }} // Google Sheets green
+        title="Google Sheets"
+      >
+        <GoogleSheetsIcon className="w-full h-full p-0.5 text-white" />
+      </div>
+    );
   }
   const iconSlug = PROVIDER_ICON_MAP[normalizedProvider];
   
@@ -237,6 +254,13 @@ export function getProviderInfo(provider: string) {
     normalizedProvider = 'gemini'; // For LLM/embedding providers
   } else if (normalizedProvider === 'google_drive') {
     normalizedProvider = 'googledrive'; // For Google Drive node
+  } else if (normalizedProvider === 'googlesheets') {
+    // Google Sheets uses special branding
+    return {
+      bg: '#0F9D58', // Google Sheets green
+      icon: null, // Uses FileSpreadsheet Lucide icon
+      name: 'Google Sheets',
+    };
   }
   const iconSlug = PROVIDER_ICON_MAP[normalizedProvider];
   

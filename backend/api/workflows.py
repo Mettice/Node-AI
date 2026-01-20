@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 
 from backend.core.models import Workflow, Node, Edge, ExecutionResponse
 from backend.core.engine import engine
+from backend.core.engine.workflow_validator import WorkflowValidator
 from backend.core.exceptions import WorkflowValidationError, WorkflowExecutionError
 from backend.core.deployment import DeploymentManager
 from backend.core.security import validate_workflow_id, validate_node_id, limiter
@@ -260,7 +261,7 @@ async def create_workflow(request: Request, workflow_request: WorkflowCreateRequ
         )
         
         # Validate workflow
-        engine._validate_workflow(workflow)
+        WorkflowValidator.validate_workflow(workflow)
         
         # Save workflow
         _save_workflow(workflow)
@@ -533,7 +534,7 @@ async def update_workflow(
         workflow.updated_at = datetime.now()
         
         # Validate workflow
-        engine._validate_workflow(workflow)
+        WorkflowValidator.validate_workflow(workflow)
         
         # Save workflow
         _save_workflow(workflow)
@@ -637,7 +638,7 @@ async def deploy_workflow(workflow_id: str, request: Request) -> Workflow:
     
     try:
         # Validate workflow before deployment
-        engine._validate_workflow(workflow)
+        WorkflowValidator.validate_workflow(workflow)
         
         # Ensure vector stores are configured for persistence
         # This allows them to be reused across queries
@@ -885,7 +886,7 @@ async def validate_workflow_template(request: Request, workflow_data: WorkflowCr
         if is_compatible:
             # Also run full workflow validation
             try:
-                engine._validate_workflow(temp_workflow)
+                WorkflowValidator.validate_workflow(temp_workflow)
                 return {
                     "valid": True,
                     "compatible": True,

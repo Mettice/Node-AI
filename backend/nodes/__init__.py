@@ -133,6 +133,32 @@ except Exception as e:
     logger = get_logger(__name__)
     logger.error(f"Error importing Database node: {e}", exc_info=True)
 
+try:
+    from backend.nodes.storage.google_sheets import GoogleSheetsNode  # noqa: F401
+except ImportError as e:
+    # Log but don't fail - node will be available but may fail at runtime if dependencies missing
+    from backend.utils.logger import get_logger
+    logger = get_logger(__name__)
+    logger.warning(f"Google Sheets node import warning: {e}")
+except Exception as e:
+    # Other errors during import - log but don't fail
+    from backend.utils.logger import get_logger
+    logger = get_logger(__name__)
+    logger.error(f"Error importing Google Sheets node: {e}", exc_info=True)
+
+try:
+    from backend.nodes.storage.airtable import AirtableNode  # noqa: F401
+except ImportError as e:
+    # Log but don't fail - node will be available but may fail at runtime if dependencies missing
+    from backend.utils.logger import get_logger
+    logger = get_logger(__name__)
+    logger.warning(f"Airtable node import warning: {e}")
+except Exception as e:
+    # Other errors during import - log but don't fail
+    from backend.utils.logger import get_logger
+    logger = get_logger(__name__)
+    logger.error(f"Error importing Airtable node: {e}", exc_info=True)
+
 # Retrieval nodes
 from backend.nodes.retrieval.search import VectorSearchNode  # noqa: F401
 from backend.nodes.retrieval.hybrid_retrieval import HybridRetrievalNode  # noqa: F401

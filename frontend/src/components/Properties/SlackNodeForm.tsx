@@ -40,6 +40,8 @@ export function SlackNodeForm({ initialData, onChange }: SlackNodeFormProps) {
   const [fileContent, setFileContent] = useState(initialData.slack_file_content || '');
   const [fileTitle, setFileTitle] = useState(initialData.slack_file_title || '');
   const [initialComment, setInitialComment] = useState(initialData.slack_initial_comment || '');
+  const [dataFormat, setDataFormat] = useState(initialData.slack_data_format || 'table');
+  const [maxRows, setMaxRows] = useState(initialData.slack_max_rows || 50);
   
   // OAuth connection state
   const [clientId, setClientId] = useState('');
@@ -148,6 +150,8 @@ export function SlackNodeForm({ initialData, onChange }: SlackNodeFormProps) {
     if (operation === 'send_message' || operation === 'post_to_channel') {
       if (channel) config.slack_channel = channel;
       if (message) config.slack_message = message;
+      if (dataFormat) config.slack_data_format = dataFormat;
+      if (maxRows) config.slack_max_rows = maxRows;
     } else if (operation === 'create_channel') {
       if (channelName) config.slack_channel_name = channelName;
       config.slack_is_private = isPrivate;
@@ -160,7 +164,7 @@ export function SlackNodeForm({ initialData, onChange }: SlackNodeFormProps) {
     }
 
     onChangeRef.current(config);
-  }, [operation, tokenId, channel, message, channelName, isPrivate, filename, fileContent, fileTitle, initialComment]);
+  }, [operation, tokenId, channel, message, channelName, isPrivate, filename, fileContent, fileTitle, initialComment, dataFormat, maxRows]);
 
   const loadTokens = async () => {
     try {
@@ -385,11 +389,47 @@ export function SlackNodeForm({ initialData, onChange }: SlackNodeFormProps) {
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Your message here..."
+              placeholder="Your message here... (or leave empty to use structured data from previous node)"
               rows={6}
               className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
             />
           </div>
+
+          {/* Structured Data Format Options */}
+          <div className="space-y-2 pt-2 border-t border-white/10">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
+              Data Format (for structured data)
+            </label>
+            <p className="text-xs text-slate-400 -mt-1">
+              Format for structured data from previous node (if detected)
+            </p>
+            <select
+              value={dataFormat}
+              onChange={(e) => setDataFormat(e.target.value)}
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            >
+              <option value="table">Table</option>
+              <option value="list">List</option>
+              <option value="summary">Summary</option>
+              <option value="individual">Individual Messages</option>
+            </select>
+          </div>
+
+          {dataFormat !== 'individual' && (
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
+                Max Rows
+              </label>
+              <input
+                type="number"
+                value={maxRows}
+                onChange={(e) => setMaxRows(parseInt(e.target.value) || 50)}
+                min={1}
+                max={100}
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              />
+            </div>
+          )}
         </div>
       )}
 

@@ -6,11 +6,11 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Search, FileText, Clock, Tag, Upload } from 'lucide-react';
 import { cn } from '@/utils/cn';
-import { listWorkflows, getWorkflow, createWorkflow, type WorkflowListItem } from '@/services/workflowManagement';
+import { listWorkflows, getWorkflow, createWorkflow, validateWorkflow, type WorkflowListItem } from '@/services/workflowManagement';
 import { useWorkflowStore } from '@/store/workflowStore';
 import { errorToast, successToast, loadingToast } from '@/components/common/ErrorToast';
 import { ErrorDisplay, LoadingError } from '@/components/common/ErrorDisplay';
-import { parseAPIError, type APIErrorResponse } from '@/utils/api';
+import { parseAPIError, type APIErrorResponse, apiClient } from '@/utils/api';
 import type { Node as RFNode, Edge as RFEdge } from 'reactflow';
 
 interface WorkflowLoaderProps {
@@ -151,8 +151,42 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
 
     setUploading(true);
     try {
+      // Check file size
+      if (file.size === 0) {
+        errorToast.show('File is empty. Please upload a valid workflow JSON file.');
+        setUploading(false);
+        return;
+      }
+
+      // Read file content
       const text = await file.text();
-      const workflowData = JSON.parse(text);
+      
+      // Check if text is empty or whitespace only
+      if (!text || !text.trim()) {
+        errorToast.show('File appears to be empty or contains only whitespace. Please upload a valid workflow JSON file.');
+        setUploading(false);
+        return;
+      }
+
+      // Try to parse JSON with better error handling
+      let workflowData;
+      try {
+        workflowData = JSON.parse(text);
+      } catch (parseError: any) {
+        console.error('JSON parse error:', parseError);
+        if (parseError instanceof SyntaxError) {
+          const position = parseError.message.match(/position (\d+)/)?.[1];
+          const preview = text.substring(0, Math.min(100, parseInt(position || '0')));
+          errorToast.show(
+            `Invalid JSON format: ${parseError.message}${position ? ` at position ${position}` : ''}. ` +
+            `Please check your file format. Preview: ${preview}...`
+          );
+        } else {
+          errorToast.show(`Failed to parse JSON file: ${parseError.message || 'Unknown error'}`);
+        }
+        setUploading(false);
+        return;
+      }
 
       // Validate required fields
       if (!workflowData.name || !workflowData.nodes || !workflowData.edges) {
@@ -218,15 +252,24 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
       };
 
       // First validate the workflow
-      const validationResponse = await fetch('/api/v1/workflows/validate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(validationData),
-      });
-
-      const validationResult = await validationResponse.json();
+      let validationResult;
+      try {
+        validationResult = await validateWorkflow(validationData);
+      } catch (error: any) {
+        console.error('Error validating workflow:', error);
+        const parsedError = parseAPIError(error);
+        let errorMessage = parsedError.message || 'Validation failed';
+        
+        if (parsedError.error_code === 'NOT_FOUND') {
+          errorMessage = 'Validation endpoint not found. Please ensure the backend is running and accessible.';
+        } else if (parsedError.details) {
+          errorMessage = `${errorMessage}: ${parsedError.details}`;
+        }
+        
+        errorToast.show(errorMessage);
+        setUploading(false);
+        return;
+      }
 
       if (!validationResult.compatible) {
         // Template has missing node types
@@ -239,6 +282,7 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
         }
         
         errorToast.show(errorMessage);
+        setUploading(false);
         return;
       }
 
@@ -251,6 +295,7 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
         }
         
         errorToast.show(errorMessage);
+        setUploading(false);
         return;
       }
 
@@ -265,16 +310,83 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
       });
 
       successToast.show(`Template "${newWorkflow.name}" uploaded successfully`);
+      
+      // Load the workflow into the canvas (use the same logic as handleLoadWorkflow)
+      if (newWorkflow.id) {
+        // Fetch the created workflow to get the exact format from backend
+        const loadedWorkflow = await getWorkflow(newWorkflow.id);
+        
+        // Convert backend workflow format to frontend format (same as handleLoadWorkflow)
+        const frontendNodes: RFNode[] = loadedWorkflow.nodes.map((node: any) => ({
+          id: node.id,
+          type: node.type || 'default',
+          position: node.position || { x: 0, y: 0 },
+          data: {
+            label: node.type || 'default',
+            config: node.data || {},
+          },
+        }));
+
+        const frontendEdges: RFEdge[] = loadedWorkflow.edges.map((edge: any) => ({
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          sourceHandle: edge.sourceHandle || undefined,
+          targetHandle: edge.targetHandle || undefined,
+        }));
+
+        // Set workflow in store (same format as handleLoadWorkflow)
+        setWorkflow({
+          id: loadedWorkflow.id,
+          name: loadedWorkflow.name,
+          nodes: frontendNodes.map((node) => ({
+            id: node.id,
+            type: node.type || 'default',
+            position: node.position,
+            data: {
+              label: node.data?.label || node.type || 'default',
+              category: node.data?.category,
+              status: node.data?.status || 'idle',
+              // If config has a nested config, use that. Otherwise use the config directly
+              config: node.data?.config?.config || node.data?.config || {},
+            },
+          })),
+          edges: frontendEdges.map((edge) => ({
+            id: edge.id,
+            source: edge.source,
+            target: edge.target,
+            sourceHandle: edge.sourceHandle || undefined,
+            targetHandle: edge.targetHandle || undefined,
+          })),
+        });
+        
+        setWorkflowId(loadedWorkflow.id || null);
+      }
+      
       loadWorkflows(); // Refresh the list
       
       // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+      
+      setUploading(false);
+      
+      // Close the modal and show canvas
+      onClose();
     } catch (error: any) {
       console.error('Error uploading template:', error);
+      setUploading(false);
+      
       if (error instanceof SyntaxError) {
-        errorToast.show('Invalid JSON file. Please check the file format.');
+        const errorMsg = error.message || '';
+        if (errorMsg.includes('Unexpected end of JSON input')) {
+          errorToast.show('File appears to be incomplete or corrupted. Please ensure the JSON file is complete and try again.');
+        } else {
+          errorToast.show(`Invalid JSON file: ${errorMsg}. Please check the file format.`);
+        }
+      } else if (error?.message?.includes('Unexpected end of JSON input')) {
+        errorToast.show('File appears to be incomplete or corrupted. Please ensure the JSON file is complete and try again.');
       } else {
         // Check if it's a validation error from the API
         const errorResponse = error.response?.data;

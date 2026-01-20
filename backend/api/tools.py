@@ -79,6 +79,13 @@ async def test_connection(request_body: TestConnectionRequest, request: Request)
             # The api_key field will contain access_key_id, and we'll need secret_access_key
             # For now, we'll use a simplified test - in practice, you'd pass both
             return await _test_s3_connection(request_body.api_key, request_body.connection_string)
+        elif request_body.service == "airtable":
+            if not request_body.api_key:
+                return TestConnectionResponse(
+                    connected=False,
+                    message="API key is required for Airtable connection test"
+                )
+            return await _test_airtable_connection(request_body.api_key)
         else:
             return TestConnectionResponse(
                 connected=False,
@@ -698,6 +705,65 @@ async def _test_s3_connection(access_key_id: str, secret_access_key_or_json: Opt
         )
     except Exception as e:
         logger.error(f"S3 connection test error: {e}", exc_info=True)
+        return TestConnectionResponse(
+            connected=False,
+            message=f"Connection test failed: {str(e)}"
+        )
+
+
+async def _test_airtable_connection(api_key: str) -> TestConnectionResponse:
+    """Test connection for Airtable API."""
+    try:
+        # Make a test request to Airtable API
+        # We'll use the meta endpoint which is lightweight and doesn't require a base ID
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                "https://api.airtable.com/v0/meta/bases",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                }
+            )
+            
+            if response.status_code == 200:
+                return TestConnectionResponse(
+                    connected=True,
+                    message="Airtable connection successful"
+                )
+            elif response.status_code == 401:
+                return TestConnectionResponse(
+                    connected=False,
+                    message="Invalid Airtable API key. Please check your API key and try again."
+                )
+            elif response.status_code == 403:
+                return TestConnectionResponse(
+                    connected=False,
+                    message="Airtable API key does not have required permissions"
+                )
+            else:
+                error_msg = "Unknown error"
+                try:
+                    if response.content:
+                        error_data = response.json()
+                        if isinstance(error_data, dict):
+                            error_msg = error_data.get("error", {}).get("message", str(error_data))
+                        elif isinstance(error_data, str):
+                            error_msg = error_data
+                except:
+                    error_msg = response.text[:200] if response.text else f"HTTP {response.status_code}"
+                
+                return TestConnectionResponse(
+                    connected=False,
+                    message=f"Airtable test failed: {error_msg}"
+                )
+    
+    except httpx.TimeoutException:
+        return TestConnectionResponse(
+            connected=False,
+            message="Connection test timed out"
+        )
+    except Exception as e:
+        logger.error(f"Airtable connection test error: {e}", exc_info=True)
         return TestConnectionResponse(
             connected=False,
             message=f"Connection test failed: {str(e)}"

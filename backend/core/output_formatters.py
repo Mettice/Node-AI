@@ -501,6 +501,108 @@ class CrewAIAgentFormatter(OutputFormatter):
         }
 
 
+class StorageNodeFormatter(OutputFormatter):
+    """Formatter for storage nodes (Airtable, Google Sheets, Data Loader) that output structured data"""
+    
+    def can_format(self, node_type: str, output: Dict[str, Any]) -> bool:
+        # Check if this is a storage node type
+        if node_type in ["airtable", "google_sheets", "data_loader", "google_drive", "s3", "database", "vector_store"]:
+            return True
+        # Check if output has structured data format (data + schema + metadata)
+        if isinstance(output, dict):
+            has_data = "data" in output and isinstance(output.get("data"), list)
+            has_schema = "schema" in output
+            has_metadata = "metadata" in output
+            if has_data and (has_schema or has_metadata):
+                return True
+        return False
+    
+    def format(self, output: Dict[str, Any]) -> Tuple[str, List]:
+        """Format storage node output as HTML table"""
+        data = output.get("data", [])
+        schema = output.get("schema", {})
+        metadata = output.get("metadata", {})
+        
+        parts = []
+        parts.append("""<html><head><meta charset="UTF-8"></head><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px;">""")
+        
+        # Metadata summary
+        if metadata:
+            parts.append("<h2 style='color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;'>Data Summary</h2>")
+            if metadata.get("record_count"):
+                parts.append(f"<p><strong>Records:</strong> {metadata['record_count']}</p>")
+            if metadata.get("source"):
+                parts.append(f"<p><strong>Source:</strong> {metadata['source']}</p>")
+        
+        # Schema info
+        if schema:
+            parts.append("<h3>Schema</h3>")
+            if schema.get("columns"):
+                parts.append(f"<p><strong>Columns:</strong> {', '.join(schema['columns'])}</p>")
+            if schema.get("row_count"):
+                parts.append(f"<p><strong>Rows:</strong> {schema['row_count']}</p>")
+        
+        # Data preview (first 10 rows)
+        if data and isinstance(data, list) and len(data) > 0:
+            parts.append("<h3>Data Preview</h3>")
+            parts.append("<table style='width: 100%; border-collapse: collapse; margin-top: 10px;'>")
+            
+            # Header row
+            if len(data) > 0:
+                headers = list(data[0].keys())
+                parts.append("<tr style='background-color: #f8f9fa;'>")
+                for header in headers:
+                    parts.append(f"<th style='padding: 8px; border: 1px solid #ddd; text-align: left;'>{header}</th>")
+                parts.append("</tr>")
+                
+                # Data rows (limit to 10)
+                for row in data[:10]:
+                    parts.append("<tr>")
+                    for header in headers:
+                        value = row.get(header, "")
+                        display_value = str(value)[:100] if value else ""
+                        parts.append(f"<td style='padding: 8px; border: 1px solid #ddd;'>{display_value}</td>")
+                    parts.append("</tr>")
+            
+            parts.append("</table>")
+            if len(data) > 10:
+                parts.append(f"<p style='color: #666; font-size: 12px; margin-top: 10px;'>... and {len(data) - 10} more rows</p>")
+        
+        parts.append("</body></html>")
+        html_content = "\n".join(parts)
+        return html_content, []
+    
+    def format_for_display(self, node_type: str, output: Dict[str, Any]) -> Dict[str, Any]:
+        """Format storage node for display as structured data table"""
+        data = output.get("data", [])
+        schema = output.get("schema", {})
+        metadata = output.get("metadata", {})
+        
+        # Ensure data is a list of dictionaries
+        if not isinstance(data, list):
+            data = []
+        if data and not isinstance(data[0], dict):
+            data = []
+        
+        return {
+            "display_type": "data",
+            "primary_content": {
+                "data": data,
+                "schema": schema,
+                "metadata": metadata
+            },
+            "metadata": {
+                "node_type": node_type,
+                "record_count": len(data) if isinstance(data, list) else 0,
+                "source": metadata.get("source", "unknown"),
+                "has_schema": bool(schema),
+                "has_data": bool(data and len(data) > 0)
+            },
+            "actions": ["copy", "download_json"],
+            "attachments": []
+        }
+
+
 class GenericFormatter(OutputFormatter):
     """Fallback formatter for unknown output structures"""
     
@@ -553,6 +655,7 @@ class FormatterRegistry:
             ProposalFormatter(),
             BrandFormatter(),
             CrewAIAgentFormatter(),
+            StorageNodeFormatter(),  # Before GenericFormatter to catch storage nodes
             GenericFormatter(),  # Always last (fallback)
         ]
         logger.debug(f"Initialized FormatterRegistry with {len(self.formatters)} formatters")

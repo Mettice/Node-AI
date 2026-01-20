@@ -89,6 +89,8 @@ export function NodeCard({ node }: NodeCardProps) {
       'database': 'sqlite', // Default to sqlite icon in palette
       'slack': 'slack',
       'google_drive': 'googledrive',
+      'google_sheets': 'googlesheets',
+      'airtable': 'airtable',
       'reddit': 'reddit',
     };
     return providerIconMap[nodeType] || null;

@@ -177,3 +177,21 @@ export async function testS3Connection(
   }
 }
 
+/**
+ * Test Airtable API key connection
+ */
+export async function testAirtableConnection(apiKey: string): Promise<boolean> {
+  try {
+    const response = await apiClient.post<{ connected: boolean; message?: string }>(
+      '/tools/test-connection',
+      {
+        service: 'airtable',
+        api_key: apiKey,
+      }
+    );
+    return response.data.connected;
+  } catch (error: any) {
+    console.error('Airtable connection test failed:', error);
+    return false;
+  }
+}

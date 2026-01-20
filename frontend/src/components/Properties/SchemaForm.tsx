@@ -15,6 +15,9 @@ import { GoogleDriveNodeForm } from './GoogleDriveNodeForm';
 import { RedditNodeForm } from './RedditNodeForm';
 import { WebhookInputNodeForm } from './WebhookInputNodeForm';
 import { AdvancedNLPForm } from './AdvancedNLPForm';
+import { GoogleSheetsNodeForm } from './GoogleSheetsNodeForm';
+import { AirtableNodeForm } from './AirtableNodeForm';
+import { AIWebSearchNodeForm } from './AIWebSearchNodeForm';
 import { ProviderIcon } from '@/components/common/ProviderIcon';
 import { shouldShowField } from './SchemaForm/FieldFilters';
 import { renderField } from './SchemaForm/FieldRenderers';
@@ -57,6 +60,9 @@ export function SchemaForm({
   const isRedditNode = nodeType === 'reddit';
   const isWebhookInputNode = nodeType === 'webhook_input';
   const isAdvancedNLPNode = nodeType === 'advanced_nlp';
+  const isGoogleSheetsNode = nodeType === 'google_sheets';
+  const isAirtableNode = nodeType === 'airtable';
+  const isAIWebSearchNode = nodeType === 'ai_web_search';
   
   // Merge schema defaults with initial data (schema defaults take precedence if initialData is empty)
   const getDefaultValues = () => {
@@ -241,6 +247,10 @@ export function SchemaForm({
     return <AdvancedNLPForm initialData={initialData} onChange={onChange} />;
   }
 
+  if (isAIWebSearchNode) {
+    return <AIWebSearchNodeForm initialData={initialData} onChange={onChange} />;
+  }
+
   // Use custom form for CrewAI agent
   if (isCrewAINode) {
     return <CrewAIAgentForm initialData={initialData} onChange={onChange} schema={schema || {}} />;
@@ -274,6 +284,16 @@ export function SchemaForm({
   // Use custom form for Reddit node
   if (isRedditNode) {
     return <RedditNodeForm initialData={initialData} onChange={onChange} schema={schema || {}} />;
+  }
+
+  // Use custom form for Google Sheets node (unified read/write)
+  if (isGoogleSheetsNode) {
+    return <GoogleSheetsNodeForm initialData={initialData} onChange={onChange} schema={schema || {}} />;
+  }
+
+  // Use custom form for Airtable node (unified read/write)
+  if (isAirtableNode) {
+    return <AirtableNodeForm initialData={initialData} onChange={onChange} schema={schema || {}} />;
   }
 
   // Now validate schema for other nodes

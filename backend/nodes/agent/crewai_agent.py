@@ -1057,12 +1057,12 @@ class CrewAINode(BaseNode):
             ]
             if not model_list:
                 logger.warning("No Anthropic LLM models found in pricing system, using fallback list")
-                return ["claude-sonnet-4-5-20250929", "claude-haiku-4-5-20251001", "claude-opus-4-1-20250805"]
+                return ["claude-sonnet-4-5-20250929", "claude-haiku-4-5-20251001", "claude-opus-4-5-20251101"]
             logger.debug(f"Found {len(model_list)} Anthropic LLM models: {model_list[:5]}...")
             return model_list
         except Exception as e:
             logger.warning(f"Failed to get Anthropic models from pricing system: {e}", exc_info=True)
-            return ["claude-sonnet-4-5-20250929", "claude-haiku-4-5-20251001", "claude-opus-4-1-20250805"]
+            return ["claude-sonnet-4-5-20250929", "claude-haiku-4-5-20251001", "claude-opus-4-5-20251101"]
     
     def _get_gemini_model_list(self) -> List[str]:
         """Get list of available Gemini LLM models from pricing system."""

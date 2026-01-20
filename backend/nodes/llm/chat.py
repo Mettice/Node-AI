@@ -861,8 +861,8 @@ class ChatNode(BaseNode):
             return [
                 "claude-sonnet-4-5-20250929",
                 "claude-haiku-4-5-20251001",
+                "claude-opus-4-5-20251101",
                 "claude-opus-4-1-20250805",
-                "claude-3-5-sonnet-20241022",
             ]
     
     def _get_gemini_model_list(self) -> List[str]:
@@ -878,6 +878,8 @@ class ChatNode(BaseNode):
                 "gemini-2.5-flash",
                 "gemini-2.5-flash-lite",
                 "gemini-2.0-flash",
+                "gemini-3-flash-preview",
+                "gemini-3-pro-preview",
             ]
     
     async def _get_finetuned_model(self, model_id: str, provider: str) -> Dict[str, Any]:

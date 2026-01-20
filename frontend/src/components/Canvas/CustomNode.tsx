@@ -101,6 +101,7 @@ const nodeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   content_moderator: Shield, // Content moderation
   meeting_summarizer: FileTextIcon, // Meeting summaries
   lead_scorer: Target, // Lead scoring
+  ai_web_search: Search, // AI Web Search
   // Business nodes
   stripe_analytics: DollarSign, // Revenue analytics
   cost_optimizer: TrendingUp, // Cost optimization
@@ -367,7 +368,7 @@ export const CustomNode = memo(({ data, selected, type, id }: NodeProps<CustomNo
         // Intelligence category nodes
         type === 'smart_data_analyzer' || type === 'auto_chart_generator' ||
         type === 'content_moderator' || type === 'meeting_summarizer' ||
-        type === 'lead_scorer') {
+        type === 'lead_scorer' || type === 'ai_web_search') {
       nodeTier = 1;
     }
     // Tier 2: Processing nodes
@@ -391,6 +392,7 @@ export const CustomNode = memo(({ data, selected, type, id }: NodeProps<CustomNo
     // Tier 4: Storage nodes
     else if (type === 'vector_store' || type === 'database' || type === 's3' ||
              type === 'knowledge_graph' || type === 'google_drive' || 
+             type === 'google_sheets' || type === 'airtable' ||
              type === 'azure_blob' ||
              // Communication category nodes
              type === 'email' || type === 'slack' || type === 'reddit') {
@@ -624,6 +626,14 @@ export const CustomNode = memo(({ data, selected, type, id }: NodeProps<CustomNo
     // Google Drive nodes use the Google Drive icon from ProviderIcon
     useProviderIcon = true;
     providerIconName = 'googledrive';
+  } else if (type === 'google_sheets') {
+    // Google Sheets nodes use the Google Drive icon from ProviderIcon
+    useProviderIcon = true;
+    providerIconName = 'googlesheets';
+  } else if (type === 'airtable') {
+    // Airtable nodes use the Airtable icon from ProviderIcon
+    useProviderIcon = true;
+    providerIconName = 'airtable';
   } else if (type === 'reddit') {
     // Reddit nodes use the Reddit icon from ProviderIcon
     useProviderIcon = true;

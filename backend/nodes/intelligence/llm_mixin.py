@@ -35,11 +35,11 @@ class LLMConfigMixin:
             model_list = [model.model_id for model in models if not (model.metadata or {}).get("deprecated", False)]
             if not model_list:
                 logger.warning("No Anthropic LLM models found in pricing system, using fallback list")
-                return ["claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022", "claude-3-opus-20240229"]
+                return ["claude-sonnet-4-5-20250929", "claude-haiku-4-5-20251001", "claude-opus-4-5-20251101"]
             return model_list
         except Exception as e:
             logger.warning(f"Failed to get Anthropic models: {e}")
-            return ["claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022", "claude-3-opus-20240229"]
+            return ["claude-sonnet-4-5-20250929", "claude-haiku-4-5-20251001", "claude-opus-4-5-20251101"]
 
     def _get_gemini_model_list(self) -> List[str]:
         """Get list of available Gemini LLM models from pricing system."""
@@ -48,11 +48,11 @@ class LLMConfigMixin:
             model_list = [model.model_id for model in models if not (model.metadata or {}).get("deprecated", False)]
             if not model_list:
                 logger.warning("No Gemini LLM models found in pricing system, using fallback list")
-                return ["gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash"]
+                return ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash", "gemini-3-flash-preview", "gemini-3-pro-preview"]
             return model_list
         except Exception as e:
             logger.warning(f"Failed to get Gemini models: {e}")
-            return ["gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash"]
+            return ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash", "gemini-3-flash-preview", "gemini-3-pro-preview"]
 
     def _get_llm_schema_section(self) -> Dict[str, Any]:
         """Get the standard LLM configuration schema section.
@@ -93,7 +93,7 @@ class LLMConfigMixin:
             "anthropic_model": {
                 "type": "string",
                 "enum": self._get_anthropic_model_list(),
-                "default": "claude-3-5-sonnet-20241022",
+                "default": "claude-sonnet-4-5-20250929",
                 "title": "Anthropic Model", 
                 "description": "Anthropic model to use",
             },
@@ -106,7 +106,7 @@ class LLMConfigMixin:
             "gemini_model": {
                 "type": "string",
                 "enum": self._get_gemini_model_list(),
-                "default": "gemini-2.0-flash-exp",
+                "default": "gemini-2.5-flash",
                 "title": "Gemini Model",
                 "description": "Google Gemini model to use",
             },
@@ -143,7 +143,7 @@ class LLMConfigMixin:
             if not api_key:
                 raise ValueError("Anthropic API key not found. Please configure it in the node settings or environment variables.")
         elif provider == "gemini":
-            model = config.get("gemini_model") or config.get("model", "gemini-2.0-flash-exp")
+            model = config.get("gemini_model") or config.get("model", "gemini-2.5-flash")
             api_key = resolve_api_key(config, "gemini_api_key", user_id=user_id)
             if not api_key:
                 raise ValueError("Gemini API key not found. Please configure it in the node settings or environment variables.")

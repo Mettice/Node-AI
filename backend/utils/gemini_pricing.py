@@ -70,7 +70,7 @@ GEMINI_EMBEDDING_MODELS: Dict[str, ModelPricing] = {
     ),
     "gemini-embedding-exp-03-07": ModelPricing(
         model_id="gemini-embedding-exp-03-07",
-        provider=Provider.HUGGINGFACE,  # Placeholder
+        provider=Provider.GEMINI,
         model_type=ModelType.EMBEDDING,
         price_per_1k_tokens=0.15 / 1000,
         dimension=3072,
@@ -96,7 +96,7 @@ GEMINI_LLM_MODELS: Dict[str, ModelPricing] = {
     # Gemini 2.5 Pro
     "gemini-2.5-pro": ModelPricing(
         model_id="gemini-2.5-pro",
-        provider=Provider.HUGGINGFACE,  # Placeholder
+        provider=Provider.GEMINI,
         model_type=ModelType.LLM,
         price_per_1k_tokens=None,
         max_tokens=1000000,  # 1M context window
@@ -131,7 +131,7 @@ GEMINI_LLM_MODELS: Dict[str, ModelPricing] = {
     # Gemini 2.5 Flash
     "gemini-2.5-flash": ModelPricing(
         model_id="gemini-2.5-flash",
-        provider=Provider.HUGGINGFACE,  # Placeholder
+        provider=Provider.GEMINI,
         model_type=ModelType.LLM,
         price_per_1k_tokens=None,
         max_tokens=1000000,  # 1M context window
@@ -165,7 +165,7 @@ GEMINI_LLM_MODELS: Dict[str, ModelPricing] = {
     # Gemini 2.5 Flash Preview
     "gemini-2.5-flash-preview-09-2025": ModelPricing(
         model_id="gemini-2.5-flash-preview-09-2025",
-        provider=Provider.HUGGINGFACE,  # Placeholder
+        provider=Provider.GEMINI,
         model_type=ModelType.LLM,
         price_per_1k_tokens=None,
         max_tokens=1000000,
@@ -195,7 +195,7 @@ GEMINI_LLM_MODELS: Dict[str, ModelPricing] = {
     # Gemini 2.5 Flash-Lite
     "gemini-2.5-flash-lite": ModelPricing(
         model_id="gemini-2.5-flash-lite",
-        provider=Provider.HUGGINGFACE,  # Placeholder
+        provider=Provider.GEMINI,
         model_type=ModelType.LLM,
         price_per_1k_tokens=None,
         max_tokens=1000000,
@@ -229,7 +229,7 @@ GEMINI_LLM_MODELS: Dict[str, ModelPricing] = {
     # Gemini 2.5 Flash-Lite Preview
     "gemini-2.5-flash-lite-preview-09-2025": ModelPricing(
         model_id="gemini-2.5-flash-lite-preview-09-2025",
-        provider=Provider.HUGGINGFACE,  # Placeholder
+        provider=Provider.GEMINI,
         model_type=ModelType.LLM,
         price_per_1k_tokens=None,
         max_tokens=1000000,
@@ -259,7 +259,7 @@ GEMINI_LLM_MODELS: Dict[str, ModelPricing] = {
     # Gemini 2.0 Flash
     "gemini-2.0-flash": ModelPricing(
         model_id="gemini-2.0-flash",
-        provider=Provider.HUGGINGFACE,  # Placeholder
+        provider=Provider.GEMINI,
         model_type=ModelType.LLM,
         price_per_1k_tokens=None,
         max_tokens=1000000,
@@ -293,7 +293,7 @@ GEMINI_LLM_MODELS: Dict[str, ModelPricing] = {
     # Gemini 2.0 Flash-Lite
     "gemini-2.0-flash-lite": ModelPricing(
         model_id="gemini-2.0-flash-lite",
-        provider=Provider.HUGGINGFACE,  # Placeholder
+        provider=Provider.GEMINI,
         model_type=ModelType.LLM,
         price_per_1k_tokens=None,
         max_tokens=1000000,
@@ -306,6 +306,212 @@ GEMINI_LLM_MODELS: Dict[str, ModelPricing] = {
             "context_window": 1000000,
             "category": "standard",
             "features": ["cost_effective", "at_scale"],
+        },
+    ),
+    
+    # Gemini 2.0 Flash Experimental
+    "gemini-2.0-flash-exp": ModelPricing(
+        model_id="gemini-2.0-flash-exp",
+        provider=Provider.GEMINI,
+        model_type=ModelType.LLM,
+        price_per_1k_tokens=None,
+        max_tokens=8192,  # 8K output limit
+        description="Experimental Gemini 2.0 Flash model (not suitable for production)",
+        metadata={
+            "input_price_per_1m_tokens_text": 0.10,
+            "input_price_per_1m_tokens_audio": 0.70,
+            "output_price_per_1m_tokens": 0.40,
+            "input_price_per_1k_tokens": 0.10 / 1000,
+            "output_price_per_1k_tokens": 0.40 / 1000,
+            "context_window": 1000000,
+            "category": "experimental",
+            "features": ["multimodal", "experimental", "thinking_experimental"],
+            "deprecated": False,
+        },
+    ),
+    
+    # Gemini 2.0 Flash Image Preview
+    "gemini-2.0-flash-preview-image-generation": ModelPricing(
+        model_id="gemini-2.0-flash-preview-image-generation",
+        provider=Provider.GEMINI,
+        model_type=ModelType.LLM,
+        price_per_1k_tokens=None,
+        max_tokens=8192,
+        description="Gemini 2.0 Flash model with image generation capabilities",
+        metadata={
+            "input_price_per_1m_tokens": 0.10,
+            "output_price_per_1m_tokens": 0.40,
+            "image_generation_price_per_image": 0.039,
+            "input_price_per_1k_tokens": 0.10 / 1000,
+            "output_price_per_1k_tokens": 0.40 / 1000,
+            "context_window": 32768,
+            "category": "preview",
+            "features": ["multimodal", "image_generation", "preview"],
+        },
+    ),
+    
+    # Gemini 3 Pro Preview
+    "gemini-3-pro-preview": ModelPricing(
+        model_id="gemini-3-pro-preview",
+        provider=Provider.GEMINI,
+        model_type=ModelType.LLM,
+        price_per_1k_tokens=None,
+        max_tokens=65536,  # 65K output limit
+        description="Our most intelligent model for multimodal understanding, agentic and vibe-coding",
+        metadata={
+            "input_price_per_1m_tokens": 1.25,  # Estimated based on 2.5 Pro
+            "output_price_per_1m_tokens": 10.00,  # Estimated
+            "input_price_per_1k_tokens": 1.25 / 1000,
+            "output_price_per_1k_tokens": 10.00 / 1000,
+            "context_window": 1048576,  # 1M tokens
+            "category": "frontier",
+            "features": ["multimodal", "agentic", "coding", "thinking", "preview"],
+            "grounding_google_search": {
+                "free_rpd": 1500,
+                "paid_per_1k_prompts": 35.00,
+            },
+        },
+    ),
+    
+    # Gemini 3 Pro Image Preview
+    "gemini-3-pro-image-preview": ModelPricing(
+        model_id="gemini-3-pro-image-preview",
+        provider=Provider.GEMINI,
+        model_type=ModelType.LLM,
+        price_per_1k_tokens=None,
+        max_tokens=32768,  # 32K output limit
+        description="Gemini 3 Pro model with image generation capabilities",
+        metadata={
+            "input_price_per_1m_tokens": 1.25,
+            "output_price_per_1m_tokens": 10.00,
+            "image_generation_price_per_image": 0.05,  # Estimated
+            "input_price_per_1k_tokens": 1.25 / 1000,
+            "output_price_per_1k_tokens": 10.00 / 1000,
+            "context_window": 65536,
+            "category": "frontier",
+            "features": ["multimodal", "image_generation", "preview"],
+        },
+    ),
+    
+    # Gemini 3 Flash Preview
+    "gemini-3-flash-preview": ModelPricing(
+        model_id="gemini-3-flash-preview",
+        provider=Provider.GEMINI,
+        model_type=ModelType.LLM,
+        price_per_1k_tokens=None,
+        max_tokens=65536,  # 65K output limit
+        description="Our most intelligent model built for speed, combining frontier intelligence with superior search and grounding",
+        metadata={
+            "input_price_per_1m_tokens_text": 0.30,  # Estimated based on 2.5 Flash
+            "input_price_per_1m_tokens_audio": 1.00,
+            "output_price_per_1m_tokens": 2.50,
+            "input_price_per_1k_tokens": 0.30 / 1000,
+            "output_price_per_1k_tokens": 2.50 / 1000,
+            "context_window": 1048576,  # 1M tokens
+            "category": "standard",
+            "features": ["multimodal", "thinking", "preview"],
+            "grounding_google_search": {
+                "free_rpd": 1500,
+                "paid_per_1k_prompts": 35.00,
+            },
+        },
+    ),
+    
+    # Gemini 2.5 Flash Image
+    "gemini-2.5-flash-image": ModelPricing(
+        model_id="gemini-2.5-flash-image",
+        provider=Provider.GEMINI,
+        model_type=ModelType.LLM,
+        price_per_1k_tokens=None,
+        max_tokens=32768,  # 32K output limit
+        description="Gemini 2.5 Flash model with image generation capabilities",
+        metadata={
+            "input_price_per_1m_tokens": 0.30,
+            "output_price_per_1m_tokens": 2.50,
+            "image_generation_price_per_image": 0.039,
+            "input_price_per_1k_tokens": 0.30 / 1000,
+            "output_price_per_1k_tokens": 2.50 / 1000,
+            "context_window": 65536,
+            "category": "standard",
+            "features": ["multimodal", "image_generation"],
+        },
+    ),
+    
+    # Gemini 2.5 Flash Native Audio Preview
+    "gemini-2.5-flash-native-audio-preview-12-2025": ModelPricing(
+        model_id="gemini-2.5-flash-native-audio-preview-12-2025",
+        provider=Provider.GEMINI,
+        model_type=ModelType.LLM,
+        price_per_1k_tokens=None,
+        max_tokens=8192,  # 8K output limit
+        description="Gemini 2.5 Flash model with native audio generation and live API support",
+        metadata={
+            "input_price_per_1m_tokens": 0.30,
+            "output_price_per_1m_tokens": 2.50,
+            "audio_generation_price_per_1k_tokens": 1.00,  # Estimated
+            "input_price_per_1k_tokens": 0.30 / 1000,
+            "output_price_per_1k_tokens": 2.50 / 1000,
+            "context_window": 131072,  # 131K tokens
+            "category": "preview",
+            "features": ["multimodal", "audio_generation", "live_api", "thinking", "preview"],
+        },
+    ),
+    "gemini-2.5-flash-native-audio-preview-09-2025": ModelPricing(
+        model_id="gemini-2.5-flash-native-audio-preview-09-2025",
+        provider=Provider.GEMINI,
+        model_type=ModelType.LLM,
+        price_per_1k_tokens=None,
+        max_tokens=8192,
+        description="Gemini 2.5 Flash model with native audio generation (older preview)",
+        metadata={
+            "input_price_per_1m_tokens": 0.30,
+            "output_price_per_1m_tokens": 2.50,
+            "audio_generation_price_per_1k_tokens": 1.00,
+            "input_price_per_1k_tokens": 0.30 / 1000,
+            "output_price_per_1k_tokens": 2.50 / 1000,
+            "context_window": 131072,
+            "category": "preview",
+            "features": ["multimodal", "audio_generation", "live_api", "thinking", "preview"],
+        },
+    ),
+    
+    # Gemini 2.5 Flash TTS
+    "gemini-2.5-flash-preview-tts": ModelPricing(
+        model_id="gemini-2.5-flash-preview-tts",
+        provider=Provider.GEMINI,
+        model_type=ModelType.LLM,
+        price_per_1k_tokens=None,
+        max_tokens=16384,  # 16K output limit
+        description="Gemini 2.5 Flash model optimized for text-to-speech",
+        metadata={
+            "input_price_per_1m_tokens": 0.30,
+            "output_price_per_1m_tokens": 2.50,
+            "audio_generation_price_per_1k_tokens": 1.00,
+            "input_price_per_1k_tokens": 0.30 / 1000,
+            "output_price_per_1k_tokens": 2.50 / 1000,
+            "context_window": 8192,
+            "category": "preview",
+            "features": ["tts", "audio_generation", "preview"],
+        },
+    ),
+    
+    # Gemini 2.5 Pro TTS
+    "gemini-2.5-pro-preview-tts": ModelPricing(
+        model_id="gemini-2.5-pro-preview-tts",
+        provider=Provider.GEMINI,
+        model_type=ModelType.LLM,
+        price_per_1k_tokens=None,
+        max_tokens=16384,  # 16K output limit
+        description="Gemini 2.5 Pro model optimized for text-to-speech",
+        metadata={
+            "input_price_per_1m_tokens": 1.25,
+            "output_price_per_1m_tokens": 10.00,
+            "audio_generation_price_per_1k_tokens": 2.00,  # Estimated
+            "input_price_per_1k_tokens": 1.25 / 1000,
+            "output_price_per_1k_tokens": 10.00 / 1000,
+            "context_window": 8192,
+            "category": "preview",
+            "features": ["tts", "audio_generation", "preview"],
         },
     ),
 }

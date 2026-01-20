@@ -8,6 +8,7 @@
 import React from 'react';
 import { Copy, Download, FileText, BarChart3, Code, AlertCircle } from 'lucide-react';
 import { cn } from '@/utils/cn';
+import { StructuredDataTable } from './StructuredDataTable';
 
 interface DisplayMetadata {
   display_type: 'text' | 'html' | 'chart' | 'data' | 'agent_report' | 'empty';
@@ -89,6 +90,10 @@ export function UnifiedNodeOutput({
       
       case 'data':
       default:
+        // For structured data nodes, check if output has 'data' field
+        if (output.data && Array.isArray(output.data)) {
+          return output; // Return full output with data, schema, metadata
+        }
         return output;
     }
   };
@@ -293,19 +298,41 @@ function renderContent(metadata: DisplayMetadata) {
         </div>
       );
     
-    case 'data':
-    default:
-      return (
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-amber-400 flex items-center gap-2">
-            <Code className="w-3.5 h-3.5" />
-            Raw Data
+      case 'data':
+      default:
+        // Check if data is structured (list of dicts) - try to detect from output
+        const content = metadata.primary_content;
+        const isStructured = 
+          content?.data && 
+          Array.isArray(content.data) && 
+          content.data.length > 0 && 
+          typeof content.data[0] === 'object' &&
+          content.data[0] !== null &&
+          !Array.isArray(content.data[0]);
+        
+        if (isStructured) {
+          // Display as table
+          return (
+            <StructuredDataTable 
+              data={content.data} 
+              schema={content.schema}
+              maxRows={100}
+            />
+          );
+        }
+        
+        // Fallback to JSON display
+        return (
+          <div className="space-y-2">
+            <div className="text-xs font-semibold text-amber-400 flex items-center gap-2">
+              <Code className="w-3.5 h-3.5" />
+              Raw Data
+            </div>
+            <div className="p-3 bg-black/40 rounded border border-white/10 text-xs max-h-64 overflow-y-auto">
+              <pre className="text-slate-300">{JSON.stringify(metadata.primary_content, null, 2)}</pre>
+            </div>
           </div>
-          <div className="p-3 bg-black/40 rounded border border-white/10 text-xs max-h-64 overflow-y-auto">
-            <pre className="text-slate-300">{JSON.stringify(metadata.primary_content, null, 2)}</pre>
-          </div>
-        </div>
-      );
+        );
   }
 }
 

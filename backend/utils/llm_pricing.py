@@ -1017,6 +1017,57 @@ ANTHROPIC_LLM_MODELS: Dict[str, ModelPricing] = {
         },
     ),
     
+    # Claude Opus 4.5
+    "claude-opus-4-5-20251101": ModelPricing(
+        model_id="claude-opus-4-5-20251101",
+        provider=Provider.ANTHROPIC,
+        model_type=ModelType.LLM,
+        price_per_1k_tokens=None,
+        max_tokens=64000,  # 64K max output
+        description="Premium model combining maximum intelligence with practical performance",
+        metadata={
+            "input_price_per_1m_tokens": 5.00,
+            "cached_input_price_per_1m_tokens_5m": 6.25,
+            "cached_input_price_per_1m_tokens_1h": 10.00,
+            "cache_hit_price_per_1m_tokens": 0.50,
+            "output_price_per_1m_tokens": 25.00,
+            "batch_input_price_per_1m_tokens": 2.50,  # 50% discount
+            "batch_output_price_per_1m_tokens": 12.50,  # 50% discount
+            "input_price_per_1k_tokens": 5.00 / 1000,
+            "cached_input_price_per_1k_tokens": 0.50 / 1000,
+            "output_price_per_1k_tokens": 25.00 / 1000,
+            "context_window": 200000,
+            "category": "premium",
+            "features": ["extended_thinking", "priority_tier"],
+            "api_alias": "claude-opus-4-5",
+        },
+    ),
+    "claude-opus-4-5": ModelPricing(
+        model_id="claude-opus-4-5",
+        provider=Provider.ANTHROPIC,
+        model_type=ModelType.LLM,
+        price_per_1k_tokens=None,
+        max_tokens=64000,
+        description="Premium model combining maximum intelligence with practical performance (alias)",
+        metadata={
+            "input_price_per_1m_tokens": 5.00,
+            "cached_input_price_per_1m_tokens_5m": 6.25,
+            "cached_input_price_per_1m_tokens_1h": 10.00,
+            "cache_hit_price_per_1m_tokens": 0.50,
+            "output_price_per_1m_tokens": 25.00,
+            "batch_input_price_per_1m_tokens": 2.50,
+            "batch_output_price_per_1m_tokens": 12.50,
+            "input_price_per_1k_tokens": 5.00 / 1000,
+            "cached_input_price_per_1k_tokens": 0.50 / 1000,
+            "output_price_per_1k_tokens": 25.00 / 1000,
+            "context_window": 200000,
+            "category": "premium",
+            "features": ["extended_thinking", "priority_tier"],
+            "is_alias": True,
+            "aliases_to": "claude-opus-4-5-20251101",
+        },
+    ),
+    
     # Claude Opus 4
     "claude-opus-4-20250514": ModelPricing(
         model_id="claude-opus-4-20250514",

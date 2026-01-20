@@ -87,20 +87,53 @@ class SlackNode(BaseNode):
             inputs.get("channel") or
             inputs.get("channel_id")
         )
-        message = (
-            config.get("slack_message") or 
-            inputs.get("slack_message") or
-            inputs.get("message") or 
-            inputs.get("text") or
-            inputs.get("output") or
-            inputs.get("content") or
-            inputs.get("body")
-        )
         
         if not channel:
             raise ValueError("Slack channel or user ID is required")
+        
+        # Check for structured data first
+        structured_data = (
+            inputs.get("data") or
+            inputs.get("results") or
+            inputs.get("records") or
+            None
+        )
+        
+        # Check if structured data is present and valid
+        is_structured = (
+            structured_data and
+            isinstance(structured_data, list) and
+            len(structured_data) > 0 and
+            isinstance(structured_data[0], dict)
+        )
+        
+        # Get format preference
+        format_type = config.get("slack_data_format", "table") if is_structured else None
+        
+        # Format message based on data type
+        if is_structured and format_type:
+            message = self._format_structured_data(structured_data, format_type, config)
+        else:
+            # Fallback to regular message
+            message = (
+                config.get("slack_message") or 
+                inputs.get("slack_message") or
+                inputs.get("message") or 
+                inputs.get("text") or
+                inputs.get("output") or
+                inputs.get("content") or
+                inputs.get("body") or
+                ""
+            )
+        
         if not message:
             raise ValueError("Message text is required")
+        
+        # Handle individual messages for structured data
+        if is_structured and format_type == "individual":
+            return await self._send_individual_messages(
+                access_token, channel, structured_data, node_id
+            )
         
         await self.stream_progress(node_id, 0.3, f"Sending message to {channel}...")
         
@@ -138,6 +171,178 @@ class SlackNode(BaseNode):
                 "channel": channel,
                 "status": "sent",
             }
+    
+    def _format_structured_data(
+        self,
+        data: List[Dict[str, Any]],
+        format_type: str,
+        config: Dict[str, Any],
+    ) -> str:
+        """
+        Format structured data for Slack.
+        
+        Args:
+            data: List of dictionaries
+            format_type: Format type (table, list, summary)
+            config: Node configuration
+            
+        Returns:
+            Formatted string
+        """
+        if format_type == "table":
+            return self._format_as_table(data, config)
+        elif format_type == "list":
+            return self._format_as_list(data, config)
+        elif format_type == "summary":
+            return self._format_as_summary(data, config)
+        else:
+            # Default to table
+            return self._format_as_table(data, config)
+    
+    def _format_as_table(
+        self,
+        data: List[Dict[str, Any]],
+        config: Dict[str, Any],
+    ) -> str:
+        """Format data as a table."""
+        if not data:
+            return "No data available."
+        
+        # Get all columns
+        all_keys = set()
+        for record in data:
+            all_keys.update(record.keys())
+        columns = sorted(all_keys)
+        
+        # Limit rows for display
+        max_rows = config.get("slack_max_rows", 50)
+        display_data = data[:max_rows]
+        
+        # Build table
+        lines = []
+        lines.append("```")
+        
+        # Header row
+        header = " | ".join(str(col) for col in columns)
+        lines.append(header)
+        lines.append("-" * len(header))
+        
+        # Data rows
+        for record in display_data:
+            row = " | ".join(str(record.get(col, "")) for col in columns)
+            lines.append(row)
+        
+        lines.append("```")
+        
+        if len(data) > max_rows:
+            lines.append(f"\n_... ({len(data) - max_rows} more rows)_")
+        
+        return "\n".join(lines)
+    
+    def _format_as_list(
+        self,
+        data: List[Dict[str, Any]],
+        config: Dict[str, Any],
+    ) -> str:
+        """Format data as a list."""
+        if not data:
+            return "No data available."
+        
+        max_items = config.get("slack_max_rows", 20)
+        display_data = data[:max_items]
+        
+        lines = []
+        for i, record in enumerate(display_data, 1):
+            record_str = ", ".join(f"{k}: {v}" for k, v in record.items())
+            lines.append(f"{i}. {record_str}")
+        
+        if len(data) > max_items:
+            lines.append(f"\n_... ({len(data) - max_items} more items)_")
+        
+        return "\n".join(lines)
+    
+    def _format_as_summary(
+        self,
+        data: List[Dict[str, Any]],
+        config: Dict[str, Any],
+    ) -> str:
+        """Format data as a summary."""
+        if not data:
+            return "No data available."
+        
+        lines = []
+        lines.append(f"*Data Summary*")
+        lines.append(f"Total records: {len(data)}")
+        
+        # Get column info
+        if data:
+            all_keys = set()
+            for record in data:
+                all_keys.update(record.keys())
+            lines.append(f"Columns: {', '.join(sorted(all_keys))}")
+        
+        # Sample first few records
+        sample_size = min(3, len(data))
+        if sample_size > 0:
+            lines.append(f"\n*Sample ({sample_size} records):*")
+            for i, record in enumerate(data[:sample_size], 1):
+                record_str = ", ".join(f"{k}: {v}" for k, v in list(record.items())[:5])
+                lines.append(f"{i}. {record_str}")
+        
+        return "\n".join(lines)
+    
+    async def _send_individual_messages(
+        self,
+        access_token: str,
+        channel: str,
+        data: List[Dict[str, Any]],
+        node_id: str,
+    ) -> Dict[str, Any]:
+        """Send each row as a separate message."""
+        total = len(data)
+        sent = 0
+        
+        for i, record in enumerate(data, 1):
+            record_str = ", ".join(f"{k}: {v}" for k, v in record.items())
+            message = f"Record {i}/{total}: {record_str}"
+            
+            await self.stream_progress(
+                node_id, 
+                0.3 + (i / total) * 0.6,
+                f"Sending message {i}/{total}..."
+            )
+            
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    "https://slack.com/api/chat.postMessage",
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "channel": channel,
+                        "text": message,
+                    },
+                )
+                
+                data_resp = response.json()
+                if data_resp.get("ok"):
+                    sent += 1
+        
+        await self.stream_progress(node_id, 1.0, f"Sent {sent} messages successfully!")
+        
+        return {
+            "output": {
+                "status": "success",
+                "operation": "send_message",
+                "channel": channel,
+                "messages_sent": sent,
+                "total_records": total,
+            },
+            "messages_sent": sent,
+            "channel": channel,
+            "status": "sent",
+        }
 
     async def _create_channel(
         self,
@@ -335,6 +540,21 @@ class SlackNode(BaseNode):
                     "type": "string",
                     "title": "Initial Comment",
                     "description": "Optional comment to post with file",
+                },
+                "slack_data_format": {
+                    "type": "string",
+                    "enum": ["table", "list", "summary", "individual"],
+                    "default": "table",
+                    "title": "Data Format",
+                    "description": "Format for structured data (when data from previous node is detected): table, list, summary, or individual messages",
+                },
+                "slack_max_rows": {
+                    "type": "integer",
+                    "default": 50,
+                    "minimum": 1,
+                    "maximum": 100,
+                    "title": "Max Rows",
+                    "description": "Maximum number of rows to display in formatted message (for table/list formats)",
                 },
             },
             "required": ["slack_operation", "slack_token_id"],

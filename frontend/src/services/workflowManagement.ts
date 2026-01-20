@@ -143,6 +143,43 @@ export async function undeployWorkflow(workflowId: string): Promise<Workflow> {
 }
 
 /**
+ * Validate a workflow template before creation
+ */
+export interface WorkflowValidationRequest {
+  name: string;
+  description?: string;
+  nodes: Array<{
+    id: string;
+    type: string;
+    position: { x: number; y: number };
+    data: Record<string, any>;
+  }>;
+  edges: Array<{
+    id: string;
+    source: string;
+    target: string;
+    sourceHandle?: string;
+    targetHandle?: string;
+  }>;
+  tags?: string[];
+  is_template?: boolean;
+}
+
+export interface WorkflowValidationResponse {
+  valid: boolean;
+  compatible: boolean;
+  message: string;
+  missing_nodes?: string[];
+  suggestions?: string[];
+  errors?: string[];
+}
+
+export async function validateWorkflow(workflow: WorkflowValidationRequest): Promise<WorkflowValidationResponse> {
+  const response = await apiClient.post<WorkflowValidationResponse>('/workflows/validate', workflow);
+  return response.data;
+}
+
+/**
  * Query a deployed workflow
  */
 export interface WorkflowQueryRequest {

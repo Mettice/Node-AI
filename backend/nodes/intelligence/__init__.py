@@ -10,6 +10,7 @@ from .auto_chart_generator import AutoChartGeneratorNode
 from .content_moderator import ContentModeratorNode
 from .meeting_summarizer import MeetingSummarizerNode
 from .lead_scorer import LeadScorerNode
+from .ai_web_search import AIWebSearchNode
 
 __all__ = [
     "SmartDataAnalyzerNode",
@@ -17,4 +18,5 @@ __all__ = [
     "ContentModeratorNode",
     "MeetingSummarizerNode",
     "LeadScorerNode",
+    "AIWebSearchNode",
 ]
