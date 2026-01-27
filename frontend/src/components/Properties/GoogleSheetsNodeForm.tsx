@@ -165,7 +165,6 @@ export function GoogleSheetsNodeForm({ initialData, onChange }: GoogleSheetsNode
       const result = await initOAuthFlow({
         service: 'google',
         client_id: clientId,
-        client_secret: clientSecret,
         redirect_uri: redirectUri,
         scopes: GOOGLE_SCOPES,
       });
