@@ -97,6 +97,9 @@ secrets.json
 *.key
 *.crt
 
+# MCP server configs (may contain API keys)
+backend/data/mcp_servers.json
+
 # Build outputs
 dist/
 build/
