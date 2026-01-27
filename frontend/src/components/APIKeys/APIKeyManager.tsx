@@ -109,7 +109,7 @@ export function APIKeyManager() {
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
         >
           <Plus className="w-4 h-4" />
           Create API Key
@@ -132,7 +132,7 @@ export function APIKeyManager() {
                   value={newKey.name}
                   onChange={(e) => setNewKey({ ...newKey, name: e.target.value })}
                   placeholder="e.g., Production Key, Test Key"
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                   autoFocus
                 />
               </div>
@@ -146,7 +146,7 @@ export function APIKeyManager() {
                   value={newKey.rate_limit}
                   onChange={(e) => setNewKey({ ...newKey, rate_limit: e.target.value })}
                   placeholder="Optional - e.g., 1000"
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
               </div>
 
@@ -160,7 +160,7 @@ export function APIKeyManager() {
                   value={newKey.cost_limit}
                   onChange={(e) => setNewKey({ ...newKey, cost_limit: e.target.value })}
                   placeholder="Optional - e.g., 100.00"
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
               </div>
             </div>
@@ -177,7 +177,7 @@ export function APIKeyManager() {
               </button>
               <button
                 onClick={handleCreate}
-                className="flex-1 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded transition-colors"
+                className="flex-1 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded transition-colors"
               >
                 Create
               </button>

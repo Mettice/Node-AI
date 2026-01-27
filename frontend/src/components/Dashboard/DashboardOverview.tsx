@@ -131,7 +131,7 @@ export function DashboardOverview({ onSelectWorkflow }: DashboardOverviewProps) 
                 // Switch to workflows tab - handled by parent
                 window.dispatchEvent(new CustomEvent('dashboard:switch-tab', { detail: 'workflows' }));
               }}
-              className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1"
+              className="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1"
             >
               View All <ArrowRight className="w-3 h-3" />
             </button>
@@ -145,7 +145,7 @@ export function DashboardOverview({ onSelectWorkflow }: DashboardOverviewProps) 
                   className="w-full text-left p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors group"
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-white group-hover:text-purple-400 transition-colors">
+                    <span className="font-medium text-white group-hover:text-amber-400 transition-colors">
                       {workflow.name}
                     </span>
                     <span className="px-2 py-0.5 text-xs bg-green-500/20 text-green-400 rounded">
@@ -194,7 +194,7 @@ export function DashboardOverview({ onSelectWorkflow }: DashboardOverviewProps) 
                       className="w-full text-left p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors group"
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium text-white group-hover:text-purple-400 transition-colors">
+                        <span className="font-medium text-white group-hover:text-amber-400 transition-colors">
                           {workflow.name}
                         </span>
                         <span className="text-xs text-slate-500">{timeAgo}</span>

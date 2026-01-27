@@ -101,7 +101,7 @@ export function FormField({ name, schema, required, control }: FormFieldProps) {
                         type="checkbox"
                         checked={field.value || false}
                         onChange={(e) => field.onChange(e.target.checked)}
-                        className="h-4 w-4 text-purple-500 focus:ring-purple-500 border-white/20 rounded bg-white/5"
+                        className="h-4 w-4 text-amber-500 focus:ring-amber-500 border-white/20 rounded bg-white/5"
                       />
                       <span className="ml-2 text-sm text-slate-300">
                         {schema.description || 'Enable'}

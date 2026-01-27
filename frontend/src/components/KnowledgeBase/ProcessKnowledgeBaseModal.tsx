@@ -183,7 +183,7 @@ export function ProcessKnowledgeBaseModal({
                   type="file"
                   onChange={handleFileUpload}
                   className="hidden"
-                  accept=".pdf,.docx,.txt,.md,.doc,.jpg,.jpeg,.png,.gif,.webp,.bmp,.mp3,.wav,.m4a,.ogg,.flac,.mp4,.avi,.mov,.mkv,.webm,.csv,.xlsx,.json,.parquet"
+                  accept=".pdf,.docx,.txt,.md,.doc,.jpg,.jpeg,.png,.gif,.webp,.bmp,.mp3,.wav,.m4a,.ogg,.flac,.mp4,.avi,.mov,.mkv,.webm,.csv,.xlsx,.json,.jsonl,.parquet"
                 />
               </div>
               {!files || (files.files?.length || 0) === 0 ? (
@@ -208,7 +208,7 @@ export function ProcessKnowledgeBaseModal({
                             setSelectedFileIds(selectedFileIds.filter((id) => id !== file.file_id));
                           }
                         }}
-                        className="w-4 h-4 text-purple-600 bg-white/5 border-white/20 rounded focus:ring-purple-500"
+                        className="w-4 h-4 text-amber-600 bg-white/5 border-white/20 rounded focus:ring-amber-500"
                       />
                       <FileText className="w-4 h-4 text-slate-400 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -234,7 +234,7 @@ export function ProcessKnowledgeBaseModal({
                     type="radio"
                     checked={createNewVersion}
                     onChange={() => setCreateNewVersion(true)}
-                    className="w-4 h-4 text-purple-600 bg-white/5 border-white/20 focus:ring-purple-500"
+                    className="w-4 h-4 text-amber-600 bg-white/5 border-white/20 focus:ring-amber-500"
                   />
                   <div>
                     <p className="text-sm text-white">Create New Version</p>
@@ -246,7 +246,7 @@ export function ProcessKnowledgeBaseModal({
                     type="radio"
                     checked={!createNewVersion}
                     onChange={() => setCreateNewVersion(false)}
-                    className="w-4 h-4 text-purple-600 bg-white/5 border-white/20 focus:ring-purple-500"
+                    className="w-4 h-4 text-amber-600 bg-white/5 border-white/20 focus:ring-amber-500"
                   />
                   <div>
                     <p className="text-sm text-white">Replace Current Version</p>
@@ -263,7 +263,7 @@ export function ProcessKnowledgeBaseModal({
                   type="checkbox"
                   checked={useCustomConfig}
                   onChange={(e) => setUseCustomConfig(e.target.checked)}
-                  className="w-4 h-4 text-purple-600 bg-white/5 border-white/20 rounded focus:ring-purple-500"
+                  className="w-4 h-4 text-amber-600 bg-white/5 border-white/20 rounded focus:ring-amber-500"
                 />
                 <span className="text-sm text-slate-300">Use custom processing configuration</span>
               </label>
@@ -287,7 +287,7 @@ export function ProcessKnowledgeBaseModal({
             <button
               onClick={handleProcess}
               disabled={processing || selectedFileIds.length === 0}
-              className="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-2 text-sm bg-amber-600 hover:bg-amber-700 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {processing ? (
                 <>

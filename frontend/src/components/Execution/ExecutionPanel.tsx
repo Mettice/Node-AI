@@ -391,7 +391,7 @@ export function ExecutionPanel({ isOpen, onClose }: ExecutionPanelProps) {
                       <>
                         <div className="absolute top-[27px] left-0 w-1 h-1 bg-blue-400 rounded-full animate-[timelineFlow_3s_linear_infinite] shadow-[0_0_4px_rgba(59,130,246,0.8)]" />
                         <div className="absolute top-[27px] left-0 w-1 h-1 bg-cyan-400 rounded-full animate-[timelineFlow_3s_linear_infinite_1s] shadow-[0_0_4px_rgba(34,211,238,0.8)]" />
-                        <div className="absolute top-[27px] left-0 w-1 h-1 bg-purple-400 rounded-full animate-[timelineFlow_3s_linear_infinite_2s] shadow-[0_0_4px_rgba(167,139,250,0.8)]" />
+                        <div className="absolute top-[27px] left-0 w-1 h-1 bg-amber-400 rounded-full animate-[timelineFlow_3s_linear_infinite_2s] shadow-[0_0_4px_rgba(167,139,250,0.8)]" />
                       </>
                     )}
                     
@@ -536,7 +536,7 @@ export function ExecutionPanel({ isOpen, onClose }: ExecutionPanelProps) {
                   </div>
                   <div className="glass-light p-4 rounded-xl border border-white/10 text-center">
                     <div className="text-xs text-slate-400 mb-1 uppercase tracking-wider">Duration</div>
-                    <div className="text-2xl font-bold text-purple-400 drop-shadow-sm">
+                    <div className="text-2xl font-bold text-amber-400 drop-shadow-sm">
                       {duration > 0 ? formatDuration(duration) : '-'}
                     </div>
                   </div>
@@ -573,7 +573,7 @@ export function ExecutionPanel({ isOpen, onClose }: ExecutionPanelProps) {
                           <span className="text-sm text-slate-200">{node.type}</span>
                         </div>
                         <div className="flex items-center gap-4 text-xs font-mono">
-                          <span className="text-purple-300">{result.duration_ms ? formatDuration(result.duration_ms) : '-'}</span>
+                          <span className="text-amber-300">{result.duration_ms ? formatDuration(result.duration_ms) : '-'}</span>
                           <span className="text-amber-400 w-16 text-right">{result.cost ? formatCost(result.cost) : '$0.00'}</span>
                         </div>
                       </div>

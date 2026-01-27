@@ -295,7 +295,7 @@ export function GoogleDriveNodeForm({ initialData, onChange }: GoogleDriveNodeFo
                 value={clientId}
                 onChange={(e) => setClientId(e.target.value)}
                 placeholder="1234567890-abc123def456.apps.googleusercontent.com"
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
               />
             </div>
 
@@ -308,7 +308,7 @@ export function GoogleDriveNodeForm({ initialData, onChange }: GoogleDriveNodeFo
                 value={clientSecret}
                 onChange={(e) => setClientSecret(e.target.value)}
                 placeholder="Enter Google Client Secret"
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
               />
             </div>
 
@@ -321,7 +321,7 @@ export function GoogleDriveNodeForm({ initialData, onChange }: GoogleDriveNodeFo
                 value={redirectUri}
                 onChange={(e) => setRedirectUri(e.target.value)}
                 placeholder={window.location.origin + '/oauth/callback'}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-xs"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all text-xs"
               />
             </div>
 
@@ -329,7 +329,7 @@ export function GoogleDriveNodeForm({ initialData, onChange }: GoogleDriveNodeFo
               type="button"
               onClick={handleConnectGoogle}
               disabled={isConnecting || !clientId || !clientSecret}
-              className="w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-lg transition-all text-sm font-medium flex items-center justify-center gap-2"
+              className="w-full px-3 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-lg transition-all text-sm font-medium flex items-center justify-center gap-2"
             >
               {isConnecting ? (
                 <>Connecting...</>
@@ -352,7 +352,7 @@ export function GoogleDriveNodeForm({ initialData, onChange }: GoogleDriveNodeFo
             <select
               value={tokenId}
               onChange={(e) => setTokenId(e.target.value)}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             >
               <option value="">Select a connection...</option>
               {availableTokens.map((token) => (
@@ -385,7 +385,7 @@ export function GoogleDriveNodeForm({ initialData, onChange }: GoogleDriveNodeFo
               value={folderId}
               onChange={(e) => setFolderId(e.target.value)}
               placeholder="root or folder_id"
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -398,7 +398,7 @@ export function GoogleDriveNodeForm({ initialData, onChange }: GoogleDriveNodeFo
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="name contains 'document'"
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -412,7 +412,7 @@ export function GoogleDriveNodeForm({ initialData, onChange }: GoogleDriveNodeFo
               onChange={(e) => setMaxResults(parseInt(e.target.value) || 100)}
               min={1}
               max={1000}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
         </div>
@@ -434,7 +434,7 @@ export function GoogleDriveNodeForm({ initialData, onChange }: GoogleDriveNodeFo
               value={filename}
               onChange={(e) => setFilename(e.target.value)}
               placeholder="document.pdf"
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -450,7 +450,7 @@ export function GoogleDriveNodeForm({ initialData, onChange }: GoogleDriveNodeFo
               onChange={(e) => setFileContent(e.target.value)}
               placeholder="File content here..."
               rows={8}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all font-mono text-sm"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all font-mono text-sm"
             />
           </div>
 
@@ -464,7 +464,7 @@ export function GoogleDriveNodeForm({ initialData, onChange }: GoogleDriveNodeFo
                 value={folderId}
                 onChange={(e) => setFolderId(e.target.value)}
                 placeholder="root"
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
               />
             </div>
 
@@ -477,7 +477,7 @@ export function GoogleDriveNodeForm({ initialData, onChange }: GoogleDriveNodeFo
                 value={mimeType}
                 onChange={(e) => setMimeType(e.target.value)}
                 placeholder="text/plain"
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
               />
             </div>
           </div>
@@ -500,7 +500,7 @@ export function GoogleDriveNodeForm({ initialData, onChange }: GoogleDriveNodeFo
               value={fileId}
               onChange={(e) => setFileId(e.target.value)}
               placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -515,7 +515,7 @@ export function GoogleDriveNodeForm({ initialData, onChange }: GoogleDriveNodeFo
                   value={shareEmail}
                   onChange={(e) => setShareEmail(e.target.value)}
                   placeholder="user@example.com"
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
                 />
               </div>
 
@@ -565,7 +565,7 @@ export function GoogleDriveNodeForm({ initialData, onChange }: GoogleDriveNodeFo
               value={folderName}
               onChange={(e) => setFolderName(e.target.value)}
               placeholder="My Folder"
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -581,7 +581,7 @@ export function GoogleDriveNodeForm({ initialData, onChange }: GoogleDriveNodeFo
               value={parentFolderId}
               onChange={(e) => setParentFolderId(e.target.value)}
               placeholder="root"
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
         </div>

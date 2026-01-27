@@ -144,11 +144,11 @@ export function DatabaseNodeForm({ initialData, onChange }: DatabaseNodeFormProp
             onChange={(e) => setQuery(e.target.value)}
             placeholder={getSampleQuery() || 'Enter your SQL query here...'}
             rows={12}
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all font-mono text-sm"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all font-mono text-sm"
           />
           {queryType !== 'CUSTOM' && (
             <div className="flex items-start gap-2 p-2 bg-slate-800/50 rounded text-xs text-slate-300">
-              <span className="text-purple-400">💡</span>
+              <span className="text-amber-400">💡</span>
               <span>
                 This is a sample query template. Modify it according to your needs. 
                 For complex queries, select "Custom SQL" and write your own query.
@@ -162,7 +162,7 @@ export function DatabaseNodeForm({ initialData, onChange }: DatabaseNodeFormProp
       {queryType !== 'CUSTOM' && queryType === 'SELECT' && (
         <div className="space-y-2 p-3 bg-slate-800/30 border border-slate-700/50 rounded-lg">
           <p className="text-xs text-slate-400">
-            <span className="text-purple-400">🚧</span> Visual query builder coming soon. 
+            <span className="text-amber-400">🚧</span> Visual query builder coming soon. 
             For now, use the SQL query editor above.
           </p>
         </div>

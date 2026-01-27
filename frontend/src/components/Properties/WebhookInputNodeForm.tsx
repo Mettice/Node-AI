@@ -182,7 +182,7 @@ export function WebhookInputNodeForm({
             onChange={(e) => setWebhookName(e.target.value)}
             onBlur={handleUpdate}
             placeholder="My Webhook"
-            className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
           {updateMutation.isPending && (
             <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
@@ -245,7 +245,7 @@ export function WebhookInputNodeForm({
         <select
           value={httpMethod}
           onChange={(e) => setHttpMethod(e.target.value)}
-          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:ring-2 focus:ring-purple-500 [&>option]:bg-slate-800 [&>option]:text-white"
+          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:ring-2 focus:ring-amber-500 [&>option]:bg-slate-800 [&>option]:text-white"
           style={{ colorScheme: 'dark' }}
         >
           <option value="POST" className="bg-slate-800 text-white">POST</option>
@@ -354,7 +354,7 @@ export function WebhookInputNodeForm({
               }
             }}
             disabled={!workflowId || createMutation.isPending}
-            className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             title={!workflowId ? 'Please save the workflow first to create a webhook' : ''}
           >
             {createMutation.isPending ? (

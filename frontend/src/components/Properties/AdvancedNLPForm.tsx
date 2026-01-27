@@ -264,11 +264,11 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
                 onChange={(e) => setCategoryInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && addCategory()}
                 placeholder="Enter category and press Enter"
-                className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
               <button
                 onClick={addCategory}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg"
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg"
               >
                 Add
               </button>
@@ -306,7 +306,7 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
             value={extractionSchemaText}
             onChange={(e) => setExtractionSchemaText(e.target.value)}
             placeholder='{"name": "string", "age": "number", "email": "string"}'
-            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm"
+            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono text-sm"
             rows={6}
           />
           <p className="text-xs text-slate-400 mt-1">JSON schema defining what to extract</p>
@@ -322,7 +322,7 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="Enter your question..."
-            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
           <p className="text-xs text-slate-400 mt-1">Question to answer based on the input text</p>
         </div>
@@ -336,7 +336,7 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
             <select
               value={sourceLanguage}
               onChange={(e) => setSourceLanguage(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
             >
               {languageOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -350,7 +350,7 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
             <select
               value={targetLanguage}
               onChange={(e) => setTargetLanguage(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
             >
               {languageOptions.filter((opt) => opt.value !== 'auto').map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -371,7 +371,7 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
             value={hfModel}
             onChange={(e) => setHfModel(e.target.value)}
             placeholder="Leave empty to use default model for task"
-            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
           <p className="text-xs text-slate-400 mt-1">Custom HuggingFace model name (e.g., facebook/bart-large-cnn)</p>
         </div>
@@ -402,7 +402,7 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
               value={openaiModel}
               onChange={(e) => setOpenaiModel(e.target.value)}
               placeholder="gpt-4o-mini"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
         </div>
@@ -433,7 +433,7 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
               value={anthropicModel}
               onChange={(e) => setAnthropicModel(e.target.value)}
               placeholder="claude-sonnet-4-5-20250929"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
         </div>
@@ -452,7 +452,7 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
                 onChange(config);
               }}
               placeholder="https://your-resource.cognitiveservices.azure.com/"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
             <p className="text-xs text-slate-400 mt-1">For NER and Sentiment Analysis</p>
           </div>
@@ -466,7 +466,7 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
                 onChange(config);
               }}
               placeholder="Enter API key..."
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
           <div>
@@ -479,7 +479,7 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
                 onChange(config);
               }}
               placeholder="https://api.cognitive.microsofttranslator.com"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
             <p className="text-xs text-slate-400 mt-1">For Translation</p>
           </div>
@@ -493,7 +493,7 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
                 onChange(config);
               }}
               placeholder="Enter API key..."
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
         </div>
@@ -509,7 +509,7 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
               value={customApiUrl}
               onChange={(e) => setCustomApiUrl(e.target.value)}
               placeholder="https://api.example.com/nlp"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
             <p className="text-xs text-slate-400 mt-1">Custom API endpoint URL</p>
           </div>
@@ -520,7 +520,7 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
               value={customApiKey}
               onChange={(e) => setCustomApiKey(e.target.value)}
               placeholder="Enter API key (optional)"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
           <div>
@@ -528,7 +528,7 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
             <select
               value={customApiMethod}
               onChange={(e) => setCustomApiMethod(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
             >
               <option value="POST">POST</option>
               <option value="GET">GET</option>
@@ -545,7 +545,7 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
             id="use_finetuned"
             checked={useFinetunedModel}
             onChange={(e) => setUseFinetunedModel(e.target.checked)}
-            className="w-4 h-4 rounded bg-slate-800 border-slate-700 text-purple-600 focus:ring-purple-500"
+            className="w-4 h-4 rounded bg-slate-800 border-slate-700 text-amber-600 focus:ring-amber-500"
           />
           <label htmlFor="use_finetuned" className="text-sm font-medium text-white">
             Use Fine-Tuned Model
@@ -559,7 +559,7 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
               value={finetunedModelId}
               onChange={(e) => setFinetunedModelId(e.target.value)}
               placeholder="Enter model ID from registry"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
             <p className="text-xs text-slate-400 mt-1">ID of the fine-tuned model from the model registry</p>
           </div>
@@ -574,7 +574,7 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
             id="enable_cache"
             checked={enableCache}
             onChange={(e) => setEnableCache(e.target.checked)}
-            className="w-4 h-4 rounded bg-slate-800 border-slate-700 text-purple-600 focus:ring-purple-500"
+            className="w-4 h-4 rounded bg-slate-800 border-slate-700 text-amber-600 focus:ring-amber-500"
           />
           <label htmlFor="enable_cache" className="text-sm font-medium text-white">
             Enable Result Caching

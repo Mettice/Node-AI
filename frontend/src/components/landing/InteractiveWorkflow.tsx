@@ -131,7 +131,7 @@ function WorkflowStep({ step, index }: { step: any, index: number }) {
                                 </div>
                                 <div className="flex items-center justify-between p-2 bg-slate-950 rounded border border-slate-800">
                                     <div className="flex items-center gap-2">
-                                        <Globe className="w-3 h-3 text-purple-400" />
+                                        <Globe className="w-3 h-3 text-amber-400" />
                                         <span className="text-slate-300">Stripe API</span>
                                     </div>
                                     <span className="text-green-400">Connected</span>
@@ -142,8 +142,8 @@ function WorkflowStep({ step, index }: { step: any, index: number }) {
                         {step.id === 2 && (
                             <div className="space-y-3">
                                 <div className="flex gap-2">
-                                    <div className="w-8 h-8 rounded bg-purple-500/20 flex items-center justify-center border border-purple-500/30">
-                                        <Cpu className="w-4 h-4 text-purple-400" />
+                                    <div className="w-8 h-8 rounded bg-amber-500/20 flex items-center justify-center border border-amber-500/30">
+                                        <Cpu className="w-4 h-4 text-amber-400" />
                                     </div>
                                     <div className="flex-1">
                                         <div className="h-2 w-24 bg-slate-800 rounded mb-2" />

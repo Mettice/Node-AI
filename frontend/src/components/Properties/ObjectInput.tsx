@@ -74,14 +74,14 @@ export function ObjectInput({
               value={key}
               onChange={(e) => handleKeyChange(key, e.target.value, val)}
               placeholder={keyPlaceholder}
-              className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+              className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
             />
             <input
               type="text"
               value={val}
               onChange={(e) => handleValueChange(key, e.target.value)}
               placeholder={valuePlaceholder}
-              className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+              className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
             />
             <button
               type="button"
@@ -95,7 +95,7 @@ export function ObjectInput({
         <button
           type="button"
           onClick={handleAdd}
-          className="flex items-center gap-2 px-3 py-2 text-sm text-purple-300 hover:text-purple-200 hover:bg-purple-500/10 rounded transition-colors border border-purple-500/20"
+          className="flex items-center gap-2 px-3 py-2 text-sm text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 rounded transition-colors border border-amber-500/20"
         >
           <Plus className="w-4 h-4" />
           <span>Add Key-Value Pair</span>

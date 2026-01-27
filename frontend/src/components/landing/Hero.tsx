@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Play, CheckCircle } from 'lucide-react';
+import { ArrowRight, Play, CheckCircle, TrendingDown, Zap, Brain } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export function Hero() {
@@ -11,11 +11,11 @@ export function Hero() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6 }}
-                    className="inline-flex items-center gap-2 px-4 py-2 pl-2 bg-amber-500/10 border border-amber-500/30 rounded-full mb-8"
+                    className="inline-flex items-center gap-2 px-4 py-2 pl-2 bg-green-500/10 border border-green-500/30 rounded-full mb-8"
                 >
-                    <span className="w-2 h-2 h-2 bg-amber-400 rounded-full animate-pulse" />
-                    <span className="text-sm font-medium text-amber-400">
-                        Now with Agent Rooms — Visualize AI Conversations
+                    <TrendingDown className="w-4 h-4 text-green-400" />
+                    <span className="text-sm font-medium text-green-400">
+                        Cut AI Costs by 70% with Intelligent Model Routing
                     </span>
                 </motion.div>
 
@@ -26,12 +26,12 @@ export function Hero() {
                     transition={{ duration: 0.6, delay: 0.1 }}
                     className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight mb-6 leading-[1.05] max-w-5xl mx-auto"
                 >
-                    Build <br />
+                    RAG + Fine-Tuning + <br />
                     <span className="bg-gradient-to-r from-amber-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent bg-[length:200%_200%] animate-gradient">
-                        AI Workflows
+                        Multi-Agent
                     </span>
                     <br />
-                    Without Code
+                    One Platform
                 </motion.h1>
 
                 {/* Subtitle */}
@@ -39,11 +39,36 @@ export function Hero() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.2 }}
-                    className="text-lg md:text-xl text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed"
+                    className="text-lg md:text-xl text-slate-400 mb-8 max-w-2xl mx-auto leading-relaxed"
                 >
-                    The visual platform for building RAG pipelines, multi-agent systems, and AI automation.
-                    Watch your agents think, deploy in minutes.
+                    Build production-ready RAG pipelines, orchestrate multi-agent systems with CrewAI,
+                    and optimize costs with real-time tracking. No code required.
                 </motion.p>
+
+                {/* Value Props */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.25 }}
+                    className="flex flex-wrap items-center justify-center gap-6 mb-12 text-sm"
+                >
+                    <div className="flex items-center gap-2 text-slate-300">
+                        <CheckCircle className="w-4 h-4 text-green-400" />
+                        <span>Vector DB Integration</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-300">
+                        <CheckCircle className="w-4 h-4 text-green-400" />
+                        <span>CrewAI + LangChain</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-300">
+                        <CheckCircle className="w-4 h-4 text-green-400" />
+                        <span>Cost Per Token Tracking</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-300">
+                        <CheckCircle className="w-4 h-4 text-green-400" />
+                        <span>Full Observability</span>
+                    </div>
+                </motion.div>
 
                 {/* CTA Buttons */}
                 <motion.div
@@ -78,32 +103,50 @@ export function Hero() {
                             <div className="w-full h-full bg-slate-900 rounded-3xl" />
                         </div>
 
-                        {/* Content */}
-                        <div className="relative aspect-video bg-gradient-to-br from-slate-900 to-slate-950 flex flex-col items-center justify-center gap-4 p-8">
-                            <span className="text-5xl mb-4">🎬</span>
-                            <span className="text-slate-300 text-lg">App Screenshot Here</span>
-                            <span className="text-slate-500 text-sm">App Screenshot Here</span>
+                        {/* Content - Video */}
+                        <div className="relative aspect-video">
+                            <video
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                className="w-full h-full object-cover"
+                            >
+                                <source src="/videos/hero-workflow.mp4" type="video/mp4" />
+                                {/* Fallback image */}
+                                <img 
+                                    src="/images/hero-workflow-fallback.jpg" 
+                                    alt="NodeAI Workflow Demo" 
+                                    className="w-full h-full object-cover"
+                                />
+                            </video>
                         </div>
                     </div>
 
                     {/* Floating Nodes */}
                     <FloatingNode
-                        icon="🤖"
-                        label="CrewAI Agent"
+                        icon="🧠"
+                        label="RAG Pipeline"
                         position="top-10 -left-20"
                         delay={0.6}
                     />
                     <FloatingNode
-                        icon="🔍"
-                        label="Vector Search"
+                        icon="💰"
+                        label="Cost: $0.0012"
                         position="top-1/3 -right-24"
                         delay={0.7}
                     />
                     <FloatingNode
-                        icon="💬"
-                        label="Chat LLM"
+                        icon="🤖"
+                        label="CrewAI Multi-Agent"
                         position="bottom-20 -left-16"
                         delay={0.8}
+                    />
+                    <FloatingNode
+                        icon="📊"
+                        label="Pinecone + FAISS"
+                        position="bottom-10 -right-20"
+                        delay={0.9}
                     />
                 </motion.div>
             </div>

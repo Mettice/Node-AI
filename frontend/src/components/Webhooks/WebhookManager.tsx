@@ -118,7 +118,7 @@ export function WebhookManager({ workflowId }: WebhookManagerProps) {
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors"
         >
           <Plus className="w-4 h-4" />
           <span>Create Webhook</span>
@@ -135,7 +135,7 @@ export function WebhookManager({ workflowId }: WebhookManagerProps) {
           </p>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors"
           >
             Create Your First Webhook
           </button>
@@ -331,7 +331,7 @@ function WebhookCreateModal({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="My Webhook"
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </div>
             <div>
@@ -340,7 +340,7 @@ function WebhookCreateModal({
                   type="checkbox"
                   checked={generateSecret}
                   onChange={(e) => setGenerateSecret(e.target.checked)}
-                  className="w-4 h-4 text-purple-600 bg-white/5 border-white/20 rounded focus:ring-purple-500"
+                  className="w-4 h-4 text-amber-600 bg-white/5 border-white/20 rounded focus:ring-amber-500"
                 />
                 <span className="text-sm text-slate-300">Auto-generate secret</span>
               </label>
@@ -350,7 +350,7 @@ function WebhookCreateModal({
                   value={secret}
                   onChange={(e) => setSecret(e.target.value)}
                   placeholder="Enter secret key"
-                  className="w-full mt-2 px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full mt-2 px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
               )}
             </div>
@@ -366,7 +366,7 @@ function WebhookCreateModal({
             <button
               onClick={handleCreate}
               disabled={isLoading}
-              className="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-2 text-sm bg-amber-600 hover:bg-amber-700 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
               <span>Create</span>
@@ -423,7 +423,7 @@ function WebhookEditModal({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Webhook name"
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </div>
             <div>
@@ -432,7 +432,7 @@ function WebhookEditModal({
                   type="checkbox"
                   checked={enabled}
                   onChange={(e) => setEnabled(e.target.checked)}
-                  className="w-4 h-4 text-purple-600 bg-white/5 border-white/20 rounded focus:ring-purple-500"
+                  className="w-4 h-4 text-amber-600 bg-white/5 border-white/20 rounded focus:ring-amber-500"
                 />
                 <span className="text-sm text-slate-300">Enabled</span>
               </label>
@@ -449,7 +449,7 @@ function WebhookEditModal({
             <button
               onClick={handleUpdate}
               disabled={isLoading}
-              className="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-2 text-sm bg-amber-600 hover:bg-amber-700 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
               <span>Save</span>

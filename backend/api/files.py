@@ -101,7 +101,7 @@ async def upload_file(request: Request, file: UploadFile = File(...)) -> JSONRes
         # Video
         ".mp4", ".avi", ".mov", ".mkv", ".webm",
         # Data
-        ".csv", ".xlsx", ".json", ".parquet"
+        ".csv", ".xlsx", ".json", ".jsonl", ".parquet"
     }
     file_ext = Path(file.filename).suffix.lower()
     

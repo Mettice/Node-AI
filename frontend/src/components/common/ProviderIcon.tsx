@@ -64,6 +64,8 @@ const PROVIDER_ICON_MAP: Record<string, string> = {
   notion: 'siNotion',
   airtable: 'siAirtable',
   googledrive: 'siGoogledrive',
+  github: 'siGithub',
+  gmail: 'siGmail',
   
   // Databases
   sqlite: 'siSqlite',

@@ -20,7 +20,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           className={cn(
             'w-full min-w-0 px-3 py-2.5 rounded-lg transition-all',
             'bg-white/5 border border-white/10 text-slate-200 placeholder-slate-500',
-            'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent focus:bg-white/8',
+            'focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:bg-white/8',
             'hover:bg-white/8 hover:border-white/20',
             'resize-y overflow-x-auto',
             'break-words whitespace-pre-wrap',

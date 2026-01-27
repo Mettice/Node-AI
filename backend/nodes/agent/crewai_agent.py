@@ -389,10 +389,21 @@ class CrewAINode(BaseNode):
         api_key_for_env = getattr(self, '_current_api_key', None)
         env_var_name = getattr(self, '_current_env_var', None)
 
+        # Capture LLM config for internal tools (thread-safe)
+        llm_config_for_tools = getattr(self, '_current_llm_config', {})
+        if api_key_for_env:
+            llm_config_for_tools['api_key'] = api_key_for_env
+
         def execute_crew():
             """Execute CrewAI in a separate thread with proper env var handling."""
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=UserWarning)
+
+                # Set LLM config for internal tools to use
+                # This allows tools like summarize_meeting to use the agent's LLM
+                if llm_config_for_tools:
+                    from backend.core.mcp.crewai_adapter import set_current_llm_config
+                    set_current_llm_config(llm_config_for_tools)
 
                 # Set environment variable for CrewAI's internal LiteLLM calls
                 # Use lock to prevent race conditions in multi-tenant environment
@@ -858,16 +869,78 @@ class CrewAINode(BaseNode):
         goal = agent_config.get("goal", "")
         backstory = agent_config.get("backstory", "")
         tools_config = agent_config.get("tools", [])
-        
+
+        # Store LLM config for tools to use
+        llm_config = {
+            "provider": config.get("provider", "openai"),
+            "model": config.get("openai_model") or config.get("anthropic_model") or config.get("gemini_model"),
+            "temperature": config.get("temperature", 0.7),
+        }
+        # Store in class for tool access
+        self._current_llm_config = llm_config
+
+        # MCP tools configuration
+        # Can specify: ["all"], ["internal"], ["mcp"], or specific tool names
+        mcp_tools_config = agent_config.get("mcp_tools", [])
+        use_internal_tools = agent_config.get("use_internal_tools", False)
+
         # Get tools from connected Tool nodes
         tools = []
-        
+
+        # ===========================================
+        # MCP TOOLS INTEGRATION
+        # ===========================================
+        # Load MCP tools if configured
+        if mcp_tools_config or use_internal_tools:
+            try:
+                from backend.core.mcp.crewai_adapter import (
+                    get_crewai_tools,
+                    get_internal_ai_tools,
+                    get_mcp_integration_tools,
+                )
+                from backend.core.mcp.tool_registry import ToolSource
+
+                if mcp_tools_config:
+                    if "all" in mcp_tools_config:
+                        # Load all available tools
+                        mcp_tools = get_crewai_tools()
+                        tools.extend(mcp_tools)
+                        logger.info(f"Agent '{role}': Loaded {len(mcp_tools)} MCP/internal tools (all)")
+                    elif "internal" in mcp_tools_config:
+                        # Load only internal NodeAI tools
+                        internal_tools = get_internal_ai_tools()
+                        tools.extend(internal_tools)
+                        logger.info(f"Agent '{role}': Loaded {len(internal_tools)} internal AI tools")
+                    elif "mcp" in mcp_tools_config:
+                        # Load only MCP integration tools
+                        mcp_only = get_mcp_integration_tools()
+                        tools.extend(mcp_only)
+                        logger.info(f"Agent '{role}': Loaded {len(mcp_only)} MCP integration tools")
+                    else:
+                        # Load specific tools by name
+                        specific_tools = get_crewai_tools(tool_names=mcp_tools_config)
+                        tools.extend(specific_tools)
+                        logger.info(f"Agent '{role}': Loaded {len(specific_tools)} specific tools: {mcp_tools_config}")
+
+                elif use_internal_tools:
+                    # Shorthand: just load internal AI tools
+                    internal_tools = get_internal_ai_tools()
+                    tools.extend(internal_tools)
+                    logger.info(f"Agent '{role}': Loaded {len(internal_tools)} internal AI tools")
+
+            except ImportError as e:
+                logger.warning(f"MCP tools not available: {e}")
+            except Exception as e:
+                logger.warning(f"Failed to load MCP tools: {e}")
+
+        # ===========================================
+        # LEGACY TOOL SUPPORT
+        # ===========================================
         # Note: CrewAI 1.5.0 has strict tool validation that doesn't support LangChain tools
         # For now, we'll skip external tool nodes and only use config-defined tools
-        # TODO: Upgrade to CrewAI 2.x which has better LangChain compatibility
-        
+
         has_external_tools = False
-        
+
         # Check if graph tools are connected
         graph_tools = self._get_graph_tools(inputs, config)
         if graph_tools:
@@ -877,7 +950,7 @@ class CrewAINode(BaseNode):
                 f"CrewAI 1.5.0 doesn't support external tool integration. "
                 f"Consider upgrading to CrewAI 2.x for full tool support."
             )
-        
+
         # Check if Tool nodes are connected
         for key, value in inputs.items():
             if key.startswith("tool_") and isinstance(value, dict) and value.get("tool_id"):
@@ -888,21 +961,56 @@ class CrewAINode(BaseNode):
                     f"CrewAI 1.5.0 doesn't support external tool integration. "
                     f"Consider upgrading to CrewAI 2.x for full tool support."
                 )
-        
-        # Only load tools from config (these are CrewAI native tools)
+
+        # Load tools from config (CrewAI native tools)
         if tools_config:
             for tool_data in tools_config:
                 if isinstance(tool_data, dict):
                     tool = self._create_tool_from_dict(tool_data)
                     if tool:
                         tools.append(tool)
-        
+
+        logger.info(f"Agent '{role}' created with {len(tools)} total tools")
+
+        # ===========================================
+        # INTERNAL SYSTEM PROMPT (Tool Instructions)
+        # ===========================================
+        # Enhance backstory with tool usage instructions when tools are available
+        enhanced_backstory = backstory
+
+        if tools:
+            tool_names = [getattr(t, 'name', str(t)) for t in tools]
+            tool_instructions = f"""
+
+## Available Tools
+You have access to the following tools: {', '.join(tool_names)}
+
+## How to Use Tools
+- **Internal AI Tools** (summarize_meeting, generate_blog_post, score_lead, etc.):
+  Pass the relevant data as input parameters. For example, to summarize a meeting,
+  call summarize_meeting with the transcript text.
+
+- **MCP Integration Tools** (slack, gmail, airtable, etc.):
+  These connect to external services. Use them to read data from or write data to
+  external platforms.
+
+## Input Data
+Data from connected workflow nodes is provided in your task description.
+Look for the actual content in your task - it will contain the data you need to process.
+
+## Best Practices
+- Always use the appropriate tool for the task
+- Pass complete data to tools, don't summarize before passing
+- If a tool fails, explain the error and try an alternative approach
+"""
+            enhanced_backstory = f"{backstory}\n{tool_instructions}"
+
         # CrewAI requires tools to be a list, not None
         # Pass empty list if no tools are available
         return Agent(
             role=role,
             goal=goal,
-            backstory=backstory,
+            backstory=enhanced_backstory,
             tools=tools if tools else [],  # Empty list instead of None
             llm=llm,
             verbose=True,
@@ -1383,11 +1491,31 @@ class CrewAINode(BaseNode):
                             },
                             "tools": {
                                 "type": "array",
-                                "title": "Tools",
-                                "description": "Tools available to this agent",
+                                "title": "Tools (Legacy)",
+                                "description": "Legacy CrewAI tools (use MCP tools instead)",
                                 "items": {
                                     "type": "object",
                                 },
+                            },
+                            "mcp_tools": {
+                                "type": "array",
+                                "title": "MCP Tools",
+                                "description": "MCP tools for this agent. Use ['all'] for all tools, ['internal'] for AI tools only, ['mcp'] for integrations only, or specific tool names.",
+                                "items": {
+                                    "type": "string",
+                                },
+                                "examples": [
+                                    ["all"],
+                                    ["internal"],
+                                    ["mcp"],
+                                    ["generate_blog_post", "score_lead", "slack.post_message"],
+                                ],
+                            },
+                            "use_internal_tools": {
+                                "type": "boolean",
+                                "title": "Use Internal AI Tools",
+                                "description": "Enable all internal NodeAI AI tools (content generation, analysis, etc.)",
+                                "default": False,
                             },
                         },
                         "required": ["role", "goal"],

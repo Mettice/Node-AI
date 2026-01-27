@@ -287,7 +287,7 @@ export function RedditNodeForm({ initialData, onChange }: RedditNodeFormProps) {
             onClick={() => setAuthMethod('oauth')}
             className={`flex-1 px-3 py-2 rounded-lg transition-all text-sm font-medium ${
               authMethod === 'oauth'
-                ? 'bg-purple-600 text-white'
+                ? 'bg-amber-600 text-white'
                 : 'bg-white/5 text-slate-300 hover:bg-white/10'
             }`}
           >
@@ -298,7 +298,7 @@ export function RedditNodeForm({ initialData, onChange }: RedditNodeFormProps) {
             onClick={() => setAuthMethod('apikey')}
             className={`flex-1 px-3 py-2 rounded-lg transition-all text-sm font-medium ${
               authMethod === 'apikey'
-                ? 'bg-purple-600 text-white'
+                ? 'bg-amber-600 text-white'
                 : 'bg-white/5 text-slate-300 hover:bg-white/10'
             }`}
           >
@@ -344,7 +344,7 @@ export function RedditNodeForm({ initialData, onChange }: RedditNodeFormProps) {
                     value={clientId}
                     onChange={(e) => setClientId(e.target.value)}
                     placeholder="Your_Reddit_Client_ID"
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
                   />
                 </div>
 
@@ -357,7 +357,7 @@ export function RedditNodeForm({ initialData, onChange }: RedditNodeFormProps) {
                     value={clientSecret}
                     onChange={(e) => setClientSecret(e.target.value)}
                     placeholder="Enter Reddit Client Secret"
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
                   />
                 </div>
 
@@ -370,7 +370,7 @@ export function RedditNodeForm({ initialData, onChange }: RedditNodeFormProps) {
                     value={redirectUri}
                     onChange={(e) => setRedirectUri(e.target.value)}
                     placeholder={window.location.origin + '/oauth/callback'}
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-xs"
+                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all text-xs"
                   />
                 </div>
 
@@ -378,7 +378,7 @@ export function RedditNodeForm({ initialData, onChange }: RedditNodeFormProps) {
                   type="button"
                   onClick={handleConnectReddit}
                   disabled={isConnecting || !clientId || !clientSecret}
-                  className="w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-lg transition-all text-sm font-medium flex items-center justify-center gap-2"
+                  className="w-full px-3 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-lg transition-all text-sm font-medium flex items-center justify-center gap-2"
                 >
                   {isConnecting ? (
                     <>Connecting...</>
@@ -401,7 +401,7 @@ export function RedditNodeForm({ initialData, onChange }: RedditNodeFormProps) {
                 <select
                   value={tokenId}
                   onChange={(e) => setTokenId(e.target.value)}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
                 >
                   <option value="">Select a connection...</option>
                   {availableTokens.map((token) => (
@@ -448,7 +448,7 @@ export function RedditNodeForm({ initialData, onChange }: RedditNodeFormProps) {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="python programming"
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
               />
             </div>
           )}
@@ -465,7 +465,7 @@ export function RedditNodeForm({ initialData, onChange }: RedditNodeFormProps) {
               value={subreddit}
               onChange={(e) => setSubreddit(e.target.value)}
               placeholder="python or leave empty for all"
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -507,7 +507,7 @@ export function RedditNodeForm({ initialData, onChange }: RedditNodeFormProps) {
               onChange={(e) => setLimit(parseInt(e.target.value) || 25)}
               min={1}
               max={100}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
         </div>
@@ -529,7 +529,7 @@ export function RedditNodeForm({ initialData, onChange }: RedditNodeFormProps) {
               value={postId}
               onChange={(e) => setPostId(e.target.value)}
               placeholder="abc123 or t3_abc123"
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -556,7 +556,7 @@ export function RedditNodeForm({ initialData, onChange }: RedditNodeFormProps) {
                 onChange={(e) => setLimit(parseInt(e.target.value) || 25)}
                 min={1}
                 max={100}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
               />
             </div>
           </div>
@@ -579,7 +579,7 @@ export function RedditNodeForm({ initialData, onChange }: RedditNodeFormProps) {
               value={postId}
               onChange={(e) => setPostId(e.target.value)}
               placeholder="abc123 or t3_abc123"
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
         </div>

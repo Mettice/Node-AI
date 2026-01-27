@@ -94,38 +94,17 @@ export function ExecutionControls() {
         })),
       };
 
-      // Calculate execution order based on dependencies (topological sort)
-      // Only set root nodes (nodes with no dependencies) to pending initially
-      const dependencies = new Map<string, Set<string>>(); // node -> set of dependencies
-      
-      // Initialize maps
-      safeNodes.forEach(node => {
-        dependencies.set(node.id, new Set());
-      });
-      
-      // Build dependency graph from edges
-      safeEdges.forEach(edge => {
-        dependencies.get(edge.target)?.add(edge.source);
-      });
-      
-      // Find root nodes (nodes with no dependencies)
-      const rootNodes = safeNodes.filter(node => dependencies.get(node.id)?.size === 0);
-      
-      console.log('[ExecutionControls] Total nodes:', safeNodes.length);
-      console.log('[ExecutionControls] Root nodes (no dependencies):', rootNodes.map(n => `${n.data?.label || n.type} (${n.id})`));
-      console.log('[ExecutionControls] All nodes:', safeNodes.map(n => `${n.data?.label || n.type} (${n.id})`));
-      console.log('[ExecutionControls] Dependencies:', Array.from(dependencies.entries()).map(([id, deps]) => 
-        `${safeNodes.find(n => n.id === id)?.data?.label || id}: [${Array.from(deps).map(depId => safeNodes.find(n => n.id === depId)?.data?.label || depId).join(', ')}]`
-      ));
-      
-      // Only set root nodes to pending initially - others will be set when their dependencies complete
+      // Initialize ALL nodes to pending status immediately
+      // This ensures visual feedback is shown even if execution is very fast
+      // SSE events will update statuses to 'running' and 'completed' as they arrive
       const { updateNodeStatuses } = useExecutionStore.getState();
       const initialStatuses: Record<string, 'pending'> = {};
-      rootNodes.forEach((node) => {
+      safeNodes.forEach((node) => {
         initialStatuses[node.id] = 'pending';
-        console.log('[ExecutionControls] Setting root node to pending:', node.data?.label || node.type, node.id);
       });
       updateNodeStatuses(initialStatuses);
+      
+      console.log('[ExecutionControls] Initialized all nodes to pending:', safeNodes.length, 'nodes');
       
       // Execute workflow with intelligent routing option
       const response = await executeWorkflow(workflow, {
@@ -144,7 +123,7 @@ export function ExecutionControls() {
         toast.success(
           (t) => (
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-purple-400" />
+              <Sparkles className="w-4 h-4 text-amber-400" />
               <div>
                 <div className="font-medium">Workflow started with AI Routing</div>
                 <div className="text-xs text-slate-400">Intelligent data mapping enabled</div>
@@ -365,9 +344,9 @@ export function ExecutionControls() {
             />
             <div className={cn(
               "p-2.5 rounded-lg transition-all duration-200 border",
-              "hover:scale-105 focus:ring-2 focus:ring-purple-500/50",
+              "hover:scale-105 focus:ring-2 focus:ring-amber-500/50",
               useIntelligentRouting
-                ? "bg-purple-500/20 text-purple-300 border-purple-500/30 shadow-lg shadow-purple-500/20"
+                ? "bg-amber-500/20 text-amber-300 border-amber-500/30 shadow-lg shadow-amber-500/20"
                 : "bg-slate-700/50 text-slate-400 border-slate-600/50 hover:bg-slate-700/70 hover:text-slate-300",
               isRunning && "opacity-50 cursor-not-allowed"
             )}>

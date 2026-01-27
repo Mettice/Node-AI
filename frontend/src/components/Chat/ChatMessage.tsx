@@ -5,6 +5,7 @@
 import { User, Bot, DollarSign } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import type { ChatMessage as ChatMessageType } from '@/store/chatStore';
+import { MarkdownRenderer } from '@/components/Execution/MarkdownRenderer';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -12,14 +13,14 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
-  
+
   return (
     <div
       className={cn(
         'flex gap-3 p-4 rounded-lg',
         isUser
           ? 'bg-blue-500/10 border border-blue-500/20'
-          : 'bg-purple-500/10 border border-purple-500/20'
+          : 'bg-amber-500/10 border border-amber-500/20'
       )}
     >
       {/* Avatar */}
@@ -28,7 +29,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
           'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center',
           isUser
             ? 'bg-blue-500/20 text-blue-400'
-            : 'bg-purple-500/20 text-purple-400'
+            : 'bg-amber-500/20 text-amber-400'
         )}
       >
         {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
@@ -44,16 +45,22 @@ export function ChatMessage({ message }: ChatMessageProps) {
             {new Date(message.timestamp).toLocaleTimeString()}
           </span>
           {message.cost !== undefined && message.cost > 0 && (
-            <div className="flex items-center gap-1 text-xs text-blue-400">
+            <div className="flex items-center gap-1 text-xs text-amber-400">
               <DollarSign className="w-3 h-3" />
-              {message.cost.toFixed(4)}
+              ${message.cost.toFixed(4)}
             </div>
           )}
         </div>
-        
-        <div className="text-sm text-slate-300 whitespace-pre-wrap break-words max-w-full">
-          {message.content}
-        </div>
+
+        {isUser ? (
+          <div className="text-sm text-slate-300 whitespace-pre-wrap break-words max-w-full">
+            {message.content}
+          </div>
+        ) : (
+          <div className="text-sm chat-markdown">
+            <MarkdownRenderer content={message.content} className="text-sm" />
+          </div>
+        )}
 
         {/* Sources (if available) */}
         {message.sources && message.sources.length > 0 && (

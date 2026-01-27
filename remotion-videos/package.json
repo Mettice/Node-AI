@@ -1,0 +1,26 @@
+{
+  "name": "nodeai-remotion-videos",
+  "version": "1.0.0",
+  "description": "Remotion videos for NodeAI landing page",
+  "scripts": {
+    "dev": "remotion studio",
+    "render": "remotion render",
+    "render:hero": "remotion render HeroWorkflow --codec=h264 --crf=18 --pixel-format=yuv420p --output=output/hero-workflow.mp4",
+    "render:rag": "remotion render RAGPipeline --codec=h264 --crf=18 --pixel-format=yuv420p --output=output/rag-pipeline.mp4",
+    "render:observability": "remotion render Observability --codec=h264 --crf=18 --pixel-format=yuv420p --output=output/observability.mp4",
+    "render:library": "remotion render NodeLibrary --codec=h264 --crf=18 --pixel-format=yuv420p --output=output/node-library.mp4",
+    "render:all": "npm run render:hero && npm run render:rag && npm run render:observability && npm run render:library"
+  },
+  "dependencies": {
+    "@remotion/bundler": "^4.0.0",
+    "@remotion/cli": "^4.0.0",
+    "remotion": "^4.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "typescript": "^5.0.0"
+  }
+}

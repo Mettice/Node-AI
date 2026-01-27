@@ -61,7 +61,7 @@ function DeploymentTab({
                 onWorkflowChange(e.target.value);
               }
             }}
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
           >
             <option value="">Choose a workflow...</option>
             {(workflows || []).map((w) => (
@@ -98,7 +98,7 @@ function DeploymentTab({
           <select
             value={selectedWorkflowId}
             onChange={(e) => onWorkflowChange(e.target.value)}
-            className="px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
           >
             {(workflows || []).map((w) => (
               <option key={w.id} value={w.id} className="bg-slate-800 text-white">
@@ -201,7 +201,7 @@ export function Dashboard({ workflowId }: DashboardProps) {
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-colors relative whitespace-nowrap flex-shrink-0',
                   isActive
-                    ? 'text-purple-400'
+                    ? 'text-amber-400'
                     : 'text-slate-400 hover:text-slate-300'
                 )}
                 title={tab.label}
@@ -209,7 +209,7 @@ export function Dashboard({ workflowId }: DashboardProps) {
                 <Icon className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">{tab.label}</span>
                 {isActive && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-400" />
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-400" />
                 )}
               </button>
             );

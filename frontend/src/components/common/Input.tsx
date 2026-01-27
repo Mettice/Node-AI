@@ -11,16 +11,19 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, error, value = '', ...props }, ref) => {
+  ({ className, error, value, ...props }, ref) => {
+    // Convert null/undefined to empty string to avoid React warning
+    const safeValue = value ?? '';
+    
     return (
       <div>
         <input
           ref={ref}
-          value={value}
+          value={safeValue}
           className={cn(
             'w-full px-3 py-2.5 rounded-lg transition-all',
             'bg-white/5 border border-white/10 text-slate-200 placeholder-slate-500',
-            'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent focus:bg-white/8',
+            'focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:bg-white/8',
             'hover:bg-white/8 hover:border-white/20',
             error
               ? 'border-red-500/50 focus:ring-red-500'

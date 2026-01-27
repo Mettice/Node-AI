@@ -42,3 +42,10 @@ export async function listFinetuneJobs(params?: {
   return response.data;
 }
 
+/**
+ * Register a fine-tuned model in the model registry
+ */
+export async function registerFinetunedModel(jobId: string): Promise<{ success: boolean; message: string; model_id: string }> {
+  const response = await apiClient.post<{ success: boolean; message: string; model_id: string }>(`/finetune/${jobId}/register-model`);
+  return response.data;
+}

@@ -124,7 +124,7 @@ export function DashboardTraces({ workflowId }: DashboardTracesProps) {
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs px-2 py-1 bg-purple-500/20 text-purple-300 rounded">
+                      <span className="text-xs px-2 py-1 bg-amber-500/20 text-amber-300 rounded">
                         {span.span_type}
                       </span>
                       <span className="text-sm font-medium text-white">{span.name}</span>

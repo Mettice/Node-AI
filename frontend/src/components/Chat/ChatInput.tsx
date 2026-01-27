@@ -57,7 +57,7 @@ export function ChatInput({
         className={cn(
           'w-full px-4 py-3 pr-12 rounded-lg resize-none',
           'bg-white/5 border border-white/10 text-slate-200 placeholder-slate-500',
-          'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent',
+          'focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent',
           'transition-all duration-200',
           'max-h-32 overflow-y-auto',
           disabled && 'opacity-50 cursor-not-allowed'
@@ -70,8 +70,8 @@ export function ChatInput({
         disabled={disabled || !message.trim()}
         className={cn(
           'absolute right-2 bottom-2 p-2 rounded-lg',
-          'bg-purple-500 text-white',
-          'hover:bg-purple-600 active:bg-purple-700',
+          'bg-amber-500 text-white',
+          'hover:bg-amber-600 active:bg-amber-700',
           'transition-all duration-200',
           'disabled:opacity-50 disabled:cursor-not-allowed',
           'flex items-center justify-center'

@@ -159,7 +159,7 @@ export function MobileConnectionMode({
     <>
       {/* Connection Mode Overlay */}
       <div className="fixed inset-0 z-40 pointer-events-none">
-        <div className="absolute inset-0 bg-purple-500/10 backdrop-blur-sm" />
+        <div className="absolute inset-0 bg-amber-500/10 backdrop-blur-sm" />
       </div>
 
       {/* Instruction Panel */}
@@ -170,7 +170,7 @@ export function MobileConnectionMode({
               "w-10 h-10 rounded-full flex items-center justify-center",
               connectionStep.step === 'complete' 
                 ? "bg-green-500/20 text-green-400"
-                : "bg-purple-500/20 text-purple-400"
+                : "bg-amber-500/20 text-amber-400"
             )}>
               <Icon className="w-5 h-5" />
             </div>
@@ -204,7 +204,7 @@ export function MobileConnectionMode({
               <div className="flex items-center gap-2 mb-1">
                 <span className={cn(
                   "w-2 h-2 rounded-full",
-                  connectionStep.step === 'source' ? "bg-purple-400" : "bg-green-400"
+                  connectionStep.step === 'source' ? "bg-amber-400" : "bg-green-400"
                 )}>
                 </span>
                 <span className="text-xs text-slate-300">Source</span>
@@ -212,7 +212,7 @@ export function MobileConnectionMode({
               <div className="flex items-center gap-2">
                 <span className={cn(
                   "w-2 h-2 rounded-full",
-                  connectionStep.step === 'target' ? "bg-purple-400" : 
+                  connectionStep.step === 'target' ? "bg-amber-400" : 
                   connectionStep.step === 'complete' ? "bg-green-400" : "bg-slate-600"
                 )}>
                 </span>

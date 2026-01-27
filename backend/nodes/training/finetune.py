@@ -54,6 +54,7 @@ class FineTuneNode(BaseNode):
         epochs = config.get("epochs", 3)
         batch_size = config.get("batch_size", None)  # Auto if None
         learning_rate = config.get("learning_rate", None)  # Auto if None
+        model_name = config.get("model_name", "")  # Custom model name
         
         # Get training data
         training_data = inputs.get("data") or inputs.get("training_data") or []
@@ -97,6 +98,8 @@ class FineTuneNode(BaseNode):
                 batch_size,
                 learning_rate,
                 node_id,
+                config,
+                model_name,
             )
         elif provider == "anthropic":
             raise ValueError("Anthropic fine-tuning not yet supported")
@@ -166,20 +169,20 @@ class FineTuneNode(BaseNode):
     async def _load_training_file(self, file_id: str, node_id: str) -> List[Dict[str, Any]]:
         """Load training data from uploaded file."""
         from pathlib import Path
+        from backend.config import settings
         
-        UPLOAD_DIR = Path("uploads")
+        # Use the same uploads directory as the file API
+        UPLOAD_DIR = settings.uploads_dir
         
-        # Try to find the file
-        jsonl_path = UPLOAD_DIR / f"{file_id}.jsonl"
-        json_path = UPLOAD_DIR / f"{file_id}.json"
+        # Files are stored as {file_id}{original_extension}
+        # Try to find the file by searching for files starting with file_id
+        matching_files = list(UPLOAD_DIR.glob(f"{file_id}.*"))
         
-        file_path = None
-        if jsonl_path.exists():
-            file_path = jsonl_path
-        elif json_path.exists():
-            file_path = json_path
-        else:
-            raise ValueError(f"Training file with ID {file_id} not found")
+        if not matching_files:
+            raise ValueError(f"Training file with ID {file_id} not found in {UPLOAD_DIR}")
+        
+        # Use the first matching file (should only be one)
+        file_path = matching_files[0]
         
         await self.stream_progress(node_id, 0.25, f"Loading training file: {file_path.name}")
         
@@ -217,6 +220,8 @@ class FineTuneNode(BaseNode):
         batch_size: Optional[int],
         learning_rate: Optional[float],
         node_id: str,
+        config: Optional[Dict[str, Any]] = None,
+        model_name: str = "",
     ) -> Dict[str, Any]:
         """Start OpenAI fine-tuning job."""
         try:
@@ -224,6 +229,7 @@ class FineTuneNode(BaseNode):
         except ImportError:
             raise ImportError("OpenAI fine-tuning requires openai package. Install with: pip install openai")
         
+        config = config or {}
         user_id = config.get("_user_id")
         api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or os.getenv("OPENAI_API_KEY")
         if not api_key:
@@ -311,6 +317,7 @@ class FineTuneNode(BaseNode):
                 "validation_examples": len(validation_data) if validation_data else 0,
                 "epochs": epochs,
                 "estimated_cost": cost_estimate,
+                "model_name": model_name,  # Store custom model name
                 "created_at": datetime.now().isoformat(),
                 "metadata": {
                     "job_id": job.id,
@@ -427,6 +434,12 @@ class FineTuneNode(BaseNode):
                     "description": "Learning rate multiplier (leave empty for auto)",
                     "default": None,
                     "minimum": 0.0,
+                },
+                "model_name": {
+                    "type": "string",
+                    "title": "Model Name (Optional)",
+                    "description": "Custom name for this fine-tuned model (e.g., 'NodeAI Docs Model'). If not provided, will use training file name or auto-generate.",
+                    "default": "",
                 },
             },
             "required": ["provider", "base_model"],

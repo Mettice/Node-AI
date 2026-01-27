@@ -35,7 +35,8 @@ import { NodePalettePopup } from './NodePalettePopup';
 import { MobileNodeEditor } from './MobileNodeEditor';
 import { MobileConnectionMode } from './MobileConnectionMode';
 import { useMobileGestures } from '@/hooks/useMobileGestures';
-import { MessageSquare, StickyNote, Square, Trash2, Copy, Group, Ungroup } from 'lucide-react';
+import { MessageSquare, StickyNote, Square, Trash2, Copy, Group, Ungroup, Plug } from 'lucide-react';
+import { IntegrationsPanel } from './IntegrationsPanel';
 
 // Enhanced Canvas Interactions
 import { 
@@ -134,6 +135,7 @@ export function WorkflowCanvas() {
   const [isMobile, setIsMobile] = useState(false);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
+  const [integrationsOpen, setIntegrationsOpen] = useState(false);
   
   const { toggleChatInterface } = useUIStore();
 
@@ -645,9 +647,37 @@ export function WorkflowCanvas() {
         />
         
         {/* Top Left Panel - Hidden on mobile */}
-        <Panel position="top-left" className="glass rounded-lg p-2 md:p-4 hidden md:block">
-          <div className="text-xs md:text-sm text-slate-300">
-            Nodes: {nodes.length} | Edges: {edges.length}
+        <Panel position="top-left" className="hidden md:block">
+          <div className="relative">
+            <div className="glass rounded-lg p-2 md:p-4 flex items-center gap-3">
+              <div className="text-xs md:text-sm text-slate-300">
+                Nodes: {nodes.length} | Edges: {edges.length}
+              </div>
+              <div className="w-px h-4 bg-white/20" />
+              <button
+                onClick={() => setIntegrationsOpen(!integrationsOpen)}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all ${
+                  integrationsOpen
+                    ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                    : 'hover:bg-white/10 text-slate-300 hover:text-white'
+                }`}
+                title="MCP Integrations (Slack, Gmail, Airtable...)"
+              >
+                <Plug className="w-3.5 h-3.5" />
+                <span>MCP</span>
+              </button>
+            </div>
+
+            {/* Integrations Panel Dropdown */}
+            <IntegrationsPanel
+              isOpen={integrationsOpen}
+              onClose={() => setIntegrationsOpen(false)}
+              onOpenSettings={() => {
+                setIntegrationsOpen(false);
+                // Navigate to MCP settings - this would need to be connected to your routing
+                window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'mcp' } }));
+              }}
+            />
           </div>
         </Panel>
         
@@ -686,7 +716,7 @@ export function WorkflowCanvas() {
           {/* Chat Button */}
           <button
             onClick={toggleChatInterface}
-            className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-all duration-200 hover:scale-105"
+            className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-all duration-200 hover:scale-105"
             title="Open Chat Interface"
           >
             <MessageSquare className="w-4 md:w-5 h-4 md:h-5" />

@@ -843,7 +843,7 @@ export const CustomNode = memo(({ data, selected, type, id }: NodeProps<CustomNo
           </div>
           
           {isUsingFinetuned && (
-            <div className="absolute -top-1 -right-1 bg-purple-500 rounded-full p-0.5" title="Using fine-tuned model">
+            <div className="absolute -top-1 -right-1 bg-amber-500 rounded-full p-0.5" title="Using fine-tuned model">
               <GraduationCap className="w-2.5 h-2.5 text-white" />
             </div>
           )}
@@ -872,7 +872,7 @@ export const CustomNode = memo(({ data, selected, type, id }: NodeProps<CustomNo
                 <div className="mt-1.5 space-y-1">
                   <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-purple-500 to-purple-400 transition-all duration-300 rounded-full"
+                      className="h-full bg-gradient-to-r from-amber-500 to-amber-400 transition-all duration-300 rounded-full"
                       style={{ 
                         width: `${Math.min((finetuneStatus?.progress || displayProgress || 0) * 100, 100)}%` 
                       }}
@@ -1018,7 +1018,7 @@ export const CustomNode = memo(({ data, selected, type, id }: NodeProps<CustomNo
               e.stopPropagation();
             }}
             placeholder="Type your text here..."
-            className="w-full min-h-[80px] px-3 py-2 text-sm text-slate-100 bg-white/8 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent resize-none placeholder-slate-400 backdrop-blur-sm"
+            className="w-full min-h-[80px] px-3 py-2 text-sm text-slate-100 bg-white/8 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-transparent resize-none placeholder-slate-400 backdrop-blur-sm"
             style={{ fontFamily: 'inherit' }}
           />
         </div>

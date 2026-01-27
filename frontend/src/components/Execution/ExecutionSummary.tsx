@@ -452,7 +452,7 @@ export function ExecutionSummary() {
             label="Duration"
             value={duration > 0 ? formatDuration(duration) : status === 'completed' || status === 'failed' ? 'N/A' : '...'}
             icon={Zap}
-            color="text-purple-500/80"
+            color="text-amber-500/80"
           />
           {(cost > 0 || status === 'completed' || status === 'failed') && (
             <StatCard
@@ -501,14 +501,14 @@ function VisualTimeline({ nodes }: { nodes: Array<{ id: string; name: string; st
         </h3>
       <div className="relative pl-8">
         {/* Vertical Timeline Line with gradient - muted */}
-        <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500/30 via-purple-500/20 to-emerald-500/30 rounded-full" />
+        <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500/30 via-amber-500/20 to-emerald-500/30 rounded-full" />
         
         {/* Flowing Particles - only show when running - muted */}
         {hasRunning && (
           <div className="absolute left-2.5 top-0 bottom-0 flex flex-col items-center pointer-events-none">
             <div className="timeline-particle w-1 h-1 rounded-full bg-blue-500/60 shadow-[0_0_3px_theme(colors.blue.500/40)]" />
             <div className="timeline-particle w-1 h-1 rounded-full bg-cyan-500/60 shadow-[0_0_3px_theme(colors.cyan.500/40)]" />
-            <div className="timeline-particle w-1 h-1 rounded-full bg-purple-500/60 shadow-[0_0_3px_theme(colors.purple.500/40)]" />
+            <div className="timeline-particle w-1 h-1 rounded-full bg-amber-500/60 shadow-[0_0_3px_theme(colors.purple.500/40)]" />
           </div>
         )}
         
@@ -856,7 +856,7 @@ function TokenUsageDisplay({ usage, categoryColor }: { usage: { prompt_tokens?: 
   return (
     <div className="px-3 py-2 border-t border-white/5 bg-slate-900/30">
       <div className="flex items-center gap-1.5 mb-1.5">
-        <Brain className="w-3 h-3 text-purple-500/70" />
+        <Brain className="w-3 h-3 text-amber-500/70" />
         <span className="text-[10px] font-normal text-slate-400">Token Usage</span>
         {isNearLimit && (
           <AlertTriangle className="w-2.5 h-2.5 text-amber-500/70" />
@@ -873,7 +873,7 @@ function TokenUsageDisplay({ usage, categoryColor }: { usage: { prompt_tokens?: 
         </div>
         <div>
           <div className="text-[9px] text-slate-600">Total</div>
-          <div className="text-[10px] font-mono text-purple-500/80 font-normal">{totalTokens.toLocaleString()}</div>
+          <div className="text-[10px] font-mono text-amber-500/80 font-normal">{totalTokens.toLocaleString()}</div>
         </div>
       </div>
       {/* Context Window Bar */}
@@ -881,7 +881,7 @@ function TokenUsageDisplay({ usage, categoryColor }: { usage: { prompt_tokens?: 
         <div 
           className={cn(
             "h-full rounded-full transition-all duration-500",
-            isNearLimit ? "bg-amber-500/70" : "bg-purple-500/70"
+            isNearLimit ? "bg-amber-500/70" : "bg-amber-500/70"
           )}
           style={{ width: `${usagePercent}%` }}
         />
@@ -1025,7 +1025,7 @@ function FormattedChartGeneratorOutput({ output, isExpanded, onToggle }: { outpu
                 <div className="text-slate-400 mb-1 font-medium">Categorical Columns:</div>
                 <div className="flex flex-wrap gap-1">
                   {dataSummary.categorical_columns.map((col: string, idx: number) => (
-                    <span key={idx} className="px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded text-[10px] font-mono">
+                    <span key={idx} className="px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded text-[10px] font-mono">
                       {col}
                     </span>
                   ))}

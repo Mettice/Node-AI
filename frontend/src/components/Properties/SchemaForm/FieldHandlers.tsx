@@ -187,19 +187,19 @@ export function getSpecialFieldHandler(context: FieldHandlerContext): React.Reac
     }
     return (
       <div key={key} className="space-y-2">
-        <label className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/30 rounded-lg cursor-pointer hover:bg-purple-500/15 transition-colors">
+        <label className="flex items-center gap-3 p-3 bg-gradient-to-r from-amber-500/10 to-blue-500/10 border border-amber-500/30 rounded-lg cursor-pointer hover:bg-amber-500/15 transition-colors">
           <input
             type="checkbox"
             checked={formValues[key] || false}
             onChange={(e) => setValue(key, e.target.checked)}
-            className="w-4 h-4 text-purple-600 bg-white/5 border-white/20 rounded focus:ring-purple-500 focus:ring-2"
+            className="w-4 h-4 text-amber-600 bg-white/5 border-white/20 rounded focus:ring-amber-500 focus:ring-2"
           />
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-white">
                 {fieldSchema.title || 'Enable Agent Lightning'}
               </span>
-              <span className="px-2 py-0.5 text-xs font-semibold bg-purple-500/20 text-purple-300 rounded border border-purple-500/30">
+              <span className="px-2 py-0.5 text-xs font-semibold bg-amber-500/20 text-amber-300 rounded border border-amber-500/30">
                 NEW
               </span>
             </div>
@@ -259,6 +259,38 @@ export function getSpecialFieldHandler(context: FieldHandlerContext): React.Reac
           onChange={(fileId) => setValue(key, fileId)}
           error={undefined}
         />
+      </div>
+    );
+  }
+
+  // Special handling for finetune node training_file_id
+  if (nodeType === 'finetune' && key === 'training_file_id') {
+    return (
+      <div key={key} className="space-y-2">
+        <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
+          {fieldSchema.title || key}
+          {required.includes(key) && <span className="text-red-400 ml-1">*</span>}
+        </label>
+        {fieldSchema.description && (
+          <p className="text-xs text-slate-400 -mt-1">{fieldSchema.description}</p>
+        )}
+        <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg text-xs text-blue-300 mb-2">
+          <p className="font-semibold mb-1">💡 Tip: Two ways to provide training data</p>
+          <ul className="list-disc list-inside space-y-1 text-blue-200/80">
+            <li>Upload a JSONL file below (one JSON object per line)</li>
+            <li>Or connect a node that outputs training data to this node's input</li>
+          </ul>
+        </div>
+        <FileSelector
+          value={formValues[key] || ''}
+          onChange={(fileId) => setValue(key, fileId)}
+          error={undefined}
+        />
+        <p className="text-xs text-slate-500 mt-1">
+          File format: JSONL (one training example per line). Each line should be a JSON object with either:
+          <br />• <code className="text-amber-400">{"messages"}</code> array (for chat models), or
+          <br />• <code className="text-amber-400">{"prompt"}</code> and <code className="text-amber-400">{"completion"}</code> fields
+        </p>
       </div>
     );
   }

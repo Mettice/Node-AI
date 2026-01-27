@@ -26,7 +26,7 @@ export function FileUpload({
     // Video
     '.mp4', '.avi', '.mov', '.mkv', '.webm',
     // Data
-    '.csv', '.xlsx', '.json', '.parquet'
+    '.csv', '.xlsx', '.json', '.jsonl', '.parquet'
   ],
   maxSize = 50 * 1024 * 1024, // 50MB default
 }: FileUploadProps) {
@@ -122,7 +122,7 @@ export function FileUpload({
       className={cn(
         'relative border-2 border-dashed rounded-lg p-8 transition-all duration-200',
         isDragging
-          ? 'border-purple-500 bg-purple-500/10'
+          ? 'border-amber-500 bg-amber-500/10'
           : 'border-white/20 bg-white/5 hover:border-white/30 hover:bg-white/8',
         uploading && 'pointer-events-none opacity-75'
       )}
@@ -138,11 +138,11 @@ export function FileUpload({
       
       {uploading ? (
         <div className="flex flex-col items-center justify-center gap-3">
-          <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+          <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
           <div className="text-sm text-slate-300">Uploading...</div>
           <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
             <div
-              className="bg-purple-500 h-full transition-all duration-300"
+              className="bg-amber-500 h-full transition-all duration-300"
               style={{ width: `${uploadProgress}%` }}
             />
           </div>
@@ -156,8 +156,8 @@ export function FileUpload({
           <div className={cn(
             'p-4 rounded-full transition-all duration-200',
             isDragging
-              ? 'bg-purple-500/20 text-purple-400'
-              : 'bg-white/10 text-slate-400 hover:bg-white/15 hover:text-purple-400'
+              ? 'bg-amber-500/20 text-amber-400'
+              : 'bg-white/10 text-slate-400 hover:bg-white/15 hover:text-amber-400'
           )}>
             <Upload className="w-8 h-8" />
           </div>

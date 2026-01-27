@@ -82,8 +82,8 @@ export function UserProfileDropdown() {
           showMenu && 'bg-white/5'
         )}
       >
-        <div className="w-7 h-7 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
-          <User className="w-4 h-4 text-purple-400" />
+        <div className="w-7 h-7 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
+          <User className="w-4 h-4 text-amber-400" />
         </div>
         <span className="hidden sm:block max-w-[80px] md:max-w-[120px] truncate text-xs md:text-sm">{displayName}</span>
         <ChevronDown className={cn('w-4 h-4 transition-transform', showMenu && 'rotate-180')} />

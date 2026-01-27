@@ -501,6 +501,140 @@ class CrewAIAgentFormatter(OutputFormatter):
         }
 
 
+class MeetingSummaryFormatter(OutputFormatter):
+    """Formatter for meeting_summarizer node output"""
+    
+    def can_format(self, node_type: str, output: Dict[str, Any]) -> bool:
+        return node_type == "meeting_summarizer" or "meeting_summary" in output
+    
+    def format(self, output: Dict[str, Any]) -> Tuple[str, List]:
+        """Format meeting summary output as HTML"""
+        meeting_summary = output.get("meeting_summary", {})
+        follow_ups = output.get("follow_up_recommendations", [])
+        metadata = output.get("metadata", {})
+        
+        parts = []
+        parts.append("""<html><head><meta charset="UTF-8"></head><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #e2e8f0; background-color: transparent; max-width: 900px; margin: 0 auto; padding: 20px;">""")
+        
+        # Title
+        title = meeting_summary.get("title", metadata.get("meeting_title", "Meeting Summary"))
+        parts.append(f"<h1 style='color: #60a5fa; border-bottom: 3px solid #3b82f6; padding-bottom: 10px;'>{title}</h1>")
+        
+        # Metadata
+        if metadata:
+            parts.append("<div style='background-color: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid rgba(255, 255, 255, 0.1);'>")
+            if metadata.get("meeting_date"):
+                parts.append(f"<p><strong>Date:</strong> {metadata['meeting_date']}</p>")
+            if metadata.get("attendee_count"):
+                parts.append(f"<p><strong>Attendees:</strong> {metadata['attendee_count']}</p>")
+            if metadata.get("duration_estimate"):
+                parts.append(f"<p><strong>Duration:</strong> {metadata['duration_estimate']}</p>")
+            parts.append("</div>")
+        
+        # Executive Summary
+        exec_summary = meeting_summary.get("executive_summary", "")
+        if exec_summary:
+            parts.append("<h2 style='color: #60a5fa; margin-top: 30px;'>Executive Summary</h2>")
+            # Convert markdown-style headers to HTML if present
+            exec_summary_html = exec_summary.replace("### ", "<h3 style='color: #93c5fd;'>").replace("\n", "</h3>\n<p>").replace("## ", "<h2 style='color: #60a5fa;'>")
+            parts.append(f"<div style='background-color: rgba(255, 255, 255, 0.05); padding: 20px; border-left: 4px solid #3b82f6; margin-bottom: 20px; border-radius: 5px;'>{exec_summary_html}</div>")
+        
+        # Main Topics
+        main_topics = meeting_summary.get("main_topics", [])
+        if main_topics:
+            parts.append("<h2 style='color: #60a5fa; margin-top: 30px;'>Main Topics Discussed</h2>")
+            parts.append("<ul style='list-style-type: none; padding: 0;'>")
+            for topic in main_topics[:10]:  # Limit to 10 topics
+                topic_name = topic.get("topic", "Unknown Topic")
+                topic_content = topic.get("content", "")[:300]  # Truncate long content
+                parts.append(f"<li style='background-color: rgba(255, 255, 255, 0.05); padding: 15px; margin-bottom: 10px; border-radius: 5px; border: 1px solid rgba(255, 255, 255, 0.1);'>")
+                parts.append(f"<strong style='color: #3b82f6;'>{topic_name}</strong>")
+                if topic_content:
+                    parts.append(f"<p style='margin-top: 8px; color: #cbd5e1;'>{topic_content}{'...' if len(topic.get('content', '')) > 300 else ''}</p>")
+                parts.append("</li>")
+            parts.append("</ul>")
+        
+        # Action Items
+        action_items = meeting_summary.get("action_items", [])
+        if action_items:
+            parts.append("<h2 style='color: #60a5fa; margin-top: 30px;'>Action Items</h2>")
+            parts.append("<ul style='list-style-type: none; padding: 0;'>")
+            for item in action_items[:20]:  # Limit to 20 items
+                desc = item.get("description", "No description")
+                owner = item.get("owner", "Unassigned")
+                deadline = item.get("deadline", "No deadline")
+                priority = item.get("priority", "medium")
+                priority_color = {"high": "#ef4444", "medium": "#f59e0b", "low": "#94a3b8"}.get(priority, "#94a3b8")
+                parts.append(f"<li style='background-color: rgba(255, 255, 255, 0.05); padding: 15px; margin-bottom: 10px; border-left: 4px solid {priority_color}; border-radius: 5px; border: 1px solid rgba(255, 255, 255, 0.1);'>")
+                parts.append(f"<p style='margin: 0; color: #e2e8f0;'><strong>{desc}</strong></p>")
+                parts.append(f"<p style='margin: 5px 0 0 0; color: #94a3b8; font-size: 0.9em;'>Owner: {owner} | Deadline: {deadline} | Priority: <span style='color: {priority_color};'>{priority}</span></p>")
+                parts.append("</li>")
+            parts.append("</ul>")
+        
+        # Decisions
+        decisions = meeting_summary.get("decisions", [])
+        if decisions:
+            parts.append("<h2 style='color: #60a5fa; margin-top: 30px;'>Decisions Made</h2>")
+            parts.append("<ul style='list-style-type: none; padding: 0;'>")
+            for decision in decisions[:10]:  # Limit to 10 decisions
+                desc = decision.get("description", "No description")
+                parts.append(f"<li style='background-color: rgba(34, 197, 94, 0.1); padding: 15px; margin-bottom: 10px; border-left: 4px solid #22c55e; border-radius: 5px; border: 1px solid rgba(255, 255, 255, 0.1);'>")
+                parts.append(f"<p style='margin: 0; color: #e2e8f0;'>{desc}</p>")
+                parts.append("</li>")
+            parts.append("</ul>")
+        
+        # Follow-up Recommendations
+        if follow_ups:
+            parts.append("<h2 style='color: #60a5fa; margin-top: 30px;'>Follow-up Recommendations</h2>")
+            parts.append("<ul style='list-style-type: none; padding: 0;'>")
+            for rec in follow_ups[:10]:  # Limit to 10 recommendations
+                rec_type = rec.get("type", "general")
+                recommendation = rec.get("recommendation", "No recommendation")
+                priority = rec.get("priority", "medium")
+                priority_color = {"high": "#ef4444", "medium": "#f59e0b", "low": "#94a3b8"}.get(priority, "#94a3b8")
+                parts.append(f"<li style='background-color: rgba(251, 191, 36, 0.1); padding: 15px; margin-bottom: 10px; border-left: 4px solid {priority_color}; border-radius: 5px; border: 1px solid rgba(255, 255, 255, 0.1);'>")
+                parts.append(f"<p style='margin: 0; color: #e2e8f0;'><strong>{rec_type.replace('_', ' ').title()}:</strong> {recommendation}</p>")
+                parts.append("</li>")
+            parts.append("</ul>")
+        
+        parts.append("</body></html>")
+        html_content = "\n".join(parts)
+        return html_content, []
+    
+    def format_for_display(self, node_type: str, output: Dict[str, Any]) -> Dict[str, Any]:
+        """Format meeting summary for frontend display"""
+        meeting_summary = output.get("meeting_summary", {})
+        metadata = output.get("metadata", {})
+        
+        # Extract key information for preview
+        exec_summary = meeting_summary.get("executive_summary", "")
+        title = meeting_summary.get("title", metadata.get("meeting_title", "Meeting Summary"))
+        action_items_count = len(meeting_summary.get("action_items", []))
+        decisions_count = len(meeting_summary.get("decisions", []))
+        topics_count = len(meeting_summary.get("main_topics", []))
+        
+        # Get HTML content from format method
+        html_content, _ = self.format(output)
+        
+        return {
+            "display_type": "html",  # Use HTML for rich formatting
+            "primary_content": html_content,  # Return HTML string directly
+            "metadata": {
+                "node_type": node_type,
+                "meeting_title": title,
+                "meeting_date": metadata.get("meeting_date"),
+                "attendee_count": metadata.get("attendee_count", 0),
+                "duration_estimate": meeting_summary.get("duration_estimate"),
+                "action_items_count": action_items_count,
+                "decisions_count": decisions_count,
+                "topics_count": topics_count,
+                "executive_summary_preview": exec_summary[:500] + "..." if len(exec_summary) > 500 else exec_summary,
+            },
+            "actions": ["copy", "download_html", "download_json"],
+            "attachments": []
+        }
+
+
 class StorageNodeFormatter(OutputFormatter):
     """Formatter for storage nodes (Airtable, Google Sheets, Data Loader) that output structured data"""
     
@@ -603,6 +737,179 @@ class StorageNodeFormatter(OutputFormatter):
         }
 
 
+class FineTuneFormatter(OutputFormatter):
+    """Formatter for finetune node output - shows job status and progress"""
+    
+    def can_format(self, node_type: str, output: Dict[str, Any]) -> bool:
+        return node_type == "finetune" or "job_id" in output and "status" in output
+    
+    def format(self, output: Dict[str, Any]) -> Tuple[str, List]:
+        """Format fine-tuning job output as text summary"""
+        job_id = output.get("job_id", "Unknown")
+        status = output.get("status", "unknown")
+        provider = output.get("provider", "unknown")
+        base_model = output.get("base_model", "unknown")
+        estimated_cost = output.get("estimated_cost", 0)
+        training_examples = output.get("training_examples", 0)
+        validation_examples = output.get("validation_examples", 0)
+        epochs = output.get("epochs", 0)
+        
+        # Status descriptions
+        status_descriptions = {
+            "validating_files": "Validating training files...",
+            "validating_training_file": "Validating training files...",
+            "queued": "Queued for training...",
+            "running": "Training in progress...",
+            "succeeded": "Training completed successfully!",
+            "failed": "Training failed",
+            "cancelled": "Training cancelled"
+        }
+        
+        status_desc = status_descriptions.get(status, f"Status: {status}")
+        
+        parts = [
+            f"Fine-Tuning Job: {job_id}",
+            f"Status: {status_desc}",
+            f"Provider: {provider}",
+            f"Base Model: {base_model}",
+            f"Training Examples: {training_examples}",
+            f"Validation Examples: {validation_examples}",
+            f"Epochs: {epochs}",
+            f"Estimated Cost: ${estimated_cost:.2f}",
+        ]
+        
+        if status in ["succeeded", "failed", "cancelled"]:
+            model_id = output.get("model_id")
+            if model_id:
+                parts.append(f"Fine-Tuned Model: {model_id}")
+            error = output.get("error")
+            if error:
+                parts.append(f"Error: {error}")
+        else:
+            parts.append("\n⚠️ Training is still running on OpenAI's servers.")
+            parts.append("This can take several hours. Check status using the job_id.")
+        
+        return "\n".join(parts), []
+    
+    def format_for_display(self, node_type: str, output: Dict[str, Any]) -> Dict[str, Any]:
+        """Format fine-tuning job for frontend display with status indicator"""
+        job_id = output.get("job_id", "Unknown")
+        status = output.get("status", "unknown")
+        provider = output.get("provider", "openai")
+        base_model = output.get("base_model", "unknown")
+        estimated_cost = output.get("estimated_cost", 0)
+        training_examples = output.get("training_examples", 0)
+        validation_examples = output.get("validation_examples", 0)
+        epochs = output.get("epochs", 0)
+        model_id = output.get("model_id")
+        error = output.get("error")
+        
+        # Determine if job is still running
+        is_running = status in ["validating_files", "validating_training_file", "queued", "running"]
+        is_complete = status == "succeeded"
+        is_failed = status in ["failed", "cancelled"]
+        
+        # Build HTML content with status indicator and inline styles for dark theme
+        html_parts = [
+            '<style>',
+            '.finetune-status { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #e2e8f0; }',
+            '.status-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); }',
+            '.status-header h3 { margin: 0; font-size: 1.25rem; color: #f1f5f9; }',
+            '.status-header code { background: rgba(139, 92, 246, 0.2); padding: 0.25rem 0.5rem; border-radius: 0.25rem; color: #c084fc; font-size: 0.9rem; }',
+            '.status-badge { padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; font-size: 0.875rem; }',
+            '.status-badge.running { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }',
+            '.status-badge.success { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }',
+            '.status-badge.failed { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }',
+            '.job-details { margin-top: 1rem; }',
+            '.job-details p { margin: 0.75rem 0; color: #cbd5e1; }',
+            '.job-details strong { color: #f1f5f9; }',
+            '.status-warning { background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 0.5rem; padding: 1rem; margin: 1rem 0; color: #fbbf24; }',
+            '.error-message { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.5rem; padding: 1rem; margin: 1rem 0; color: #f87171; }',
+            '</style>',
+            '<div class="finetune-status">',
+            f'<div class="status-header">',
+            f'<h3>Fine-Tuning Job: <code>{job_id}</code></h3>',
+        ]
+        
+        # Status badge
+        if is_running:
+            html_parts.append('<span class="status-badge running">🔄 Training in Progress</span>')
+        elif is_complete:
+            html_parts.append('<span class="status-badge success">✅ Training Complete</span>')
+        elif is_failed:
+            html_parts.append('<span class="status-badge failed">❌ Training Failed</span>')
+        else:
+            html_parts.append(f'<span class="status-badge">{status}</span>')
+        
+        html_parts.append('</div>')
+        
+        # Job details
+        html_parts.append('<div class="job-details">')
+        html_parts.append(f'<p><strong>Provider:</strong> {provider}</p>')
+        html_parts.append(f'<p><strong>Base Model:</strong> {base_model}</p>')
+        html_parts.append(f'<p><strong>Training Examples:</strong> {training_examples}</p>')
+        if validation_examples > 0:
+            html_parts.append(f'<p><strong>Validation Examples:</strong> {validation_examples}</p>')
+        html_parts.append(f'<p><strong>Epochs:</strong> {epochs}</p>')
+        html_parts.append(f'<p><strong>Estimated Cost:</strong> ${estimated_cost:.2f}</p>')
+        
+        if is_running:
+            html_parts.append('<div class="status-warning">')
+            html_parts.append('⚠️ <strong>Training is still running on OpenAI\'s servers.</strong><br>')
+            html_parts.append('This can take several hours. The job will continue processing even after this workflow completes.')
+            html_parts.append('</div>')
+        
+        if model_id:
+            html_parts.append(f'<p><strong>Fine-Tuned Model ID:</strong> <code style="background: rgba(139, 92, 246, 0.2); padding: 0.25rem 0.5rem; border-radius: 0.25rem; color: #c084fc;">{model_id}</code></p>')
+            if is_complete:
+                html_parts.append('<div class="register-model-section" style="margin-top: 1rem; padding: 1rem; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 0.5rem;">')
+                html_parts.append('<p style="margin: 0 0 0.5rem 0; color: #cbd5e1; font-size: 0.875rem;">To use this model in your workflows, register it in the Model Registry:</p>')
+                html_parts.append(f'<button onclick="registerModel(\'{job_id}\')" class="register-model-btn" style="padding: 0.5rem 1rem; background: rgba(139, 92, 246, 0.3); border: 1px solid rgba(139, 92, 246, 0.5); border-radius: 0.375rem; color: #c084fc; cursor: pointer; font-weight: 600; font-size: 0.875rem; transition: all 0.2s;">📝 Register Model</button>')
+                html_parts.append('</div>')
+        
+        if error:
+            html_parts.append(f'<div class="error-message"><strong>Error:</strong> {error}</div>')
+        
+        html_parts.append('</div>')
+        html_parts.append('</div>')
+        
+        # Add JavaScript for register button (will be executed in frontend)
+        if model_id and is_complete:
+            html_parts.append('<script>')
+            html_parts.append('function registerModel(jobId) {')
+            html_parts.append('  if (window.registerFinetunedModel) {')
+            html_parts.append('    window.registerFinetunedModel(jobId);')
+            html_parts.append('  } else {')
+            html_parts.append('    console.error("registerFinetunedModel function not available");')
+            html_parts.append('  }')
+            html_parts.append('}')
+            html_parts.append('</script>')
+        
+        html_content = "\n".join(html_parts)
+        
+        return {
+            "display_type": "html",
+            "primary_content": html_content,
+            "metadata": {
+                "node_type": node_type,
+                "job_id": job_id,
+                "status": status,
+                "is_running": is_running,
+                "is_complete": is_complete,
+                "is_failed": is_failed,
+                "provider": provider,
+                "base_model": base_model,
+                "estimated_cost": estimated_cost,
+                "training_examples": training_examples,
+                "validation_examples": validation_examples,
+                "epochs": epochs,
+                "model_id": model_id,
+            },
+            "actions": ["copy", "download_json", "check_status", "register_model"] if (model_id and is_complete) else ["copy", "download_json", "check_status"],
+            "attachments": []
+        }
+
+
 class GenericFormatter(OutputFormatter):
     """Fallback formatter for unknown output structures"""
     
@@ -650,11 +957,13 @@ class FormatterRegistry:
     def __init__(self):
         """Initialize registry with all available formatters"""
         self.formatters: List[OutputFormatter] = [
+            FineTuneFormatter(),
             BlogPostFormatter(),
             ChartGeneratorFormatter(),
             ProposalFormatter(),
             BrandFormatter(),
             CrewAIAgentFormatter(),
+            MeetingSummaryFormatter(),  # Format meeting summaries nicely
             StorageNodeFormatter(),  # Before GenericFormatter to catch storage nodes
             GenericFormatter(),  # Always last (fallback)
         ]

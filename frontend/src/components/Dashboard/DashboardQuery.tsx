@@ -124,7 +124,7 @@ export function DashboardQuery() {
               setLastResult(null);
               setError(null);
             }}
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all hover:bg-white/8 hover:border-white/20 appearance-none cursor-pointer"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all hover:bg-white/8 hover:border-white/20 appearance-none cursor-pointer"
           >
             {deployedWorkflows.map((workflow) => (
               <option key={workflow.id} value={workflow.id} className="bg-slate-800 text-white">
@@ -156,7 +156,7 @@ export function DashboardQuery() {
                   value={queryInput.query || ''}
                   onChange={(e) => setQueryInput({ ...queryInput, query: e.target.value })}
                   placeholder="Enter your question or query..."
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                       handleQuery();
@@ -176,7 +176,7 @@ export function DashboardQuery() {
                       value={queryInput.file_id || ''}
                       onChange={(e) => setQueryInput({ ...queryInput, file_id: e.target.value })}
                       placeholder="file_id"
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
                     />
                   </div>
                   <div>
@@ -186,7 +186,7 @@ export function DashboardQuery() {
                       onChange={(e) => setQueryInput({ ...queryInput, context: e.target.value })}
                       placeholder="Additional context..."
                       rows={3}
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm resize-none"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm resize-none"
                     />
                   </div>
                 </div>
@@ -198,7 +198,7 @@ export function DashboardQuery() {
             onClick={handleQuery}
             disabled={querying || !queryInput.query}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+              "flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
               querying && "cursor-wait"
             )}
           >
@@ -331,7 +331,7 @@ export function DashboardQuery() {
                               .map(([nodeId, result]) => (
                                 <div key={nodeId} className="bg-black/20 border border-white/5 rounded p-2">
                                   <div className="flex items-center justify-between mb-1">
-                                    <span className="text-xs font-semibold text-purple-300 uppercase">{nodeId}</span>
+                                    <span className="text-xs font-semibold text-amber-300 uppercase">{nodeId}</span>
                                     {typeof result === 'object' && result !== null && 'cost' in result && (
                                       <span className="text-xs text-slate-500">${(result.cost as number).toFixed(6)}</span>
                                     )}
@@ -359,7 +359,7 @@ export function DashboardQuery() {
                   ? Object.entries(lastResult.results).map(([nodeId, result]) => (
                   <div key={nodeId} className="bg-white/5 border border-white/10 rounded p-3">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold text-purple-300 uppercase">{nodeId}</span>
+                      <span className="text-xs font-semibold text-amber-300 uppercase">{nodeId}</span>
                       {typeof result === 'object' && result !== null && 'cost' in result && (
                         <span className="text-xs text-slate-400">${(result.cost as number).toFixed(6)}</span>
                       )}

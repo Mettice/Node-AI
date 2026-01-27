@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { Copy, Download, FileText, BarChart3, Code, AlertCircle } from 'lucide-react';
+import { Copy, Download, FileText, BarChart3, Code, AlertCircle, GraduationCap } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { StructuredDataTable } from './StructuredDataTable';
 
@@ -61,12 +61,19 @@ export function UnifiedNodeOutput({
   const getPrimaryContent = () => {
     switch (displayMetadata.display_type) {
       case 'text':
+        // Check for pre-formatted text from backend first
+        if (output._formatted_content) {
+          return output._formatted_content;
+        }
         // Extract text content from various possible fields
         return output.output || output.text || output.content || output.summary || '';
       
       case 'html':
-        // For HTML content, we need to format it (this should be done by the formatter)
-        // For now, return structured content
+        // For HTML content, check for pre-formatted HTML from backend
+        if (output._formatted_content) {
+          return output._formatted_content; // Use pre-formatted HTML from formatter
+        }
+        // Fallback for blog_post (legacy)
         if (output.blog_post) {
           return output; // Let the HTML renderer handle the full blog_post structure
         }
@@ -101,7 +108,9 @@ export function UnifiedNodeOutput({
   // Create enhanced metadata with reconstructed primary content
   const enhancedMetadata = {
     ...displayMetadata,
-    primary_content: getPrimaryContent()
+    primary_content: getPrimaryContent(),
+    actions: displayMetadata.actions || [], // Ensure actions is always an array
+    attachments: displayMetadata.attachments || [] // Ensure attachments is always an array
   };
   
   const handleAction = (action: string) => {
@@ -126,12 +135,43 @@ export function UnifiedNodeOutput({
         break;
       
       case 'download_images':
-        enhancedMetadata.attachments.forEach(attachment => {
-          if (attachment.type === 'image') {
-            downloadFile(attachment.data, attachment.name, attachment.mime_type);
-          }
-        });
+        if (enhancedMetadata.attachments && Array.isArray(enhancedMetadata.attachments)) {
+          enhancedMetadata.attachments.forEach(attachment => {
+            if (attachment.type === 'image') {
+              downloadFile(attachment.data, attachment.name, attachment.mime_type);
+            }
+          });
+        }
         break;
+      
+      case 'register_model':
+        // Handle model registration for fine-tuned models
+        if (output.job_id) {
+          handleRegisterModel(output.job_id);
+        }
+        break;
+    }
+  };
+  
+  const handleRegisterModel = async (jobId: string) => {
+    try {
+      const finetuneModule = await import('@/services/finetune');
+      // TypeScript workaround - access the function dynamically
+      const registerFn = (finetuneModule as any).registerFinetunedModel;
+      if (!registerFn) {
+        throw new Error('registerFinetunedModel function not found');
+      }
+      const result = await registerFn(jobId);
+      if (result.success) {
+        // Show success message
+        const { default: toast } = await import('react-hot-toast');
+        toast.success(`Model registered successfully! Model ID: ${result.model_id}`);
+        // Optionally refresh model list
+        window.dispatchEvent(new CustomEvent('model-registered'));
+      }
+    } catch (error) {
+      const { default: toast } = await import('react-hot-toast');
+      toast.error(`Failed to register model: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
   
@@ -217,7 +257,7 @@ function renderContent(metadata: DisplayMetadata) {
     case 'text':
       return (
         <div className="space-y-2">
-          <div className="text-xs font-semibold text-purple-400 flex items-center gap-2">
+          <div className="text-xs font-semibold text-amber-400 flex items-center gap-2">
             <FileText className="w-3.5 h-3.5" />
             Text Output
           </div>
@@ -361,6 +401,8 @@ function getActionIcon(action: string) {
     case 'download_images':
     case 'download_report':
       return <Download className="w-3 h-3" />;
+    case 'register_model':
+      return <GraduationCap className="w-3 h-3" />;
     default:
       return <FileText className="w-3 h-3" />;
   }
@@ -375,6 +417,7 @@ function getActionLabel(action: string) {
     case 'download_json': return 'JSON';
     case 'download_images': return 'Images';
     case 'download_report': return 'Report';
+    case 'register_model': return 'Register';
     default: return action;
   }
 }

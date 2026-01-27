@@ -126,7 +126,7 @@ export function MetricsDashboard({ workflowId, onBack }: MetricsDashboardProps) 
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(Number(e.target.value))}
-            className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all hover:bg-white/8 hover:border-white/20 appearance-none cursor-pointer"
+            className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all hover:bg-white/8 hover:border-white/20 appearance-none cursor-pointer"
           >
             <option value={24} className="bg-slate-800 text-white">Last 24 Hours</option>
             <option value={168} className="bg-slate-800 text-white">Last 7 Days</option>
@@ -217,7 +217,7 @@ export function MetricsDashboard({ workflowId, onBack }: MetricsDashboardProps) 
                   return (
                     <div key={idx} className="flex-1 flex flex-col items-center">
                       <div
-                        className="w-full bg-purple-500 rounded-t transition-all hover:bg-purple-400"
+                        className="w-full bg-amber-500 rounded-t transition-all hover:bg-amber-400"
                         style={{ height: `${height}%` }}
                         title={`${trend?.timestamp ? new Date(trend.timestamp).toLocaleTimeString() : 'N/A'}: ${formatTime(trendTime)}`}
                       />
@@ -251,7 +251,7 @@ export function MetricsDashboard({ workflowId, onBack }: MetricsDashboardProps) 
                   </div>
                   <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-purple-500 to-blue-500"
+                      className="h-full bg-gradient-to-r from-amber-500 to-blue-500"
                       style={{ width: `${item.percentage}%` }}
                     />
                   </div>

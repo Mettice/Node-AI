@@ -44,9 +44,9 @@ export function IndustriesSection() {
     {
       name: 'Legal',
       icon: Scale,
-      color: 'text-purple-400',
-      bgColor: 'bg-purple-500/10',
-      borderColor: 'border-purple-500/30',
+      color: 'text-amber-400',
+      bgColor: 'bg-amber-500/10',
+      borderColor: 'border-amber-500/30',
       useCases: [
         'Contract clause extraction',
         'Legal document analysis',

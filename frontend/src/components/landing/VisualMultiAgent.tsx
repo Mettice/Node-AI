@@ -26,7 +26,7 @@ export function VisualMultiAgent() {
             viewport={{ margin: "-100px" }}
             className="text-5xl md:text-6xl font-bold text-white mb-6"
           >
-            Multi-Agent <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">Orchestration</span>
+            Multi-Agent <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-cyan-400">Orchestration</span>
           </motion.h2>
         </div>
 
@@ -35,9 +35,9 @@ export function VisualMultiAgent() {
           {/* Central Hub */}
           <motion.div
             style={{ scale }}
-            className="absolute z-20 w-32 h-32 bg-gradient-to-br from-purple-500/20 to-cyan-500/20 border-2 border-purple-500/30 rounded-full flex items-center justify-center backdrop-blur-sm"
+            className="absolute z-20 w-32 h-32 bg-gradient-to-br from-amber-500/20 to-cyan-500/20 border-2 border-amber-500/30 rounded-full flex items-center justify-center backdrop-blur-sm"
           >
-            <Users className="w-16 h-16 text-purple-400" />
+            <Users className="w-16 h-16 text-amber-400" />
           </motion.div>
 
           {/* Orbiting Agents */}
@@ -118,7 +118,7 @@ export function VisualMultiAgent() {
           {[...Array(20)].map((_, i) => (
             <motion.div
               key={i}
-              className="absolute w-2 h-2 bg-purple-400/30 rounded-full"
+              className="absolute w-2 h-2 bg-amber-400/30 rounded-full"
               initial={{
                 x: Math.random() * 800,
                 y: Math.random() * 600,
@@ -151,7 +151,7 @@ function AgentOrbit({ angle, icon: Icon, label, color, delay }: any) {
   const y = centerY + (radius / 8) * Math.sin((angle * Math.PI) / 180);
 
   const colorClasses = {
-    purple: "from-purple-500/20 to-purple-500/5 border-purple-500/30 text-purple-400",
+    purple: "from-amber-500/20 to-amber-500/5 border-amber-500/30 text-amber-400",
     cyan: "from-cyan-500/20 to-cyan-500/5 border-cyan-500/30 text-cyan-400",
     indigo: "from-indigo-500/20 to-indigo-500/5 border-indigo-500/30 text-indigo-400",
   };
@@ -180,7 +180,7 @@ function AgentOrbit({ angle, icon: Icon, label, color, delay }: any) {
             animate={{ rotate: [0, 10, -10, 0] }}
             transition={{ duration: 2, repeat: Infinity, delay }}
           >
-            <Icon className={`w-10 h-10 mx-auto mb-2 ${color === 'purple' ? 'text-purple-400' : color === 'cyan' ? 'text-cyan-400' : 'text-indigo-400'}`} />
+            <Icon className={`w-10 h-10 mx-auto mb-2 ${color === 'purple' ? 'text-amber-400' : color === 'cyan' ? 'text-cyan-400' : 'text-indigo-400'}`} />
           </motion.div>
           <div className="text-sm font-bold text-white">{label}</div>
         </div>

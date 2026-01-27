@@ -98,7 +98,7 @@ export function ObservabilitySettings() {
                 onChange={(e) => handleChange('enabled', e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
+              <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
             </label>
           </div>
         </div>
@@ -116,7 +116,7 @@ export function ObservabilitySettings() {
               href="https://smith.langchain.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1"
+              className="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1"
             >
               Get API Key <ExternalLink className="w-3 h-3" />
             </a>
@@ -133,7 +133,7 @@ export function ObservabilitySettings() {
                   value={formData.langsmith_api_key || ''}
                   onChange={(e) => handleChange('langsmith_api_key', e.target.value)}
                   placeholder="ls-..."
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 pr-10"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 pr-10"
                 />
                 <button
                   type="button"
@@ -163,7 +163,7 @@ export function ObservabilitySettings() {
                 value={formData.langsmith_project || 'nodeflow'}
                 onChange={(e) => handleChange('langsmith_project', e.target.value)}
                 placeholder="nodeflow"
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </div>
           </div>
@@ -182,7 +182,7 @@ export function ObservabilitySettings() {
               href="https://langfuse.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1"
+              className="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1"
             >
               Get API Keys <ExternalLink className="w-3 h-3" />
             </a>
@@ -199,7 +199,7 @@ export function ObservabilitySettings() {
                   value={formData.langfuse_public_key || ''}
                   onChange={(e) => handleChange('langfuse_public_key', e.target.value)}
                   placeholder="pk-..."
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 pr-10"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 pr-10"
                 />
                 <button
                   type="button"
@@ -230,7 +230,7 @@ export function ObservabilitySettings() {
                   value={formData.langfuse_secret_key || ''}
                   onChange={(e) => handleChange('langfuse_secret_key', e.target.value)}
                   placeholder="sk-..."
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 pr-10"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 pr-10"
                 />
                 <button
                   type="button"
@@ -260,7 +260,7 @@ export function ObservabilitySettings() {
                 value={formData.langfuse_host || 'https://cloud.langfuse.com'}
                 onChange={(e) => handleChange('langfuse_host', e.target.value)}
                 placeholder="https://cloud.langfuse.com"
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
               <p className="mt-1 text-xs text-slate-500">
                 Use your self-hosted URL if applicable
@@ -291,7 +291,7 @@ export function ObservabilitySettings() {
           onClick={handleSave}
           disabled={!hasChanges || updateMutation.isPending}
           className={cn(
-            'flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600',
+            'flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600',
             'text-white rounded-lg transition-colors',
             'disabled:opacity-50 disabled:cursor-not-allowed'
           )}

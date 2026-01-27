@@ -129,7 +129,7 @@ export function NodeEditModal({ node, onClose }: NodeEditModalProps) {
             {isLLMNode && currentPrompt && (
               <button
                 onClick={handleTestPrompt}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500/30 transition-all flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-all flex items-center gap-1.5"
                 title="Test this prompt in the Prompt Playground"
               >
                 <Sparkles className="w-3.5 h-3.5" />

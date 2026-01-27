@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-**NodeAI** (Nodeflow) is a visual, no-code platform for building, testing, and optimizing AI-powered applications and workflows. It enables teams to rapidly prototype, deploy, and scale production-ready AI solutions without writing complex code, while providing enterprise-grade features for cost optimization, quality assurance, and performance monitoring.
+**NodAI**  is a visual, no-code platform for building, testing, and optimizing AI-powered applications and workflows. It enables teams to rapidly prototype, deploy, and scale production-ready AI solutions without writing complex code, while providing enterprise-grade features for cost optimization, quality assurance, and performance monitoring.
 
 ---
 

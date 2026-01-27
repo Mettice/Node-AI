@@ -265,6 +265,14 @@ app.include_router(observability_settings.router)
 app.include_router(cost_forecasting.router)
 app.include_router(traces.router)
 
+# Import and register MCP router
+try:
+    from backend.api import mcp
+    app.include_router(mcp.router)
+    logger.info("MCP API registered")
+except ImportError as e:
+    logger.warning(f"MCP API not available: {e}")
+
 # Import and register fine-tuning router
 try:
     from backend.api import finetune

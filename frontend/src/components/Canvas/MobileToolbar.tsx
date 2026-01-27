@@ -145,7 +145,7 @@ export function MobileToolbar({
                 'min-w-[60px] h-14',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
                 primary 
-                  ? 'bg-purple-500 hover:bg-purple-600 text-white shadow-lg' 
+                  ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg' 
                   : variant === 'danger'
                   ? 'bg-red-500 hover:bg-red-600 text-white'
                   : variant === 'success'
@@ -166,7 +166,7 @@ export function MobileToolbar({
         {/* Quick save indicator */}
         {isSaving && (
           <div className="absolute top-1 right-4 flex items-center gap-2 text-xs text-slate-400">
-            <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
+            <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
             Saving...
           </div>
         )}

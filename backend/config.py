@@ -350,6 +350,7 @@ class Settings(BaseSettings):
             self.executions_dir,
             self.vectors_dir,
             self.uploads_dir,
+            self.data_dir / "models",  # Models directory for fine-tuned models
         ]
 
         for directory in directories:

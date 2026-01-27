@@ -61,10 +61,10 @@ export function DashboardMetrics({ workflowId, onWorkflowChange }: DashboardMetr
                 <button
                   key={workflow.id}
                   onClick={() => onWorkflowChange(workflow.id)}
-                  className="text-left p-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:border-purple-500/50 transition-all group"
+                  className="text-left p-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:border-amber-500/50 transition-all group"
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-medium text-white group-hover:text-purple-400 transition-colors">
+                    <h3 className="font-medium text-white group-hover:text-amber-400 transition-colors">
                       {workflow.name}
                     </h3>
                     <span className="px-2 py-0.5 text-xs bg-green-500/20 text-green-400 rounded">

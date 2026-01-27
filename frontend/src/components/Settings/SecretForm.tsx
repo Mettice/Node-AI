@@ -151,7 +151,7 @@ export function SecretForm({ secret, onClose, onSuccess }: SecretFormProps) {
             value={formData.provider}
             onChange={(e) => setFormData((prev) => ({ ...prev, provider: e.target.value }))}
             disabled={isEditing}
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed [&>option]:bg-slate-800 [&>option]:text-white"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed [&>option]:bg-slate-800 [&>option]:text-white"
             style={{ colorScheme: 'dark' }}
             required
           >
@@ -173,7 +173,7 @@ export function SecretForm({ secret, onClose, onSuccess }: SecretFormProps) {
             type="text"
             value={formData.name}
             onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
             placeholder="e.g., OpenAI API Key"
             required
           />
@@ -189,7 +189,7 @@ export function SecretForm({ secret, onClose, onSuccess }: SecretFormProps) {
               type={showValue ? 'text' : 'password'}
               value={formData.value}
               onChange={(e) => setFormData((prev) => ({ ...prev, value: e.target.value }))}
-              className="w-full px-3 py-2 pr-10 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm"
+              className="w-full px-3 py-2 pr-10 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono text-sm"
               placeholder={isEditing ? 'Leave empty to keep current value' : 'Enter secret value'}
               required={!isEditing}
             />
@@ -214,7 +214,7 @@ export function SecretForm({ secret, onClose, onSuccess }: SecretFormProps) {
           <textarea
             value={formData.description}
             onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
             rows={3}
             placeholder="Optional description"
           />
@@ -227,7 +227,7 @@ export function SecretForm({ secret, onClose, onSuccess }: SecretFormProps) {
             type="text"
             value={formData.tags}
             onChange={(e) => setFormData((prev) => ({ ...prev, tags: e.target.value }))}
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
             placeholder="Comma-separated tags (e.g., production, api)"
           />
         </div>
@@ -238,7 +238,7 @@ export function SecretForm({ secret, onClose, onSuccess }: SecretFormProps) {
             type="submit"
             disabled={isLoading}
             className={cn(
-              'flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600',
+              'flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600',
               'text-white rounded-lg transition-colors',
               'disabled:opacity-50 disabled:cursor-not-allowed'
             )}

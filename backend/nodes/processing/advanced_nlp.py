@@ -154,6 +154,24 @@ class AdvancedNLPNode(BaseNode):
         key_str = json.dumps(key_data, sort_keys=True, default=str)
         return f"nlp:{hashlib.md5(key_str.encode()).hexdigest()}"
 
+    def _calculate_openai_cost(self, model: str, input_tokens: int, output_tokens: int) -> float:
+        """Calculate cost for OpenAI API calls based on model pricing."""
+        # Pricing per 1M tokens (as of 2025)
+        pricing = {
+            "gpt-4o": {"input": 2.50, "output": 10.00},
+            "gpt-4o-mini": {"input": 0.15, "output": 0.60},
+            "gpt-4-turbo": {"input": 10.00, "output": 30.00},
+            "gpt-4": {"input": 30.00, "output": 60.00},
+            "gpt-3.5-turbo": {"input": 0.50, "output": 1.50},
+            "o1": {"input": 15.00, "output": 60.00},
+            "o1-mini": {"input": 3.00, "output": 12.00},
+        }
+        # Default to gpt-4o-mini pricing if model not found
+        model_pricing = pricing.get(model, pricing["gpt-4o-mini"])
+        input_cost = (input_tokens / 1_000_000) * model_pricing["input"]
+        output_cost = (output_tokens / 1_000_000) * model_pricing["output"]
+        return round(input_cost + output_cost, 6)
+
     async def _process_batch(
         self,
         texts: List[str],
@@ -640,27 +658,36 @@ class AdvancedNLPNode(BaseNode):
         """Summarize using OpenAI."""
         from openai import OpenAI
         from backend.config import settings
-        
+
         user_id = config.get("_user_id")
         api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or settings.openai_api_key
         model = config.get("openai_model", "gpt-4o-mini")
-        
+
         client = OpenAI(api_key=api_key)
-        
+
         await self.stream_progress(node_id, 0.5, "Generating summary with OpenAI...")
-        
+
         prompt = f"Summarize the following text in approximately {max_length} words:\n\n{text}"
-        
+
         response = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
         )
-        
+
         summary = response.choices[0].message.content
-        
+
+        # Extract token usage and calculate cost
+        usage = response.usage
+        tokens_used = {
+            "input": usage.prompt_tokens if usage else 0,
+            "output": usage.completion_tokens if usage else 0,
+            "total": usage.total_tokens if usage else 0,
+        }
+        cost = self._calculate_openai_cost(model, tokens_used["input"], tokens_used["output"])
+
         await self.stream_progress(node_id, 1.0, "Summary complete!")
-        
+
         return {
             "output": summary,
             "summary": summary,
@@ -669,21 +696,23 @@ class AdvancedNLPNode(BaseNode):
             "model": model,
             "original_length": len(text),
             "summary_length": len(summary),
+            "tokens_used": tokens_used,
+            "cost": cost,
         }
 
     async def _ner_openai(self, text: str, config: Dict[str, Any], node_id: str) -> Dict[str, Any]:
         """Extract named entities using OpenAI."""
         from openai import OpenAI
         from backend.config import settings
-        
+
         user_id = config.get("_user_id")
         api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or settings.openai_api_key
         model = config.get("openai_model", "gpt-4o-mini")
-        
+
         client = OpenAI(api_key=api_key)
-        
+
         await self.stream_progress(node_id, 0.5, "Extracting entities with OpenAI...")
-        
+
         prompt = f"""Extract all named entities from the following text. Return a JSON array with objects containing:
 - "text": the entity text
 - "type": the entity type (PERSON, ORGANIZATION, LOCATION, DATE, etc.)
@@ -693,17 +722,17 @@ class AdvancedNLPNode(BaseNode):
 Text: {text}
 
 Return only valid JSON."""
-        
+
         response = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1,
             response_format={"type": "json_object"},
         )
-        
+
         result = json.loads(response.choices[0].message.content)
         entities = result.get("entities", [])
-        
+
         # Group by type
         grouped = {}
         for entity in entities:
@@ -711,9 +740,18 @@ Return only valid JSON."""
             if entity_type not in grouped:
                 grouped[entity_type] = []
             grouped[entity_type].append(entity)
-        
+
+        # Extract token usage and calculate cost
+        usage = response.usage
+        tokens_used = {
+            "input": usage.prompt_tokens if usage else 0,
+            "output": usage.completion_tokens if usage else 0,
+            "total": usage.total_tokens if usage else 0,
+        }
+        cost = self._calculate_openai_cost(model, tokens_used["input"], tokens_used["output"])
+
         await self.stream_progress(node_id, 1.0, f"Found {len(entities)} entities")
-        
+
         return {
             "output": entities,
             "entities": entities,
@@ -722,6 +760,8 @@ Return only valid JSON."""
             "provider": "openai",
             "model": model,
             "count": len(entities),
+            "tokens_used": tokens_used,
+            "cost": cost,
         }
 
     async def _classify_openai(
@@ -757,9 +797,18 @@ Return a JSON object with:
         )
         
         result = json.loads(response.choices[0].message.content)
-        
+
+        # Extract token usage and calculate cost
+        usage = response.usage
+        tokens_used = {
+            "input": usage.prompt_tokens if usage else 0,
+            "output": usage.completion_tokens if usage else 0,
+            "total": usage.total_tokens if usage else 0,
+        }
+        cost = self._calculate_openai_cost(model, tokens_used["input"], tokens_used["output"])
+
         await self.stream_progress(node_id, 1.0, f"Classified as: {result['label']}")
-        
+
         return {
             "output": result["label"],
             "label": result["label"],
@@ -769,6 +818,8 @@ Return a JSON object with:
             "task": "classification",
             "provider": "openai",
             "model": model,
+            "tokens_used": tokens_used,
+            "cost": cost,
         }
 
     async def _extract_openai(
@@ -804,9 +855,18 @@ Return a JSON object matching the schema."""
         )
         
         extracted = json.loads(response.choices[0].message.content)
-        
+
+        # Extract token usage and calculate cost
+        usage = response.usage
+        tokens_used = {
+            "input": usage.prompt_tokens if usage else 0,
+            "output": usage.completion_tokens if usage else 0,
+            "total": usage.total_tokens if usage else 0,
+        }
+        cost = self._calculate_openai_cost(model, tokens_used["input"], tokens_used["output"])
+
         await self.stream_progress(node_id, 1.0, "Extraction complete!")
-        
+
         return {
             "output": extracted,
             "extracted": extracted,
@@ -814,6 +874,8 @@ Return a JSON object matching the schema."""
             "task": "extraction",
             "provider": "openai",
             "model": model,
+            "tokens_used": tokens_used,
+            "cost": cost,
         }
 
     async def _sentiment_openai(self, text: str, config: Dict[str, Any], node_id: str) -> Dict[str, Any]:
@@ -844,9 +906,18 @@ Text: {text}"""
         )
         
         result = json.loads(response.choices[0].message.content)
-        
+
+        # Extract token usage and calculate cost
+        usage = response.usage
+        tokens_used = {
+            "input": usage.prompt_tokens if usage else 0,
+            "output": usage.completion_tokens if usage else 0,
+            "total": usage.total_tokens if usage else 0,
+        }
+        cost = self._calculate_openai_cost(model, tokens_used["input"], tokens_used["output"])
+
         await self.stream_progress(node_id, 1.0, f"Sentiment: {result['sentiment']}")
-        
+
         return {
             "output": result["sentiment"],
             "sentiment": result["sentiment"],
@@ -855,6 +926,8 @@ Text: {text}"""
             "task": "sentiment",
             "provider": "openai",
             "model": model,
+            "tokens_used": tokens_used,
+            "cost": cost,
         }
 
     async def _qa_openai(
@@ -887,9 +960,18 @@ Answer:"""
         )
         
         answer = response.choices[0].message.content
-        
+
+        # Extract token usage and calculate cost
+        usage = response.usage
+        tokens_used = {
+            "input": usage.prompt_tokens if usage else 0,
+            "output": usage.completion_tokens if usage else 0,
+            "total": usage.total_tokens if usage else 0,
+        }
+        cost = self._calculate_openai_cost(model, tokens_used["input"], tokens_used["output"])
+
         await self.stream_progress(node_id, 1.0, "Answer generated!")
-        
+
         return {
             "output": answer,
             "answer": answer,
@@ -897,6 +979,8 @@ Answer:"""
             "task": "qa",
             "provider": "openai",
             "model": model,
+            "tokens_used": tokens_used,
+            "cost": cost,
         }
 
     async def _translate_openai(
@@ -905,15 +989,15 @@ Answer:"""
         """Translate text using OpenAI."""
         from openai import OpenAI
         from backend.config import settings
-        
+
         user_id = config.get("_user_id")
         api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or settings.openai_api_key
         model = config.get("openai_model", "gpt-4o-mini")
-        
+
         client = OpenAI(api_key=api_key)
-        
+
         await self.stream_progress(node_id, 0.5, "Translating with OpenAI...")
-        
+
         lang_map = {
             "en": "English",
             "es": "Spanish",
@@ -925,22 +1009,31 @@ Answer:"""
             "ja": "Japanese",
             "ko": "Korean",
         }
-        
+
         target_lang_name = lang_map.get(target_lang, target_lang)
         source_lang_name = lang_map.get(source_lang, source_lang) if source_lang != "auto" else "the detected language"
-        
+
         prompt = f"Translate the following text from {source_lang_name} to {target_lang_name}:\n\n{text}"
-        
+
         response = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
         )
-        
+
         translated = response.choices[0].message.content
-        
+
+        # Extract token usage and calculate cost
+        usage = response.usage
+        tokens_used = {
+            "input": usage.prompt_tokens if usage else 0,
+            "output": usage.completion_tokens if usage else 0,
+            "total": usage.total_tokens if usage else 0,
+        }
+        cost = self._calculate_openai_cost(model, tokens_used["input"], tokens_used["output"])
+
         await self.stream_progress(node_id, 1.0, "Translation complete!")
-        
+
         return {
             "output": translated,
             "translated": translated,
@@ -949,6 +1042,8 @@ Answer:"""
             "task": "translation",
             "provider": "openai",
             "model": model,
+            "tokens_used": tokens_used,
+            "cost": cost,
         }
 
     # Anthropic Implementations (similar to OpenAI)

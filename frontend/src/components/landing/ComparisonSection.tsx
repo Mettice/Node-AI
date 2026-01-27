@@ -3,13 +3,15 @@ import { motion } from 'framer-motion';
 
 export function ComparisonSection() {
     const features = [
-        { name: "Multi-Agent Orchestration", nodeai: true, inhouse: "Hard", competitor: "Limited" },
-        { name: "Visual Workflow Builder", nodeai: true, inhouse: false, competitor: true },
+        { name: "Visual RAG Pipeline Builder", nodeai: true, inhouse: "Weeks", competitor: "Code-only" },
+        { name: "Multi-Agent (CrewAI + LangChain)", nodeai: true, inhouse: "Hard", competitor: "Limited" },
+        { name: "Per-Token Cost Tracking", nodeai: true, inhouse: false, competitor: false },
+        { name: "Intelligent Model Routing", nodeai: true, inhouse: false, competitor: false },
+        { name: "Langfuse + LangSmith Integration", nodeai: true, inhouse: "Custom", competitor: "Manual" },
+        { name: "Vector DB (Pinecone, FAISS, Chroma)", nodeai: true, inhouse: "Custom", competitor: true },
+        { name: "Agent Room Visualization", nodeai: true, inhouse: false, competitor: false },
         { name: "Enterprise SSO & RBAC", nodeai: true, inhouse: "Custom", competitor: "Enterprise Plan" },
-        { name: "VPC Peering", nodeai: true, inhouse: true, competitor: false },
         { name: "Audit Logs (SIEM)", nodeai: true, inhouse: "Custom", competitor: "Enterprise Plan" },
-        { name: "Secrets Encryption (AES-256)", nodeai: true, inhouse: "Custom", competitor: true },
-        { name: "Cost Observability", nodeai: true, inhouse: false, competitor: "Add-on" },
     ];
 
     return (
@@ -21,8 +23,8 @@ export function ComparisonSection() {
                         <span className="text-indigo-400">Choose NodeAI</span>
                     </h2>
                     <p className="text-slate-400 max-w-2xl mx-auto">
-                        Stop building internal tools. Start shipping AI products.
-                        We handle the infrastructure so you can focus on the intelligence.
+                        Cut AI costs by 70%. Ship RAG pipelines in days, not months.
+                        Stop rebuilding what we've already solved.
                     </p>
                 </div>
 

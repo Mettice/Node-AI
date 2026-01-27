@@ -83,8 +83,8 @@ export function MobileNodeEditor({ node, isOpen, onClose, onSave, onDelete }: Mo
         {/* Header */}
         <div className="flex items-center justify-between px-4 pb-4 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
-              <Settings className="w-4 h-4 text-purple-400" />
+            <div className="w-8 h-8 bg-amber-500/20 rounded-lg flex items-center justify-center">
+              <Settings className="w-4 h-4 text-amber-400" />
             </div>
             <div>
               <h2 className="text-lg font-semibold text-white">
@@ -111,7 +111,7 @@ export function MobileNodeEditor({ node, isOpen, onClose, onSave, onDelete }: Mo
                 'flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors',
                 'border-b-2',
                 activeSection === section.id
-                  ? 'text-purple-400 border-purple-500 bg-purple-500/10'
+                  ? 'text-amber-400 border-amber-500 bg-amber-500/10'
                   : 'text-slate-400 border-transparent hover:text-slate-300'
               )}
             >
@@ -134,7 +134,7 @@ export function MobileNodeEditor({ node, isOpen, onClose, onSave, onDelete }: Mo
                   type="text"
                   value={nodeData.label || ''}
                   onChange={(e) => handleFieldChange('label', e.target.value)}
-                  className="w-full px-3 py-3 bg-slate-800 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
+                  className="w-full px-3 py-3 bg-slate-800 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 text-base"
                   placeholder="Enter node name..."
                 />
               </div>
@@ -147,7 +147,7 @@ export function MobileNodeEditor({ node, isOpen, onClose, onSave, onDelete }: Mo
                 <textarea
                   value={nodeData.config?.description || ''}
                   onChange={(e) => handleFieldChange('description', e.target.value)}
-                  className="w-full px-3 py-3 bg-slate-800 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base resize-none"
+                  className="w-full px-3 py-3 bg-slate-800 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 text-base resize-none"
                   placeholder="Describe what this node does..."
                   rows={3}
                 />
@@ -162,7 +162,7 @@ export function MobileNodeEditor({ node, isOpen, onClose, onSave, onDelete }: Mo
                   <textarea
                     value={nodeData.config?.text || ''}
                     onChange={(e) => handleFieldChange('text', e.target.value)}
-                    className="w-full px-3 py-3 bg-slate-800 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base resize-none"
+                    className="w-full px-3 py-3 bg-slate-800 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 text-base resize-none"
                     placeholder="Enter default text..."
                     rows={4}
                   />
@@ -178,7 +178,7 @@ export function MobileNodeEditor({ node, isOpen, onClose, onSave, onDelete }: Mo
                     <select
                       value={nodeData.config?.model || 'gpt-3.5-turbo'}
                       onChange={(e) => handleFieldChange('model', e.target.value)}
-                      className="w-full px-3 py-3 bg-slate-800 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
+                      className="w-full px-3 py-3 bg-slate-800 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-base"
                     >
                       <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
                       <option value="gpt-4">GPT-4</option>
@@ -194,7 +194,7 @@ export function MobileNodeEditor({ node, isOpen, onClose, onSave, onDelete }: Mo
                     <textarea
                       value={nodeData.config?.system_prompt || ''}
                       onChange={(e) => handleFieldChange('system_prompt', e.target.value)}
-                      className="w-full px-3 py-3 bg-slate-800 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base resize-none"
+                      className="w-full px-3 py-3 bg-slate-800 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 text-base resize-none"
                       placeholder="Enter system prompt..."
                       rows={4}
                     />
@@ -247,7 +247,7 @@ export function MobileNodeEditor({ node, isOpen, onClose, onSave, onDelete }: Mo
             <Button
               onClick={handleSave}
               disabled={!hasChanges}
-              className="flex-1 bg-purple-500 hover:bg-purple-600 text-white py-3"
+              className="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-3"
             >
               <Save className="w-4 h-4 mr-2" />
               Save Changes

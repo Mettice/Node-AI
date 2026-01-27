@@ -42,7 +42,7 @@ export function FileUploadModal({ isOpen, onClose, onFileSelected }: FileUploadM
         {/* Header */}
         <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Upload className="w-5 h-5 text-purple-400" />
+            <Upload className="w-5 h-5 text-amber-400" />
             <h2 className="text-lg font-semibold text-white">File Manager</h2>
           </div>
           <button
@@ -58,7 +58,7 @@ export function FileUploadModal({ isOpen, onClose, onFileSelected }: FileUploadM
           <button
             onClick={() => setActiveTab('upload')}
             className={activeTab === 'upload' 
-              ? 'px-4 py-2 text-sm font-medium text-purple-400 border-b-2 border-purple-400'
+              ? 'px-4 py-2 text-sm font-medium text-amber-400 border-b-2 border-amber-400'
               : 'px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-200'
             }
           >
@@ -67,7 +67,7 @@ export function FileUploadModal({ isOpen, onClose, onFileSelected }: FileUploadM
           <button
             onClick={() => setActiveTab('list')}
             className={activeTab === 'list'
-              ? 'px-4 py-2 text-sm font-medium text-purple-400 border-b-2 border-purple-400'
+              ? 'px-4 py-2 text-sm font-medium text-amber-400 border-b-2 border-amber-400'
               : 'px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-200'
             }
           >

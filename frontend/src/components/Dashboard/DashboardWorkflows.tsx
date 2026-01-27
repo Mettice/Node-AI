@@ -185,7 +185,7 @@ export function DashboardWorkflows({ selectedWorkflowId, onSelectWorkflow }: Das
             placeholder="Search workflows..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
         </div>
 
@@ -195,7 +195,7 @@ export function DashboardWorkflows({ selectedWorkflowId, onSelectWorkflow }: Das
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value as FilterType)}
-              className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all hover:bg-white/8 hover:border-white/20 appearance-none cursor-pointer"
+              className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all hover:bg-white/8 hover:border-white/20 appearance-none cursor-pointer"
             >
               <option value="all" className="bg-slate-800 text-white">All Workflows</option>
               <option value="deployed" className="bg-slate-800 text-white">Deployed</option>
@@ -210,7 +210,7 @@ export function DashboardWorkflows({ selectedWorkflowId, onSelectWorkflow }: Das
               // Clear workflow to start fresh
               useWorkflowStore.getState().clearWorkflow();
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
           >
             <Plus className="w-4 h-4" />
             <span>New Workflow</span>
@@ -235,7 +235,7 @@ export function DashboardWorkflows({ selectedWorkflowId, onSelectWorkflow }: Das
               className={cn(
                 'bg-white/5 border rounded-lg p-4 transition-all',
                 selectedWorkflowId === workflow.id
-                  ? 'border-purple-500 bg-purple-500/10'
+                  ? 'border-amber-500 bg-amber-500/10'
                   : 'border-white/10 hover:border-white/20 hover:bg-white/10'
               )}
             >
@@ -351,7 +351,7 @@ export function DashboardWorkflows({ selectedWorkflowId, onSelectWorkflow }: Das
                   </span>
                 )}
                 {workflow.is_template && (
-                  <span className="px-2 py-1 text-xs bg-purple-500/20 text-purple-400 rounded">
+                  <span className="px-2 py-1 text-xs bg-amber-500/20 text-amber-400 rounded">
                     Template
                   </span>
                 )}
@@ -362,7 +362,7 @@ export function DashboardWorkflows({ selectedWorkflowId, onSelectWorkflow }: Das
                 <span>Updated {new Date(workflow.updated_at).toLocaleDateString()}</span>
                 <button
                   onClick={() => handleViewMetrics(workflow.id)}
-                  className="text-purple-400 hover:text-purple-300 transition-colors"
+                  className="text-amber-400 hover:text-amber-300 transition-colors"
                 >
                   View Metrics →
                 </button>

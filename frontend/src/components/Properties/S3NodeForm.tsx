@@ -181,7 +181,7 @@ export function S3NodeForm({ initialData, onChange, schema }: S3NodeFormProps) {
             value={bucket}
             onChange={(e) => setBucket(e.target.value)}
             placeholder="my-bucket-name"
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
           />
         </div>
 
@@ -202,7 +202,7 @@ export function S3NodeForm({ initialData, onChange, schema }: S3NodeFormProps) {
           type="button"
           onClick={handleTestConnection}
           disabled={connectionStatus === 'testing' || !accessKeyId || !secretAccessKey || !bucket}
-          className="w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-lg transition-all text-sm font-medium"
+          className="w-full px-3 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-lg transition-all text-sm font-medium"
         >
           {connectionStatus === 'testing' ? 'Testing...' : 'Test Connection'}
         </button>
@@ -235,7 +235,7 @@ export function S3NodeForm({ initialData, onChange, schema }: S3NodeFormProps) {
               value={prefix}
               onChange={(e) => setPrefix(e.target.value)}
               placeholder="folder/subfolder/"
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -249,7 +249,7 @@ export function S3NodeForm({ initialData, onChange, schema }: S3NodeFormProps) {
               onChange={(e) => setMaxKeys(parseInt(e.target.value) || 100)}
               min={1}
               max={1000}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
         </div>
@@ -268,7 +268,7 @@ export function S3NodeForm({ initialData, onChange, schema }: S3NodeFormProps) {
             value={key}
             onChange={(e) => setKey(e.target.value)}
             placeholder="documents/file.pdf"
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
           />
         </div>
       )}
@@ -287,7 +287,7 @@ export function S3NodeForm({ initialData, onChange, schema }: S3NodeFormProps) {
               value={contentType}
               onChange={(e) => setContentType(e.target.value)}
               placeholder="application/pdf, image/png, etc."
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -297,7 +297,7 @@ export function S3NodeForm({ initialData, onChange, schema }: S3NodeFormProps) {
               id="s3_public"
               checked={isPublic}
               onChange={(e) => setIsPublic(e.target.checked)}
-              className="w-4 h-4 rounded bg-white/5 border-white/10 text-purple-600 focus:ring-purple-500"
+              className="w-4 h-4 rounded bg-white/5 border-white/10 text-amber-600 focus:ring-amber-500"
             />
             <label htmlFor="s3_public" className="text-sm text-slate-300">
               Make file publicly accessible
@@ -317,7 +317,7 @@ export function S3NodeForm({ initialData, onChange, schema }: S3NodeFormProps) {
             onChange={(e) => setUrlExpiration(parseInt(e.target.value) || 3600)}
             min={1}
             max={604800}
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
           />
           <p className="text-xs text-slate-400">
             Default: 3600 seconds (1 hour). Max: 604800 seconds (7 days)
@@ -336,7 +336,7 @@ export function S3NodeForm({ initialData, onChange, schema }: S3NodeFormProps) {
               value={sourceKey}
               onChange={(e) => setSourceKey(e.target.value)}
               placeholder="source/file.pdf"
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -349,7 +349,7 @@ export function S3NodeForm({ initialData, onChange, schema }: S3NodeFormProps) {
               value={destKey}
               onChange={(e) => setDestKey(e.target.value)}
               placeholder="destination/file.pdf"
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
         </div>

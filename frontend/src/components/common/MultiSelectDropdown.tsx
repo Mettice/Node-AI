@@ -113,12 +113,12 @@ export function MultiSelectDropdown({
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           'w-full min-h-[42px] px-3 py-2 bg-white/5 border rounded-lg text-left',
-          'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent',
+          'focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent',
           'transition-all flex items-center justify-between gap-2',
           error
             ? 'border-red-500/50 focus:ring-red-500'
             : 'border-white/10 hover:bg-white/8 hover:border-white/20',
-          isOpen && 'ring-2 ring-purple-500 border-transparent'
+          isOpen && 'ring-2 ring-amber-500 border-transparent'
         )}
       >
         <div className="flex-1 min-w-0 flex flex-wrap gap-1.5 items-center">
@@ -126,7 +126,7 @@ export function MultiSelectDropdown({
             selectedOptions.map((option) => (
               <span
                 key={option.value}
-                className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-500/20 border border-purple-500/30 rounded text-xs text-purple-200"
+                className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 border border-amber-500/30 rounded text-xs text-amber-200"
               >
                 {option.icon && (
                   <ProviderIcon provider={option.icon} size="sm" />
@@ -197,14 +197,14 @@ export function MultiSelectDropdown({
                     isDisabled
                       ? 'opacity-50 cursor-not-allowed'
                       : 'hover:bg-white/10',
-                    isSelected && 'bg-purple-500/20'
+                    isSelected && 'bg-amber-500/20'
                   )}
                 >
                   {/* Checkbox indicator */}
                   <div className={cn(
                     'w-4 h-4 border rounded flex items-center justify-center flex-shrink-0',
                     isSelected
-                      ? 'bg-purple-500 border-purple-500'
+                      ? 'bg-amber-500 border-amber-500'
                       : 'border-white/20'
                   )}>
                     {isSelected && (

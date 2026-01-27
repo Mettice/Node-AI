@@ -13,7 +13,8 @@ interface UIState {
   executionPanelOpen: boolean;
   executionLogsOpen: boolean;
   chatInterfaceOpen: boolean;
-  
+  insightsPanelOpen: boolean; // New: Expanded insights panel
+
   // Utility modals
   activeUtility: 'rag-eval' | 'prompt' | 'models' | 'optimize' | 'templates' | 'help' | 'settings' | 'dashboard' | 'knowledge-base' | null;
 
@@ -29,8 +30,10 @@ interface UIState {
   toggleExecutionPanel: () => void;
   toggleExecutionLogs: () => void;
   toggleChatInterface: () => void;
+  toggleInsightsPanel: () => void;
   setExecutionPanelOpen: (open: boolean) => void;
   setExecutionLogsOpen: (open: boolean) => void;
+  setInsightsPanelOpen: (open: boolean) => void;
   setCanvasZoom: (zoom: number) => void;
   setCanvasPan: (pan: { x: number; y: number }) => void;
 }
@@ -44,6 +47,7 @@ export const useUIStore = create<UIState>((set) => ({
   executionPanelOpen: false,
   executionLogsOpen: false,
   chatInterfaceOpen: false,
+  insightsPanelOpen: false,
   activeUtility: null,
   canvasZoom: 1,
   canvasPan: { x: 0, y: 0 },
@@ -85,6 +89,11 @@ export const useUIStore = create<UIState>((set) => ({
       chatInterfaceOpen: !state.chatInterfaceOpen,
     })),
 
+  toggleInsightsPanel: () =>
+    set((state) => ({
+      insightsPanelOpen: !state.insightsPanelOpen,
+    })),
+
   setExecutionPanelOpen: (open) =>
     set({
       executionPanelOpen: open,
@@ -93,6 +102,11 @@ export const useUIStore = create<UIState>((set) => ({
   setExecutionLogsOpen: (open) =>
     set({
       executionLogsOpen: open,
+    }),
+
+  setInsightsPanelOpen: (open) =>
+    set({
+      insightsPanelOpen: open,
     }),
 
   setCanvasZoom: (zoom) =>

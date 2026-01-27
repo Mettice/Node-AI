@@ -43,7 +43,7 @@ const stepTypeLabels = {
 
 const stepTypeColors = {
   query_input: 'text-blue-400 border-blue-400/20 bg-blue-400/10',
-  chunking: 'text-purple-400 border-purple-400/20 bg-purple-400/10',
+  chunking: 'text-amber-400 border-amber-400/20 bg-amber-400/10',
   embedding: 'text-indigo-400 border-indigo-400/20 bg-indigo-400/10',
   vector_search: 'text-green-400 border-green-400/20 bg-green-400/10',
   reranking: 'text-yellow-400 border-yellow-400/20 bg-yellow-400/10',

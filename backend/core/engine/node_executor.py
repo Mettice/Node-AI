@@ -143,14 +143,23 @@ class NodeExecutor:
                     display_metadata = formatter_registry.format_for_display(node.type, safe_output)
                     
                     # Only include metadata and actions, not the full primary_content to avoid circular refs
+                    # But for HTML/text content, store it separately so frontend can access it
+                    display_type = display_metadata.get("display_type", "data")
+                    primary_content = display_metadata.get("primary_content")
+                    
                     output["_display_metadata"] = {
-                        "display_type": display_metadata.get("display_type", "data"),
+                        "display_type": display_type,
                         "metadata": display_metadata.get("metadata", {}),
                         "actions": display_metadata.get("actions", []),
                         "attachments": display_metadata.get("attachments", [])
                         # Exclude primary_content to prevent circular reference
                     }
-                    logger.debug(f"Added display metadata for {node.type}: {display_metadata.get('display_type', 'unknown')}")
+                    
+                    # Store HTML/text content separately for frontend access (not circular since it's a string)
+                    if display_type in ["html", "text"] and isinstance(primary_content, str):
+                        output["_formatted_content"] = primary_content
+                    
+                    logger.debug(f"Added display metadata for {node.type}: {display_type}")
                 except Exception as formatter_error:
                     logger.warning(f"Failed to generate display metadata for {node.type}: {formatter_error}")
                     # Add basic display metadata as fallback

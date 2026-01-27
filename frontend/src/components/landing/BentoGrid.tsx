@@ -8,7 +8,7 @@ export function BentoGrid() {
                 <div className="text-center mb-16">
                     <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
                         The Complete <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">GenAI Development Stack</span>
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-cyan-400">GenAI Development Stack</span>
                     </h2>
                     <p className="text-slate-400 max-w-2xl mx-auto">
                         Everything you need to build, deploy, and monitor intelligent agents.
@@ -27,10 +27,10 @@ export function BentoGrid() {
                     >
                         <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-slate-900 rounded-tl-2xl border-t border-l border-slate-800 p-4 overflow-hidden">
                             <div className="flex gap-4 mb-4">
-                                <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-3 flex-1">
+                                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 flex-1">
                                     <div className="flex items-center gap-2 mb-2">
-                                        <Brain className="w-4 h-4 text-purple-400" />
-                                        <span className="text-xs font-semibold text-purple-200">Researcher</span>
+                                        <Brain className="w-4 h-4 text-amber-400" />
+                                        <span className="text-xs font-semibold text-amber-200">Researcher</span>
                                     </div>
                                     <div className="h-1.5 bg-slate-800 rounded w-full mb-1" />
                                     <div className="h-1.5 bg-slate-800 rounded w-2/3" />

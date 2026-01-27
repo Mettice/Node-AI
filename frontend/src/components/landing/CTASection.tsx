@@ -14,7 +14,7 @@ export function CTASection() {
           transition={{ duration: 0.6 }}
           className="text-4xl md:text-5xl lg:text-6xl font-black mb-5"
         >
-          Ready to Build?
+          Cut AI Costs. Ship Faster.
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
@@ -23,7 +23,7 @@ export function CTASection() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-xl text-slate-400 mb-12 leading-relaxed"
         >
-          Start building AI workflows today. No credit card required.
+          Build RAG pipelines in days. See every token cost. No credit card required.
         </motion.p>
         <motion.div
           initial={{ opacity: 0, y: 20 }}

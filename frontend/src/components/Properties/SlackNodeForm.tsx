@@ -285,7 +285,7 @@ export function SlackNodeForm({ initialData, onChange }: SlackNodeFormProps) {
                 value={clientId}
                 onChange={(e) => setClientId(e.target.value)}
                 placeholder="1234567890.1234567890123"
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
               />
             </div>
 
@@ -298,7 +298,7 @@ export function SlackNodeForm({ initialData, onChange }: SlackNodeFormProps) {
                 value={clientSecret}
                 onChange={(e) => setClientSecret(e.target.value)}
                 placeholder="Enter Slack Client Secret"
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
               />
             </div>
 
@@ -311,7 +311,7 @@ export function SlackNodeForm({ initialData, onChange }: SlackNodeFormProps) {
                 value={redirectUri}
                 onChange={(e) => setRedirectUri(e.target.value)}
                 placeholder={window.location.origin + '/oauth/callback'}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-xs"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all text-xs"
               />
             </div>
 
@@ -319,7 +319,7 @@ export function SlackNodeForm({ initialData, onChange }: SlackNodeFormProps) {
               type="button"
               onClick={handleConnectSlack}
               disabled={isConnecting || !clientId || !clientSecret}
-              className="w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-lg transition-all text-sm font-medium flex items-center justify-center gap-2"
+              className="w-full px-3 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-lg transition-all text-sm font-medium flex items-center justify-center gap-2"
             >
               {isConnecting ? (
                 <>Connecting...</>
@@ -342,7 +342,7 @@ export function SlackNodeForm({ initialData, onChange }: SlackNodeFormProps) {
             <select
               value={tokenId}
               onChange={(e) => setTokenId(e.target.value)}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             >
               <option value="">Select a connection...</option>
               {availableTokens.map((token) => (
@@ -375,7 +375,7 @@ export function SlackNodeForm({ initialData, onChange }: SlackNodeFormProps) {
               value={channel}
               onChange={(e) => setChannel(e.target.value)}
               placeholder="C1234567890 or U1234567890"
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -391,7 +391,7 @@ export function SlackNodeForm({ initialData, onChange }: SlackNodeFormProps) {
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Your message here... (or leave empty to use structured data from previous node)"
               rows={6}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -406,7 +406,7 @@ export function SlackNodeForm({ initialData, onChange }: SlackNodeFormProps) {
             <select
               value={dataFormat}
               onChange={(e) => setDataFormat(e.target.value)}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             >
               <option value="table">Table</option>
               <option value="list">List</option>
@@ -426,7 +426,7 @@ export function SlackNodeForm({ initialData, onChange }: SlackNodeFormProps) {
                 onChange={(e) => setMaxRows(parseInt(e.target.value) || 50)}
                 min={1}
                 max={100}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
               />
             </div>
           )}
@@ -449,7 +449,7 @@ export function SlackNodeForm({ initialData, onChange }: SlackNodeFormProps) {
               value={channelName}
               onChange={(e) => setChannelName(e.target.value)}
               placeholder="my-channel"
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -459,7 +459,7 @@ export function SlackNodeForm({ initialData, onChange }: SlackNodeFormProps) {
               id="slack_is_private"
               checked={isPrivate}
               onChange={(e) => setIsPrivate(e.target.checked)}
-              className="w-4 h-4 rounded bg-white/5 border-white/10 text-purple-600 focus:ring-purple-500"
+              className="w-4 h-4 rounded bg-white/5 border-white/10 text-amber-600 focus:ring-amber-500"
             />
             <label htmlFor="slack_is_private" className="text-sm text-slate-300">
               Create as private channel
@@ -484,7 +484,7 @@ export function SlackNodeForm({ initialData, onChange }: SlackNodeFormProps) {
               value={channel}
               onChange={(e) => setChannel(e.target.value)}
               placeholder="C1234567890"
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -497,7 +497,7 @@ export function SlackNodeForm({ initialData, onChange }: SlackNodeFormProps) {
               value={filename}
               onChange={(e) => setFilename(e.target.value)}
               placeholder="document.pdf"
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -513,7 +513,7 @@ export function SlackNodeForm({ initialData, onChange }: SlackNodeFormProps) {
               onChange={(e) => setFileContent(e.target.value)}
               placeholder="File content here..."
               rows={8}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all font-mono text-sm"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all font-mono text-sm"
             />
           </div>
 
@@ -526,7 +526,7 @@ export function SlackNodeForm({ initialData, onChange }: SlackNodeFormProps) {
               value={fileTitle}
               onChange={(e) => setFileTitle(e.target.value)}
               placeholder="Document Title"
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -539,7 +539,7 @@ export function SlackNodeForm({ initialData, onChange }: SlackNodeFormProps) {
               onChange={(e) => setInitialComment(e.target.value)}
               placeholder="Comment to post with file..."
               rows={3}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
         </div>

@@ -46,7 +46,7 @@ export function FileSelector({ value, onChange, error }: FileSelectorProps) {
           <p className="mb-2">No files uploaded yet.</p>
           <button
             onClick={() => setShowUploadModal(true)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded text-sm font-medium transition-colors"
           >
             <Upload className="w-4 h-4" />
             Upload File
@@ -79,7 +79,7 @@ export function FileSelector({ value, onChange, error }: FileSelectorProps) {
         </div>
         <button
           onClick={() => setShowUploadModal(true)}
-          className="px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg border border-purple-500/30 transition-colors flex items-center gap-1.5 text-sm flex-shrink-0"
+          className="px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-lg border border-amber-500/30 transition-colors flex items-center gap-1.5 text-sm flex-shrink-0"
           title="Upload new file"
         >
           <Upload className="w-4 h-4" />

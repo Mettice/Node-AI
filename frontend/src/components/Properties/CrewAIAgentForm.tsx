@@ -11,6 +11,7 @@ import { Select } from '@/components/common/Select';
 import { SelectWithIcons } from '@/components/common/SelectWithIcons';
 import { ProviderSelector } from './ProviderSelector';
 import { APIKeyInputWithVault } from './APIKeyInputWithVault';
+import { ToolSelector } from './ToolSelector';
 import { testLLMConnection } from '@/services/nodes';
 import { ROOM_TEMPLATES, applyTemplate, type RoomTemplate } from '@/components/Canvas/AgentRoomTemplates';
 
@@ -20,6 +21,7 @@ interface Agent {
   goal: string;
   backstory: string;
   tools?: any[];
+  mcp_tools?: string[];
 }
 
 interface Task {
@@ -37,15 +39,25 @@ interface CrewAIAgentFormProps {
 export function CrewAIAgentForm({ initialData, onChange, schema }: CrewAIAgentFormProps) {
   // Parse agents and tasks from initialData
   const parseAgents = (): Agent[] => {
-    if (!initialData.agents) return [{ role: '', goal: '', backstory: '' }];
+    const defaultAgent = { role: '', goal: '', backstory: '', mcp_tools: [] };
+    if (!initialData.agents) return [defaultAgent];
+    let agentsData: any[];
     if (typeof initialData.agents === 'string') {
       try {
-        return JSON.parse(initialData.agents);
+        agentsData = JSON.parse(initialData.agents);
       } catch {
-        return [{ role: '', goal: '', backstory: '' }];
+        return [defaultAgent];
       }
+    } else {
+      agentsData = Array.isArray(initialData.agents) ? initialData.agents : [defaultAgent];
     }
-    return Array.isArray(initialData.agents) ? initialData.agents : [{ role: '', goal: '', backstory: '' }];
+    // Ensure all agents have mcp_tools array
+    return agentsData.map((a: any) => ({
+      role: a.role || '',
+      goal: a.goal || '',
+      backstory: a.backstory || '',
+      mcp_tools: Array.isArray(a.mcp_tools) ? a.mcp_tools : [],
+    }));
   };
 
   const parseTasks = (): Task[] => {
@@ -118,6 +130,7 @@ export function CrewAIAgentForm({ initialData, onChange, schema }: CrewAIAgentFo
   const [temperature, setTemperature] = useState(initialData.temperature ?? 0.7);
   const [maxIterations, setMaxIterations] = useState(initialData.max_iterations ?? 3);
   const [process, setProcess] = useState(initialData.process || 'sequential');
+  const [systemPrompt, setSystemPrompt] = useState(initialData.system_prompt || '');
   const [agents, setAgents] = useState<Agent[]>(parseAgents);
   const [tasks, setTasks] = useState<Task[]>(parseTasks);
   const [taskDescription, setTaskDescription] = useState(initialData.task || '');
@@ -188,11 +201,18 @@ export function CrewAIAgentForm({ initialData, onChange, schema }: CrewAIAgentFo
     // Only include agents if at least one has a role
     const validAgents = agents.filter((a) => a.role.trim() !== '');
     if (validAgents.length > 0) {
-      config.agents = validAgents.map((a) => ({
-        role: a.role,
-        goal: a.goal || '',
-        backstory: a.backstory || '',
-      }));
+      config.agents = validAgents.map((a) => {
+        const agentConfig: Record<string, any> = {
+          role: a.role,
+          goal: a.goal || '',
+          backstory: a.backstory || '',
+        };
+        // Include mcp_tools if configured
+        if (a.mcp_tools && a.mcp_tools.length > 0) {
+          agentConfig.mcp_tools = a.mcp_tools;
+        }
+        return agentConfig;
+      });
     }
 
     // Only include tasks if at least one has a description
@@ -214,14 +234,14 @@ export function CrewAIAgentForm({ initialData, onChange, schema }: CrewAIAgentFo
   }, [provider, openaiModel, anthropicModel, geminiModel, openaiApiKey, anthropicApiKey, geminiApiKey, azureOpenaiApiKey, azureOpenaiEndpoint, azureOpenaiDeployment, openaiSecretId, anthropicSecretId, geminiSecretId, azureOpenaiSecretId, temperature, maxIterations, process, agents, tasks, taskDescription]);
 
   const addAgent = () => {
-    setAgents([...agents, { role: '', goal: '', backstory: '' }]);
+    setAgents([...agents, { role: '', goal: '', backstory: '', mcp_tools: [] }]);
   };
 
   const removeAgent = (index: number) => {
     setAgents(agents.filter((_, i) => i !== index));
   };
 
-  const updateAgent = (index: number, field: keyof Agent, value: string) => {
+  const updateAgent = (index: number, field: keyof Agent, value: string | string[]) => {
     const updated = [...agents];
     updated[index] = { ...updated[index], [field]: value };
     setAgents(updated);
@@ -253,6 +273,7 @@ export function CrewAIAgentForm({ initialData, onChange, schema }: CrewAIAgentFo
       role: agent.role,
       goal: agent.goal || '',
       backstory: agent.backstory || '',
+      mcp_tools: [],
     }));
     setAgents(formAgents);
   };
@@ -474,7 +495,7 @@ export function CrewAIAgentForm({ initialData, onChange, schema }: CrewAIAgentFo
               value={azureOpenaiEndpoint}
               onChange={(e) => setAzureOpenaiEndpoint(e.target.value)}
               placeholder="https://your-resource.openai.azure.com"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
             <p className="text-xs text-slate-400 mt-1">Azure OpenAI endpoint URL</p>
           </div>
@@ -485,7 +506,7 @@ export function CrewAIAgentForm({ initialData, onChange, schema }: CrewAIAgentFo
               value={azureOpenaiDeployment}
               onChange={(e) => setAzureOpenaiDeployment(e.target.value)}
               placeholder="gpt-4, gpt-35-turbo, etc."
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
             <p className="text-xs text-slate-400 mt-1">Azure OpenAI deployment name</p>
           </div>
@@ -556,7 +577,7 @@ export function CrewAIAgentForm({ initialData, onChange, schema }: CrewAIAgentFo
           <button
             type="button"
             onClick={addAgent}
-            className="flex items-center gap-1 px-2 py-1 text-xs bg-purple-600 hover:bg-purple-700 text-white rounded"
+            className="flex items-center gap-1 px-2 py-1 text-xs bg-amber-600 hover:bg-amber-700 text-white rounded"
           >
             <Plus className="w-3 h-3" />
             Add Agent
@@ -608,6 +629,14 @@ export function CrewAIAgentForm({ initialData, onChange, schema }: CrewAIAgentFo
                     rows={2}
                   />
                 </div>
+
+                {/* Tool Selector */}
+                <ToolSelector
+                  value={agent.mcp_tools || []}
+                  onChange={(tools) => updateAgent(index, 'mcp_tools', tools)}
+                  label="Agent Tools"
+                  description="Select tools this agent can use"
+                />
               </div>
             </div>
           ))}
@@ -621,7 +650,7 @@ export function CrewAIAgentForm({ initialData, onChange, schema }: CrewAIAgentFo
           <button
             type="button"
             onClick={addTask}
-            className="flex items-center gap-1 px-2 py-1 text-xs bg-purple-600 hover:bg-purple-700 text-white rounded"
+            className="flex items-center gap-1 px-2 py-1 text-xs bg-amber-600 hover:bg-amber-700 text-white rounded"
           >
             <Plus className="w-3 h-3" />
             Add Task
@@ -688,8 +717,8 @@ export function CrewAIAgentForm({ initialData, onChange, schema }: CrewAIAgentFo
       {/* Info Box */}
       <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
         <p className="text-xs text-blue-300">
-          <strong>💡 Tip:</strong> Connect Tool nodes to provide capabilities to agents. Agents can use tools
-          from connected nodes automatically.
+          <strong>💡 Tip:</strong> Use the Tool Selector in each agent to give them access to MCP integrations
+          (Slack, Gmail, etc.) and internal AI tools (content generation, analysis). Configure MCP servers in Settings.
         </p>
       </div>
     </div>

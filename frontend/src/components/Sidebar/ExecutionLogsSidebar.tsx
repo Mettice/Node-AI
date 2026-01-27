@@ -3,8 +3,8 @@
  * Now with tabbed interface: Summary, Logs, Cost
  */
 
-import { useState } from 'react';
-import { X, BarChart3, List, DollarSign, ChevronRight, Search } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, BarChart3, List, DollarSign, ChevronRight, Search, Maximize2, Sparkles } from 'lucide-react';
 import { useExecutionStore } from '@/store/executionStore';
 import { useUIStore } from '@/store/uiStore';
 import { ExecutionSummary } from '@/components/Execution/ExecutionSummary';
@@ -16,10 +16,28 @@ import { cn } from '@/utils/cn';
 type Tab = 'summary' | 'logs' | 'cost' | 'trace';
 
 export function ExecutionLogsSidebar() {
-  const { status, trace, cost, duration } = useExecutionStore();
-  const { executionLogsOpen, setExecutionLogsOpen, chatInterfaceOpen } = useUIStore();
+  const { status, trace, cost, duration, results } = useExecutionStore();
+  const { executionLogsOpen, setExecutionLogsOpen, setInsightsPanelOpen, chatInterfaceOpen } = useUIStore();
   const [activeTab, setActiveTab] = useState<Tab>('summary');
   const [isMinimized, setIsMinimized] = useState(false);
+  const prevStatusRef = useRef(status);
+
+  // Auto-open insights panel when execution completes (optional - can be toggled)
+  useEffect(() => {
+    const hasOutputs = Object.keys(results).some(nodeId => {
+      const result = results[nodeId];
+      return result?.output && Object.keys(result.output).length > 0;
+    });
+
+    // Auto-open insights when execution transitions to completed and has outputs
+    if (prevStatusRef.current === 'running' && status === 'completed' && hasOutputs) {
+      // Slight delay to ensure results are fully loaded
+      setTimeout(() => {
+        setInsightsPanelOpen(true);
+      }, 300);
+    }
+    prevStatusRef.current = status;
+  }, [status, results, setInsightsPanelOpen]);
 
   // Check if there's execution data to show
   const hasExecutionData = status !== 'idle' && (trace.length > 0 || cost > 0 || duration > 0);
@@ -66,6 +84,17 @@ export function ExecutionLogsSidebar() {
       <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between flex-shrink-0">
         <h2 className="text-lg font-semibold text-slate-200">Execution Results</h2>
         <div className="flex items-center gap-1">
+          {/* Expand to Insights Panel Button */}
+          {(status === 'completed' || status === 'failed') && Object.keys(results).length > 0 && (
+            <button
+              onClick={() => setInsightsPanelOpen(true)}
+              className="text-blue-400 hover:text-blue-300 transition-colors p-1.5 hover:bg-blue-500/10 rounded flex items-center gap-1.5"
+              title="Open expanded insights view"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="text-xs font-medium">Insights</span>
+            </button>
+          )}
           <button
             onClick={() => setIsMinimized(true)}
             className="text-slate-400 hover:text-slate-200 transition-colors p-1 hover:bg-white/5 rounded"

@@ -879,7 +879,7 @@ export const AgentRoom = memo(({
                       {agentStatus.status !== 'idle' && (
                         <div className={cn(
                           "px-1.5 py-0.5 rounded text-[9px] font-medium flex items-center gap-1",
-                          agentStatus.status === 'thinking' && "bg-purple-500/20 text-purple-300",
+                          agentStatus.status === 'thinking' && "bg-amber-500/20 text-amber-300",
                           agentStatus.status === 'working' && "bg-blue-500/20 text-blue-300",
                           agentStatus.status === 'using_tool' && "bg-amber-500/20 text-amber-300",
                           agentStatus.status === 'completed' && "bg-green-500/20 text-green-300",

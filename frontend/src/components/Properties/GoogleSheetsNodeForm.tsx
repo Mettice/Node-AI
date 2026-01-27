@@ -245,7 +245,7 @@ export function GoogleSheetsNodeForm({ initialData, onChange }: GoogleSheetsNode
                 value={clientId}
                 onChange={(e) => setClientId(e.target.value)}
                 placeholder="1234567890-abc123.apps.googleusercontent.com"
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
               />
             </div>
 
@@ -258,7 +258,7 @@ export function GoogleSheetsNodeForm({ initialData, onChange }: GoogleSheetsNode
                 value={clientSecret}
                 onChange={(e) => setClientSecret(e.target.value)}
                 placeholder="GOCSPX-..."
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
               />
             </div>
 
@@ -288,7 +288,7 @@ export function GoogleSheetsNodeForm({ initialData, onChange }: GoogleSheetsNode
             <select
               value={tokenId}
               onChange={(e) => setTokenId(e.target.value)}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             >
               <option value="">Select a connection...</option>
               {availableTokens.map((token) => (
@@ -315,7 +315,7 @@ export function GoogleSheetsNodeForm({ initialData, onChange }: GoogleSheetsNode
           <select
             value={operation}
             onChange={(e) => setOperation(e.target.value)}
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
           >
             <option value="read">Read</option>
             <option value="write">Write (Overwrite)</option>
@@ -348,7 +348,7 @@ export function GoogleSheetsNodeForm({ initialData, onChange }: GoogleSheetsNode
             value={spreadsheetId}
             onChange={(e) => setSpreadsheetId(e.target.value)}
             placeholder="1abc123def456..."
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
           />
         </div>
 
@@ -361,7 +361,7 @@ export function GoogleSheetsNodeForm({ initialData, onChange }: GoogleSheetsNode
             value={sheetName}
             onChange={(e) => setSheetName(e.target.value)}
             placeholder="Sheet1"
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
           />
         </div>
 
@@ -379,7 +379,7 @@ export function GoogleSheetsNodeForm({ initialData, onChange }: GoogleSheetsNode
             value={range}
             onChange={(e) => setRange(e.target.value)}
             placeholder={operation === 'read' ? 'A1:C100' : 'A1'}
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
           />
         </div>
 
@@ -390,7 +390,7 @@ export function GoogleSheetsNodeForm({ initialData, onChange }: GoogleSheetsNode
               id="hasHeader"
               checked={hasHeader}
               onChange={(e) => setHasHeader(e.target.checked)}
-              className="w-4 h-4 rounded bg-white/5 border-white/10 text-purple-600 focus:ring-purple-500"
+              className="w-4 h-4 rounded bg-white/5 border-white/10 text-amber-600 focus:ring-amber-500"
             />
             <label htmlFor="hasHeader" className="text-xs text-slate-300">
               First row contains headers
@@ -405,7 +405,7 @@ export function GoogleSheetsNodeForm({ initialData, onChange }: GoogleSheetsNode
                   id="clearExisting"
                   checked={clearExisting}
                   onChange={(e) => setClearExisting(e.target.checked)}
-                  className="w-4 h-4 rounded bg-white/5 border-white/10 text-purple-600 focus:ring-purple-500"
+                  className="w-4 h-4 rounded bg-white/5 border-white/10 text-amber-600 focus:ring-amber-500"
                 />
                 <label htmlFor="clearExisting" className="text-xs text-slate-300">
                   Clear existing data before writing
@@ -418,7 +418,7 @@ export function GoogleSheetsNodeForm({ initialData, onChange }: GoogleSheetsNode
                 id="includeHeader"
                 checked={includeHeader}
                 onChange={(e) => setIncludeHeader(e.target.checked)}
-                className="w-4 h-4 rounded bg-white/5 border-white/10 text-purple-600 focus:ring-purple-500"
+                className="w-4 h-4 rounded bg-white/5 border-white/10 text-amber-600 focus:ring-amber-500"
               />
               <label htmlFor="includeHeader" className="text-xs text-slate-300">
                 Include header row

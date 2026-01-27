@@ -10,8 +10,10 @@ This module provides REST API endpoints for managing fine-tuned models:
 """
 
 import uuid
+import json
 from typing import Dict, List, Optional, Any
 from datetime import datetime
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
@@ -19,15 +21,168 @@ from pydantic import BaseModel
 from backend.core.security import limiter
 from backend.core.finetune_models import FineTunedModel, ModelVersion, ModelUsage
 from backend.utils.logger import get_logger
+from backend.config import settings
+from backend.core.database import is_database_configured, get_supabase_client, is_supabase_configured
 
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["Models"])
 
-# In-memory storage for models (will be replaced with database later)
+# Storage directory for models (fallback for local dev)
+MODELS_DIR = settings.data_dir / "models"
+MODELS_DIR.mkdir(parents=True, exist_ok=True)
+
+# In-memory storage for models (loaded from disk/database on startup)
 _models: Dict[str, FineTunedModel] = {}
 _model_versions: Dict[str, List[ModelVersion]] = {}
 _model_usage: Dict[str, List[ModelUsage]] = {}
+
+# Check if database is available
+_use_database = is_database_configured() or is_supabase_configured()
+
+# Load models from database or disk
+def _load_models():
+    """Load all models from database (production) or disk (local dev)."""
+    global _models
+    try:
+        if _use_database:
+            _load_models_from_database()
+        else:
+            _load_models_from_disk()
+    except Exception as e:
+        logger.error(f"Failed to load models: {e}")
+
+def _load_models_from_database():
+    """Load models from database (production mode)."""
+    global _models
+    try:
+        supabase = get_supabase_client() if is_supabase_configured() else None
+        if not supabase:
+            logger.warning("Database configured but Supabase client not available, falling back to disk")
+            _load_models_from_disk()
+            return
+        
+        # Query models table (assuming it exists - will be created via migration)
+        try:
+            result = supabase.table("fine_tuned_models").select("*").execute()
+            for row in result.data:
+                try:
+                    model = FineTunedModel(**row)
+                    _models[model.id] = model
+                except Exception as e:
+                    logger.warning(f"Failed to parse model from database: {e}")
+            
+            logger.info(f"Loaded {len(_models)} fine-tuned models from database")
+        except Exception as e:
+            # Table might not exist yet, fall back to disk
+            logger.warning(f"Models table not found in database, using disk storage: {e}")
+            _load_models_from_disk()
+    except Exception as e:
+        logger.error(f"Failed to load models from database: {e}")
+        # Fallback to disk
+        _load_models_from_disk()
+
+def _load_models_from_disk():
+    """Load all models from disk storage (local dev mode)."""
+    global _models
+    try:
+        if not MODELS_DIR.exists():
+            return
+        
+        for model_file in MODELS_DIR.glob("*.json"):
+            try:
+                with open(model_file, "r", encoding="utf-8") as f:
+                    model_data = json.load(f)
+                    model = FineTunedModel(**model_data)
+                    _models[model.id] = model
+            except Exception as e:
+                logger.warning(f"Failed to load model from {model_file}: {e}")
+        
+        logger.info(f"Loaded {len(_models)} fine-tuned models from disk")
+    except Exception as e:
+        logger.error(f"Failed to load models from disk: {e}")
+
+def _save_model(model: FineTunedModel):
+    """Save a model to database (production) or disk (local dev)."""
+    if _use_database:
+        _save_model_to_database(model)
+    else:
+        _save_model_to_disk(model)
+
+def _save_model_to_database(model: FineTunedModel):
+    """Save a model to database (production mode)."""
+    try:
+        supabase = get_supabase_client() if is_supabase_configured() else None
+        if not supabase:
+            logger.warning("Database configured but Supabase client not available, falling back to disk")
+            _save_model_to_disk(model)
+            return
+        
+        model_dict = model.model_dump(mode="json")
+        # Upsert to database
+        try:
+            supabase.table("fine_tuned_models").upsert(
+                model_dict,
+                on_conflict="id"
+            ).execute()
+            logger.debug(f"Saved model {model.id} to database")
+        except Exception as e:
+            # Table might not exist yet, fall back to disk
+            logger.warning(f"Models table not found in database, saving to disk: {e}")
+            _save_model_to_disk(model)
+    except Exception as e:
+        logger.error(f"Failed to save model to database: {e}")
+        # Fallback to disk
+        _save_model_to_disk(model)
+
+def _save_model_to_disk(model: FineTunedModel):
+    """Save a model to disk storage (local dev mode)."""
+    try:
+        model_path = MODELS_DIR / f"{model.id}.json"
+        model_dict = model.model_dump(mode="json")
+        with open(model_path, "w", encoding="utf-8") as f:
+            json.dump(model_dict, f, indent=2, ensure_ascii=False)
+        logger.debug(f"Saved model {model.id} to {model_path}")
+    except Exception as e:
+        logger.error(f"Failed to save model to disk: {e}")
+
+def _delete_model(model_id: str):
+    """Delete a model from database (production) or disk (local dev)."""
+    if _use_database:
+        _delete_model_from_database(model_id)
+    else:
+        _delete_model_from_disk(model_id)
+
+def _delete_model_from_database(model_id: str):
+    """Delete a model from database (production mode)."""
+    try:
+        supabase = get_supabase_client() if is_supabase_configured() else None
+        if not supabase:
+            _delete_model_from_disk(model_id)
+            return
+        
+        try:
+            supabase.table("fine_tuned_models").delete().eq("id", model_id).execute()
+            logger.debug(f"Deleted model {model_id} from database")
+        except Exception as e:
+            logger.warning(f"Failed to delete from database, trying disk: {e}")
+            _delete_model_from_disk(model_id)
+    except Exception as e:
+        logger.error(f"Failed to delete model from database: {e}")
+        _delete_model_from_disk(model_id)
+
+def _delete_model_from_disk(model_id: str):
+    """Delete a model file from disk."""
+    try:
+        model_path = MODELS_DIR / f"{model_id}.json"
+        if model_path.exists():
+            model_path.unlink()
+            logger.debug(f"Deleted model file {model_path}")
+    except Exception as e:
+        logger.error(f"Failed to delete model file: {e}")
+
+# Load models on module import
+_load_models()
 
 
 class CreateModelRequest(BaseModel):
@@ -164,6 +319,7 @@ async def create_model(request_body: CreateModelRequest, request: Request) -> Fi
     )
     
     _models[model_id] = model
+    _save_model(model)  # Persist to database or disk
     logger.info(f"Registered fine-tuned model: {model_id} ({model.name})")
     
     return model
@@ -203,6 +359,7 @@ async def update_model(
         model.metadata = {**model.metadata, **request_body.metadata}
     
     model.updated_at = datetime.now().isoformat()
+    _save_model(model)  # Persist to database or disk
     
     logger.info(f"Updated model: {model_id}")
     
@@ -252,9 +409,11 @@ async def delete_model(
     # Soft delete (mark as deleted)
     model.status = "deleted"
     model.updated_at = datetime.now().isoformat()
+    _save_model(model)  # Persist deletion status to database or disk
     
-    # Or hard delete (remove from registry)
+    # Or hard delete (remove from registry and storage)
     # del _models[model_id]
+    # _delete_model(model_id)
     
     logger.info(f"Deleted model: {model_id}")
     
@@ -311,6 +470,7 @@ async def record_model_usage(
     model.usage_count += 1
     model.last_used_at = datetime.now().isoformat()
     model.updated_at = datetime.now().isoformat()
+    _save_model(model)  # Persist usage update to database or disk
     
     logger.info(f"Recorded usage for model: {model_id} (total: {model.usage_count})")
     

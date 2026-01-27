@@ -16,15 +16,30 @@ interface NodeCategoryProps {
 }
 
 const categoryLabels: Record<string, string> = {
-  input: 'Input',
-  processing: 'Processing',
-  embedding: 'Embedding',
-  storage: 'Storage',
-  retrieval: 'Retrieval',
+  // AI-first categories
+  agent: 'AI Agents',
   llm: 'LLM',
-  tool: 'Tool',
+  intelligence: 'AI Intelligence',
+  content: 'AI Content',
+  sales: 'AI Sales',
+  business: 'AI Business',
+  developer: 'AI Developer',
+
+  // RAG & Processing
+  retrieval: 'RAG Retrieval',
+  embedding: 'Embeddings',
+  processing: 'Processing',
+
+  // Input/Output
+  input: 'Input',
   memory: 'Memory',
-  agent: 'Agent',
+  training: 'Training',
+
+  // Legacy (hidden but keep label for safety)
+  storage: 'Storage',
+  tool: 'Tool',
+  communication: 'Communication',
+  integration: 'Integration',
 };
 
 export function NodeCategory({ category, nodes, isExpanded, onToggle }: NodeCategoryProps) {

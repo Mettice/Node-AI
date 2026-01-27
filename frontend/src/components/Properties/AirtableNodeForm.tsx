@@ -59,7 +59,7 @@ export function AirtableNodeForm({ initialData, onChange }: AirtableNodeFormProp
             href="https://airtable.com/api" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="text-purple-400 hover:text-purple-300 underline"
+            className="text-amber-400 hover:text-amber-300 underline"
           >
             airtable.com/api
           </a>
@@ -88,7 +88,7 @@ export function AirtableNodeForm({ initialData, onChange }: AirtableNodeFormProp
           <select
             value={operation}
             onChange={(e) => setOperation(e.target.value)}
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
           >
             <option value="read">Read</option>
             <option value="create">Create</option>
@@ -124,7 +124,7 @@ export function AirtableNodeForm({ initialData, onChange }: AirtableNodeFormProp
             value={baseId}
             onChange={(e) => setBaseId(e.target.value)}
             placeholder="app123abc..."
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
           />
         </div>
 
@@ -137,7 +137,7 @@ export function AirtableNodeForm({ initialData, onChange }: AirtableNodeFormProp
             value={tableName}
             onChange={(e) => setTableName(e.target.value)}
             placeholder="Users"
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
           />
         </div>
       </div>
@@ -162,7 +162,7 @@ export function AirtableNodeForm({ initialData, onChange }: AirtableNodeFormProp
             value={view}
             onChange={(e) => setView(e.target.value)}
             placeholder="Grid View"
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
           />
         </div>
 
@@ -178,7 +178,7 @@ export function AirtableNodeForm({ initialData, onChange }: AirtableNodeFormProp
             value={filterByFormula}
             onChange={(e) => setFilterByFormula(e.target.value)}
             placeholder="{Status} = 'Active'"
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
           />
         </div>
 
@@ -196,7 +196,7 @@ export function AirtableNodeForm({ initialData, onChange }: AirtableNodeFormProp
             placeholder="100"
             min={1}
             max={10000}
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
           />
         </div>
         </div>

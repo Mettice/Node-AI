@@ -175,7 +175,7 @@ export function PromptPlayground() {
           className={cn(
             'flex-1 px-3 py-2 text-xs font-medium transition-all flex items-center justify-center gap-1.5',
             activeTab === 'test'
-              ? 'bg-purple-500/20 text-purple-300 border-b-2 border-purple-500'
+              ? 'bg-amber-500/20 text-amber-300 border-b-2 border-amber-500'
               : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
           )}
         >
@@ -186,7 +186,7 @@ export function PromptPlayground() {
           className={cn(
             'flex-1 px-3 py-2 text-xs font-medium transition-all flex items-center justify-center gap-1.5',
             activeTab === 'ab-test'
-              ? 'bg-purple-500/20 text-purple-300 border-b-2 border-purple-500'
+              ? 'bg-amber-500/20 text-amber-300 border-b-2 border-amber-500'
               : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
           )}
         >
@@ -197,7 +197,7 @@ export function PromptPlayground() {
           className={cn(
             'flex-1 px-3 py-2 text-xs font-medium transition-all flex items-center justify-center gap-1.5',
             activeTab === 'versions'
-              ? 'bg-purple-500/20 text-purple-300 border-b-2 border-purple-500'
+              ? 'bg-amber-500/20 text-amber-300 border-b-2 border-amber-500'
               : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
           )}
         >

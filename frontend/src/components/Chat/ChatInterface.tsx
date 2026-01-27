@@ -248,7 +248,7 @@ export function ChatInterface({ isOpen, onClose }: ChatInterfaceProps) {
         {/* Header */}
         <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-purple-400" />
+            <MessageSquare className="w-5 h-5 text-amber-400" />
             <h2 className="text-lg font-semibold text-white">Chat</h2>
             {vectorStoreReady && (
               <div title="Knowledge base ready">
@@ -263,14 +263,14 @@ export function ChatInterface({ isOpen, onClose }: ChatInterfaceProps) {
               className={cn(
                 "p-1.5 rounded transition-colors relative",
                 memoryEnabled
-                  ? "bg-purple-500/20 hover:bg-purple-500/30 text-purple-400"
+                  ? "bg-amber-500/20 hover:bg-amber-500/30 text-amber-400"
                   : "hover:bg-white/10 text-slate-400"
               )}
               title={memoryEnabled ? "Memory enabled - Click to disable" : "Memory disabled - Click to enable"}
             >
               <BrainCircuit className="w-4 h-4" />
               {memoryEnabled && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-purple-400 rounded-full" />
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full" />
               )}
             </button>
             <button
@@ -325,6 +325,27 @@ export function ChatInterface({ isOpen, onClose }: ChatInterfaceProps) {
               {messages.map((message) => (
                 <ChatMessage key={message.id} message={message} />
               ))}
+              {/* Thinking indicator when processing */}
+              {isProcessing && (
+                <div className="flex gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 animate-pulse">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-amber-500/20">
+                    <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold text-amber-400 mb-1">Thinking...</div>
+                    <div className="text-xs text-slate-400 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-block w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
+                        Searching knowledge base...
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-block w-1.5 h-1.5 bg-slate-500 rounded-full" />
+                        Generating response...
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </>
           )}

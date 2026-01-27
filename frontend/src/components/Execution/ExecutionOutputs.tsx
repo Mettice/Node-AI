@@ -299,7 +299,7 @@ export function ExecutionOutputs() {
                     <span className="text-amber-400 font-medium">${result.cost.toFixed(4)}</span>
                   )}
                   {result.duration_ms && (
-                    <span className="text-purple-300 font-mono">{result.duration_ms < 1000 ? `${result.duration_ms}ms` : `${(result.duration_ms / 1000).toFixed(2)}s`}</span>
+                    <span className="text-amber-300 font-mono">{result.duration_ms < 1000 ? `${result.duration_ms}ms` : `${(result.duration_ms / 1000).toFixed(2)}s`}</span>
                   )}
                 </div>
               </button>
@@ -487,7 +487,7 @@ export function ExecutionOutputs() {
                     return (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <div className="text-xs font-semibold text-purple-400 flex items-center gap-2">
+                          <div className="text-xs font-semibold text-amber-400 flex items-center gap-2">
                             <FileText className="w-3.5 h-3.5" />
                             {node.type === 'crewai_agent' ? 'CrewAI Report' : 
                              node.type === 'advanced_nlp' ? 'NLP Result' : 'Output'}

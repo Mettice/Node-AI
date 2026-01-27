@@ -194,7 +194,7 @@ export function VaultAPIKeyInput({
           className={cn(
             'flex-1 px-3 py-2 rounded-lg transition-all text-sm font-medium flex items-center justify-center gap-2',
             inputMode === 'new'
-              ? 'bg-purple-500/20 border border-purple-500/50 text-purple-300'
+              ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300'
               : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
           )}
         >
@@ -213,7 +213,7 @@ export function VaultAPIKeyInput({
             className={cn(
               'w-full px-3 py-2 rounded-lg transition-all text-sm font-medium flex items-center justify-center gap-2',
               inputMode === 'vault' || secretId
-                ? 'bg-purple-500/20 border border-purple-500/50 text-purple-300'
+                ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300'
                 : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
             )}
           >
@@ -247,7 +247,7 @@ export function VaultAPIKeyInput({
                       onClick={() => handleVaultSecretSelect(secret.id)}
                       className={cn(
                         'w-full px-4 py-2 text-left hover:bg-white/5 transition-colors text-sm',
-                        secretId === secret.id && 'bg-purple-500/10'
+                        secretId === secret.id && 'bg-amber-500/10'
                       )}
                     >
                       <div className="font-medium text-white">{secret.name}</div>
@@ -275,7 +275,7 @@ export function VaultAPIKeyInput({
               className={cn(
                 'w-full px-3 py-2 pr-20 rounded-lg transition-all',
                 'bg-white/5 border border-white/10 text-slate-200 text-sm',
-                'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent focus:bg-white/8',
+                'focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:bg-white/8',
                 'hover:bg-white/8 hover:border-white/20',
                 'placeholder:text-slate-500',
                 isConnected === true && 'border-green-500/50',
@@ -315,7 +315,7 @@ export function VaultAPIKeyInput({
               type="checkbox"
               checked={saveToVault}
               onChange={(e) => setSaveToVault(e.target.checked)}
-              className="h-4 w-4 text-purple-500 focus:ring-purple-500 border-white/20 rounded bg-white/5"
+              className="h-4 w-4 text-amber-500 focus:ring-amber-500 border-white/20 rounded bg-white/5"
             />
             <span className="text-sm text-slate-300">Save to Secrets Vault for reuse</span>
           </label>
@@ -329,8 +329,8 @@ export function VaultAPIKeyInput({
         disabled={isConnecting || !value.trim()}
         className={cn(
           'w-full px-4 py-2 rounded-lg transition-all flex items-center justify-center gap-2',
-          'bg-purple-600 text-white font-medium text-sm',
-          'hover:bg-purple-700',
+          'bg-amber-600 text-white font-medium text-sm',
+          'hover:bg-amber-700',
           'disabled:opacity-50 disabled:cursor-not-allowed',
           isConnected === true && 'bg-green-600 hover:bg-green-700',
           isConnected === false && 'bg-red-600 hover:bg-red-700'

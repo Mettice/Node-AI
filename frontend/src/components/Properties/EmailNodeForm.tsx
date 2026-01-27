@@ -133,7 +133,7 @@ export function EmailNodeForm({ initialData, onChange, schema }: EmailNodeFormPr
           type="button"
           onClick={handleTestConnection}
           disabled={connectionStatus === 'testing' || !apiKey}
-          className="w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-lg transition-all text-sm font-medium"
+          className="w-full px-3 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-lg transition-all text-sm font-medium"
         >
           {connectionStatus === 'testing' ? 'Testing...' : 'Test Connection'}
         </button>
@@ -167,7 +167,7 @@ export function EmailNodeForm({ initialData, onChange, schema }: EmailNodeFormPr
             value={fromEmail}
             onChange={(e) => setFromEmail(e.target.value)}
             placeholder="noreply@example.com"
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
           />
         </div>
 
@@ -180,7 +180,7 @@ export function EmailNodeForm({ initialData, onChange, schema }: EmailNodeFormPr
             value={fromName}
             onChange={(e) => setFromName(e.target.value)}
             placeholder="NodAI Team"
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
           />
         </div>
 
@@ -193,7 +193,7 @@ export function EmailNodeForm({ initialData, onChange, schema }: EmailNodeFormPr
             value={replyTo}
             onChange={(e) => setReplyTo(e.target.value)}
             placeholder="support@example.com"
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
           />
         </div>
       </div>
@@ -217,7 +217,7 @@ export function EmailNodeForm({ initialData, onChange, schema }: EmailNodeFormPr
             value={toEmail}
             onChange={(e) => setToEmail(e.target.value)}
             placeholder="recipient@example.com"
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
           />
         </div>
 
@@ -231,7 +231,7 @@ export function EmailNodeForm({ initialData, onChange, schema }: EmailNodeFormPr
               value={cc}
               onChange={(e) => setCc(e.target.value)}
               placeholder="cc@example.com"
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -244,7 +244,7 @@ export function EmailNodeForm({ initialData, onChange, schema }: EmailNodeFormPr
               value={bcc}
               onChange={(e) => setBcc(e.target.value)}
               placeholder="bcc@example.com"
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
           </div>
         </div>
@@ -261,7 +261,7 @@ export function EmailNodeForm({ initialData, onChange, schema }: EmailNodeFormPr
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             placeholder="Email subject"
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
           />
         </div>
 
@@ -289,7 +289,7 @@ export function EmailNodeForm({ initialData, onChange, schema }: EmailNodeFormPr
             onChange={(e) => setBody(e.target.value)}
             placeholder={emailType === 'html' ? '<p>Your HTML email content here...</p>' : 'Your email message here...'}
             rows={emailType === 'html' ? 12 : 8}
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all font-mono text-sm"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all font-mono text-sm"
           />
           {emailType === 'html' && (
             <p className="text-xs text-slate-400">

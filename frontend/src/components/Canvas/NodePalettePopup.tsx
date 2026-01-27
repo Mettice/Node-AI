@@ -1,10 +1,13 @@
 /**
  * Node Palette Popup - Shows when Plus button is clicked
+ *
+ * Integration nodes (Airtable, S3, Slack, etc.) are hidden from the palette
+ * and accessed via MCP integrations instead.
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { X, Search, ChevronRight } from 'lucide-react';
+import { X, Search, ChevronRight, Plug } from 'lucide-react';
 import { listNodes } from '@/services/nodes';
 import { NodeCard } from '@/components/Sidebar/NodeCard';
 import { NODE_CATEGORY_COLORS } from '@/constants';
@@ -12,6 +15,58 @@ import type { NodeMetadata } from '@/types/node';
 import { Spinner } from '@/components/common/Spinner';
 import { useWorkflowStore } from '@/store/workflowStore';
 import { cn } from '@/utils/cn';
+
+/**
+ * Node types that require external service authentication.
+ * These are hidden from the palette and accessed via MCP integrations.
+ */
+const HIDDEN_NODE_TYPES = new Set([
+  // Storage integrations (use MCP instead)
+  'airtable',
+  's3',
+  'azure_blob',
+  'google_sheets',
+  'google_drive',
+  'database',
+  'knowledge_graph',
+
+  // Communication integrations (use MCP instead)
+  'slack',
+  'email',
+  'reddit',
+
+  // External API integrations (use MCP instead)
+  'stripe_analytics',
+  'graph_tools',
+  'ai_web_search',
+  'rerank',
+
+  // Generic tool node (replaced by MCP tools)
+  'tool',
+
+  // Placeholder nodes
+  'lead_enricher',
+]);
+
+/**
+ * Preferred category display order for cleaner organization
+ */
+const CATEGORY_ORDER = [
+  'agent',
+  'llm',
+  'intelligence',
+  'content',
+  'sales',
+  'business',
+  'developer',
+  'retrieval',
+  'embedding',
+  'processing',
+  'input',
+  'storage',  // Vector Store and other storage nodes
+  'memory',
+  'training',
+];
 
 // Wrapper that allows both drag and click without interfering
 interface ClickableNodeCardProps {
@@ -70,23 +125,24 @@ interface NodePalettePopupProps {
 }
 
 const categoryLabels: Record<string, string> = {
-  input: 'Input',
-  processing: 'Processing',
-  embedding: 'Embedding',
-  storage: 'Storage',
-  retrieval: 'Retrieval',
+  // AI-first categories
+  agent: 'AI Agents',
   llm: 'LLM',
-  tool: 'Tool',
+  intelligence: 'AI Intelligence',
+  content: 'AI Content',
+  sales: 'AI Sales',
+  business: 'AI Business',
+  developer: 'AI Developer',
+
+  // RAG & Processing
+  retrieval: 'RAG Retrieval',
+  embedding: 'Embeddings',
+  processing: 'Processing',
+
+  // Input/Output
+  input: 'Input',
   memory: 'Memory',
-  agent: 'Agent',
-  communication: 'Communication',
-  integration: 'Integration',
-  // New AI categories
-  intelligence: 'Intelligence',
-  business: 'Business',
-  content: 'Content',
-  developer: 'Developer',
-  sales: 'Sales',
+  training: 'Training',
 };
 
 export function NodePalettePopup({ isOpen, onClose, position, isMobile = false }: NodePalettePopupProps) {
@@ -96,24 +152,21 @@ export function NodePalettePopup({ isOpen, onClose, position, isMobile = false }
   const { addNode } = useWorkflowStore();
   const dragStartedRef = useRef<Record<string, boolean>>({});
   const mouseDownTimeRef = useRef<Record<string, number>>({});
-  // Categories collapsed by default for cleaner UI - expand on click
+  // Agent category expanded by default (main feature)
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
-    input: false,
-    processing: false,
-    embedding: false,
-    storage: false,
-    retrieval: false,
+    agent: true,
     llm: false,
-    tool: false,
-    memory: false,
-    agent: false,
-    communication: false,
-    integration: false,
     intelligence: false,
-    business: false,
     content: false,
-    developer: false,
     sales: false,
+    business: false,
+    developer: false,
+    retrieval: false,
+    embedding: false,
+    processing: false,
+    input: false,
+    memory: false,
+    training: false,
   });
 
   // Handle node click - insert at canvas center
@@ -147,9 +200,21 @@ export function NodePalettePopup({ isOpen, onClose, position, isMobile = false }
     retry: 1,
   });
 
-  // Group nodes by category
+  // Filter out hidden integration nodes and group by category
   const nodesByCategory = nodes?.reduce((acc, node) => {
+    // Skip hidden integration nodes
+    if (HIDDEN_NODE_TYPES.has(node.type)) {
+      return acc;
+    }
+
     const category = node.category || 'other';
+
+    // Skip entire communication and integration categories (all moved to MCP)
+    // Storage category is allowed (vector_store, etc.) but individual integration nodes are hidden via HIDDEN_NODE_TYPES
+    if (category === 'communication' || category === 'integration') {
+      return acc;
+    }
+
     if (!acc[category]) {
       acc[category] = [];
     }
@@ -294,7 +359,7 @@ export function NodePalettePopup({ isOpen, onClose, position, isMobile = false }
               placeholder="Search nodes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-sm"
+              className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all text-sm"
               autoFocus
             />
           </div>
@@ -318,89 +383,158 @@ export function NodePalettePopup({ isOpen, onClose, position, isMobile = false }
               )}
             </div>
           ) : (
-            Object.entries(filteredNodesByCategory).map(([category, categoryNodes]) => {
-              const categoryColor = NODE_CATEGORY_COLORS[category as keyof typeof NODE_CATEGORY_COLORS] || '#9ca3af';
-              const categoryLabel = categoryLabels[category] || category;
-              const isExpanded = expandedCategories[category];
+            <>
+              {/* Render categories in preferred order */}
+              {CATEGORY_ORDER
+                .filter((category) => filteredNodesByCategory[category]?.length > 0)
+                .map((category) => {
+                  const categoryNodes = filteredNodesByCategory[category];
+                  const categoryColor = NODE_CATEGORY_COLORS[category as keyof typeof NODE_CATEGORY_COLORS] || '#9ca3af';
+                  const categoryLabel = categoryLabels[category] || category;
+                  const isExpanded = expandedCategories[category];
 
-              return (
-                <div key={category} className="mb-1">
-                  {/* Category header with colored left border */}
-                  <button
-                    onClick={() => toggleCategory(category)}
-                    className={cn(
-                      "w-full flex items-center justify-between px-3 py-2.5 rounded-lg",
-                      "hover:bg-white/5 transition-all duration-200",
-                      "border-l-4",
-                      isExpanded && "bg-white/[0.03]"
-                    )}
-                    style={{ 
-                      borderLeftColor: categoryColor,
-                    }}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      {/* Colored icon indicator */}
-                      <div 
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: categoryColor }}
-                      />
-                      <span
-                        className="text-sm font-semibold tracking-wide"
-                        style={{ color: categoryColor }}
+                  return (
+                    <div key={category} className="mb-1">
+                      {/* Category header with colored left border */}
+                      <button
+                        onClick={() => toggleCategory(category)}
+                        className={cn(
+                          "w-full flex items-center justify-between px-3 py-2.5 rounded-lg",
+                          "hover:bg-white/5 transition-all duration-200",
+                          "border-l-4",
+                          isExpanded && "bg-white/[0.03]"
+                        )}
+                        style={{
+                          borderLeftColor: categoryColor,
+                        }}
                       >
-                        {categoryLabel}
-                      </span>
-                      <span className="text-xs text-slate-500 bg-white/5 px-1.5 py-0.5 rounded">
-                        {categoryNodes.length}
-                      </span>
-                    </div>
-                    <div 
-                      className="transition-transform duration-200"
-                      style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
-                    >
-                      <ChevronRight className="w-4 h-4 text-slate-400" />
-                    </div>
-                  </button>
-
-                  {/* Category nodes with animation */}
-                  <div 
-                    className={cn(
-                      "overflow-hidden transition-all duration-200 ease-out",
-                      isExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
-                    )}
-                  >
-                    <div className="ml-4 mt-1 space-y-1 pb-1">
-                      {categoryNodes.map((node, index) => {
-                        const nodeKey = `${node.type}-${index}`;
-                        
-                        return (
-                          <ClickableNodeCard
-                            key={nodeKey}
-                            node={node}
-                            nodeKey={nodeKey}
-                            onDragStart={() => {
-                              dragStartedRef.current[nodeKey] = true;
-                              isDraggingRef.current = true;
-                              setIsDragging(true);
-                            }}
-                            onClick={() => {
-                              const clickDuration = Date.now() - (mouseDownTimeRef.current[nodeKey] || 0);
-                              if (!dragStartedRef.current[nodeKey] && clickDuration < 500) {
-                                handleNodeClick(node, nodeKey);
-                              }
-                            }}
-                            onMouseDown={() => {
-                              mouseDownTimeRef.current[nodeKey] = Date.now();
-                              dragStartedRef.current[nodeKey] = false;
-                            }}
+                        <div className="flex items-center gap-2.5">
+                          {/* Colored icon indicator */}
+                          <div
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: categoryColor }}
                           />
-                        );
-                      })}
+                          <span
+                            className="text-sm font-semibold tracking-wide"
+                            style={{ color: categoryColor }}
+                          >
+                            {categoryLabel}
+                          </span>
+                          <span className="text-xs text-slate-500 bg-white/5 px-1.5 py-0.5 rounded">
+                            {categoryNodes.length}
+                          </span>
+                        </div>
+                        <div
+                          className="transition-transform duration-200"
+                          style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+                        >
+                          <ChevronRight className="w-4 h-4 text-slate-400" />
+                        </div>
+                      </button>
+
+                      {/* Category nodes with animation */}
+                      <div
+                        className={cn(
+                          "overflow-hidden transition-all duration-200 ease-out",
+                          isExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
+                        )}
+                      >
+                        <div className="ml-4 mt-1 space-y-1 pb-1">
+                          {categoryNodes.map((node, index) => {
+                            const nodeKey = `${node.type}-${index}`;
+
+                            return (
+                              <ClickableNodeCard
+                                key={nodeKey}
+                                node={node}
+                                nodeKey={nodeKey}
+                                onDragStart={() => {
+                                  dragStartedRef.current[nodeKey] = true;
+                                  isDraggingRef.current = true;
+                                  setIsDragging(true);
+                                }}
+                                onClick={() => {
+                                  const clickDuration = Date.now() - (mouseDownTimeRef.current[nodeKey] || 0);
+                                  if (!dragStartedRef.current[nodeKey] && clickDuration < 500) {
+                                    handleNodeClick(node, nodeKey);
+                                  }
+                                }}
+                                onMouseDown={() => {
+                                  mouseDownTimeRef.current[nodeKey] = Date.now();
+                                  dragStartedRef.current[nodeKey] = false;
+                                }}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  );
+                })}
+
+              {/* Render any remaining categories not in the order list */}
+              {Object.entries(filteredNodesByCategory)
+                .filter(([category]) => !CATEGORY_ORDER.includes(category))
+                .map(([category, categoryNodes]) => {
+                  const categoryColor = NODE_CATEGORY_COLORS[category as keyof typeof NODE_CATEGORY_COLORS] || '#9ca3af';
+                  const categoryLabel = categoryLabels[category] || category;
+                  const isExpanded = expandedCategories[category];
+
+                  return (
+                    <div key={category} className="mb-1">
+                      <button
+                        onClick={() => toggleCategory(category)}
+                        className={cn(
+                          "w-full flex items-center justify-between px-3 py-2.5 rounded-lg",
+                          "hover:bg-white/5 transition-all duration-200",
+                          "border-l-4",
+                          isExpanded && "bg-white/[0.03]"
+                        )}
+                        style={{ borderLeftColor: categoryColor }}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: categoryColor }} />
+                          <span className="text-sm font-semibold tracking-wide" style={{ color: categoryColor }}>
+                            {categoryLabel}
+                          </span>
+                          <span className="text-xs text-slate-500 bg-white/5 px-1.5 py-0.5 rounded">
+                            {categoryNodes.length}
+                          </span>
+                        </div>
+                        <ChevronRight className={cn("w-4 h-4 text-slate-400 transition-transform", isExpanded && "rotate-90")} />
+                      </button>
+                      <div className={cn("overflow-hidden transition-all duration-200", isExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0")}>
+                        <div className="ml-4 mt-1 space-y-1 pb-1">
+                          {categoryNodes.map((node, index) => {
+                            const nodeKey = `${node.type}-${index}`;
+                            return (
+                              <ClickableNodeCard
+                                key={nodeKey}
+                                node={node}
+                                nodeKey={nodeKey}
+                                onDragStart={() => { dragStartedRef.current[nodeKey] = true; isDraggingRef.current = true; setIsDragging(true); }}
+                                onClick={() => { if (!dragStartedRef.current[nodeKey]) handleNodeClick(node, nodeKey); }}
+                                onMouseDown={() => { mouseDownTimeRef.current[nodeKey] = Date.now(); dragStartedRef.current[nodeKey] = false; }}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+              {/* MCP Integrations hint */}
+              <div className="mt-3 mx-2 p-2.5 bg-gradient-to-r from-blue-500/10 to-amber-500/10 border border-white/10 rounded-lg">
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <Plug className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Need Slack, Gmail, Airtable?</span>
                 </div>
-              );
-            })
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Use the MCP button in the toolbar
+                </p>
+              </div>
+            </>
           )}
         </div>
       </div>

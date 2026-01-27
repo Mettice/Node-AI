@@ -477,20 +477,53 @@ Transcript:
 Provide a concise executive summary focusing on key outcomes and decisions."""
         
         elif style == "detailed":
-            prompt = f"""Create a comprehensive meeting summary with the following structure:
+            prompt = f"""You are an expert meeting summarizer. Analyze this meeting transcript and create a comprehensive, well-structured summary.
 
-1. Executive Summary (2-3 paragraphs)
-2. Key Topics Discussed (bullet points)
-3. Main Decisions Made
-4. Important Points Raised
+MEETING CONTEXT:
+- Title: {title}
+- Attendees: {', '.join(attendees) if attendees else 'Not specified'}
+- Main Topics Identified: {', '.join([t['topic'] for t in topics[:5]]) if topics else 'Various topics'}
 
-Meeting Title: {title}
-Attendees: {', '.join(attendees) if attendees else 'Not specified'}
-
-Transcript:
+TRANSCRIPT:
 {transcript_preview}
 
-Generate a detailed, well-structured summary."""
+INSTRUCTIONS:
+Create a detailed meeting summary with the following structure:
+
+## Executive Summary
+Write 2-3 paragraphs that:
+- Provide a high-level overview of the meeting's purpose and outcomes
+- Highlight the most important discussions and decisions
+- Summarize key takeaways and next steps
+- Be clear, concise, and professional
+
+## Key Topics Discussed
+List the main topics covered in the meeting as bullet points. For each topic:
+- Use clear, descriptive topic names
+- Provide brief context about what was discussed
+- Focus on substantive topics, not small talk
+
+## Main Decisions Made
+List any decisions, agreements, or conclusions reached during the meeting. Be specific about:
+- What was decided
+- Who was involved (if mentioned)
+- Any deadlines or timelines associated with decisions
+
+## Important Points Raised
+Highlight any critical information, concerns, or insights that were discussed:
+- Important context or background information
+- Key challenges or opportunities mentioned
+- Significant concerns or risks raised
+- Notable insights or recommendations
+
+GUIDELINES:
+- Focus on substance, not filler or small talk
+- Be accurate to the transcript content
+- Use clear, professional language
+- Organize information logically
+- If information is unclear or missing, note it rather than making assumptions
+
+Generate the summary now:"""
         
         else:  # standard
             prompt = f"""Summarize this meeting transcript in a clear, structured format.

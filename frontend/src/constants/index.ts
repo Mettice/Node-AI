@@ -6,7 +6,7 @@ export const APP_NAME = 'NodeAI';
 export const APP_VERSION = '0.1.0';
 
 // API Configuration
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
 export const API_PREFIX = '/api/v1';
 
 // Node Category Colors - "Living Intelligence" Design System

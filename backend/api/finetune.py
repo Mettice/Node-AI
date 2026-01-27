@@ -8,6 +8,7 @@ checking status, and retrieving model information.
 import os
 from typing import Dict, List, Optional
 from datetime import datetime
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
@@ -41,6 +42,82 @@ class FineTuneJobStatus(BaseModel):
     epochs: Optional[int] = None
     base_model: Optional[str] = None
     provider: Optional[str] = None
+
+
+@router.post("/finetune/{job_id}/register-model")
+@limiter.limit("10/minute")
+async def register_finetuned_model(job_id: str, request: Request) -> Dict:
+    """
+    Manually register a fine-tuned model in the registry.
+    
+    This endpoint checks the job status and registers the model if it's completed.
+    Useful when auto-registration didn't trigger.
+    
+    Args:
+        job_id: Fine-tuning job ID
+        
+    Returns:
+        Registration result with model details
+    """
+    try:
+        # Check job status first
+        status = await _check_openai_job_status(job_id)
+        
+        if status.get("status") != "succeeded":
+            raise HTTPException(
+                status_code=400,
+                detail=f"Job is not completed yet. Current status: {status.get('status')}"
+            )
+        
+        model_id = status.get("model_id")
+        if not model_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Model ID not found. Job may not have completed successfully."
+            )
+        
+        # Get job data from cache or status
+        job_data = _finetune_jobs.get(job_id, {})
+        if not job_data:
+            # Try to reconstruct from status - status now includes base_model and epochs from OpenAI
+            job_data = {
+                "provider": status.get("provider", "openai"),
+                "base_model": status.get("base_model", "unknown"),  # Now included in status
+                "training_examples": status.get("training_examples", 0),
+                "validation_examples": status.get("validation_examples", 0),
+                "epochs": status.get("epochs", 3),  # Now included in status from hyperparameters
+                "training_file_id": status.get("training_file_id"),
+                "validation_file_id": status.get("validation_file_id"),
+                "estimated_cost": status.get("estimated_cost"),
+            }
+        else:
+            # Update cached job_data with new fields from status, but preserve training_examples/validation_examples
+            if not job_data.get("base_model") or job_data.get("base_model") == "unknown":
+                job_data["base_model"] = status.get("base_model", "unknown")
+            if not job_data.get("epochs") and status.get("epochs"):
+                job_data["epochs"] = status.get("epochs")
+            # Preserve training_examples and validation_examples from cache (not available from OpenAI job object)
+            # These are only available from the original job creation
+        
+        # Register the model
+        await _auto_register_model(job_id, model_id, job_data)
+        
+        return {
+            "success": True,
+            "message": "Model registered successfully",
+            "job_id": job_id,
+            "model_id": model_id,
+            "status": status
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error registering model: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to register model: {str(e)}"
+        )
 
 
 @router.get("/finetune/{job_id}/status", response_model=FineTuneJobStatus)
@@ -201,6 +278,19 @@ async def _check_openai_job_status(job_id: str) -> Dict:
         training_file_id = getattr(job, "training_file", None)
         validation_file_id = getattr(job, "validation_file", None)
         
+        # Get base model from job
+        base_model = getattr(job, "model", None)  # OpenAI job has "model" field for base model
+        
+        # Get hyperparameters (epochs, batch_size, learning_rate_multiplier)
+        epochs = None
+        if hasattr(job, "hyperparameters") and job.hyperparameters:
+            hyperparams = job.hyperparameters
+            if hasattr(hyperparams, "n_epochs"):
+                epochs = hyperparams.n_epochs
+        
+        # Get trained tokens (available when job completes)
+        trained_tokens = getattr(job, "trained_tokens", None)
+        
         result = {
             "job_id": job_id,
             "status": job.status,
@@ -209,6 +299,9 @@ async def _check_openai_job_status(job_id: str) -> Dict:
             "error": error,
             "training_file_id": training_file_id,
             "validation_file_id": validation_file_id,
+            "base_model": base_model,  # Include base_model in status
+            "epochs": epochs,  # Include epochs from hyperparameters
+            "trained_tokens": trained_tokens,  # Include trained tokens
             "updated_at": datetime.now().isoformat(),
             "provider": "openai",
         }
@@ -236,16 +329,44 @@ async def _auto_register_model(job_id: str, model_id: str, job_data: Dict) -> No
         import httpx
         import os
         
-        # Get job details from cache (use job_info if provided, otherwise fetch from cache)
-        if job_id not in _finetune_jobs and not job_info:
-            return  # Can't register without job details
+        # Use provided job_data, or fetch from cache if not provided
+        if not job_data:
+            if job_id in _finetune_jobs:
+                job_data = _finetune_jobs[job_id]
+            else:
+                return  # Can't register without job details
         
-        job_data = job_info if job_info else _finetune_jobs[job_id]
-        
-        # Create model name from base model and timestamp
+        # Create model name - use custom name if provided, otherwise generate from file or base model
         base_model = job_data.get("base_model", "unknown")
-        timestamp = datetime.now().strftime("%Y%m%d")
-        model_name = f"{base_model} Fine-Tuned ({timestamp})"
+        custom_name = job_data.get("model_name", "").strip()
+        
+        if custom_name:
+            # Use custom name provided by user
+            model_name = custom_name
+        else:
+            # Generate name from training file or base model
+            training_file_id = job_data.get("training_file_id")
+            filename = None
+            
+            # Try to get filename from file registry
+            if training_file_id:
+                try:
+                    from backend.api.files import _uploaded_files
+                    if training_file_id in _uploaded_files:
+                        filename = _uploaded_files[training_file_id].get("filename", "")
+                        # Remove extension for cleaner name
+                        if filename:
+                            filename = Path(filename).stem
+                except Exception:
+                    pass  # If file registry not available, continue with default
+            
+            if filename:
+                # Use filename (without extension) + base model
+                model_name = f"{filename} ({base_model})"
+            else:
+                # Fallback: base model + timestamp
+                timestamp = datetime.now().strftime("%Y%m%d")
+                model_name = f"{base_model} Fine-Tuned ({timestamp})"
         
         # Register model
         api_base = os.getenv("API_BASE_URL", "http://localhost:8000")

@@ -100,7 +100,7 @@ export function ConnectionStringInput({
             className={cn(
               'w-full px-3 py-2 pr-20 rounded-lg transition-all',
               'bg-white/5 border border-white/10 text-slate-200 text-sm',
-              'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent focus:bg-white/8',
+              'focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:bg-white/8',
               'hover:bg-white/8 hover:border-white/20',
               'placeholder:text-slate-500',
               isConnected === true && 'border-green-500/50',
@@ -143,8 +143,8 @@ export function ConnectionStringInput({
           disabled={isConnecting || !value.trim()}
           className={cn(
             'px-4 py-2 rounded-lg transition-all flex items-center gap-2',
-            'bg-purple-500/20 border border-purple-500/50 text-purple-300',
-            'hover:bg-purple-500/30 hover:border-purple-500',
+            'bg-amber-500/20 border border-amber-500/50 text-amber-300',
+            'hover:bg-amber-500/30 hover:border-amber-500',
             'disabled:opacity-50 disabled:cursor-not-allowed',
             'text-sm font-medium',
             isConnected === true && 'bg-green-500/20 border-green-500/50 text-green-300',

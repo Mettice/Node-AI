@@ -63,7 +63,7 @@ export function FileList({ onSelectFile, selectedFileId }: FileListProps) {
           className={cn(
             'flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer',
             selectedFileId === file.file_id
-              ? 'bg-purple-500/20 border-purple-500/50'
+              ? 'bg-amber-500/20 border-amber-500/50'
               : 'bg-white/5 border-white/10 hover:bg-white/8 hover:border-white/20'
           )}
           onClick={() => onSelectFile?.(file.file_id)}

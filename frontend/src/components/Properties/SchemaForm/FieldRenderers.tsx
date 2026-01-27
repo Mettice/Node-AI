@@ -212,7 +212,7 @@ export function renderField(context: FieldRendererContext): React.ReactNode | nu
               setValue(key, e.target.value);
             }
           }}
-          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all font-mono text-sm"
+          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all font-mono text-sm"
           rows={8}
           placeholder={`Enter JSON array, e.g.:\n[\n  {\n    "role": "Researcher",\n    "goal": "Research the topic",\n    "backstory": "You are a research expert"\n  }\n]`}
         />

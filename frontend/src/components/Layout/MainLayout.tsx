@@ -8,12 +8,20 @@ import { UtilitySidebar } from '@/components/Sidebar/UtilitySidebar';
 import { ExecutionLogsSidebar } from '@/components/Sidebar/ExecutionLogsSidebar';
 import { ChatInterface } from '@/components/Chat/ChatInterface';
 import { UtilityModal } from '@/components/Sidebar/UtilityModal';
+import { InsightsPanel } from '@/components/Execution/InsightsPanel';
 import { useUIStore } from '@/store/uiStore';
 import { cn } from '@/utils/cn';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export function MainLayout() {
-  const { nodePaletteOpen, chatInterfaceOpen, toggleChatInterface, toggleNodePalette } = useUIStore();
+  const {
+    nodePaletteOpen,
+    chatInterfaceOpen,
+    insightsPanelOpen,
+    toggleChatInterface,
+    toggleNodePalette,
+    setInsightsPanelOpen
+  } = useUIStore();
 
   return (
     <div className="h-full flex relative">
@@ -61,6 +69,12 @@ export function MainLayout() {
       
       {/* Utility Modals (Full-page overlays) */}
       <UtilityModal />
+
+      {/* Insights Panel (Expanded Output View) */}
+      <InsightsPanel
+        isOpen={insightsPanelOpen}
+        onClose={() => setInsightsPanelOpen(false)}
+      />
     </div>
   );
 }

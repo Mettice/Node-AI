@@ -284,7 +284,7 @@ function SummaryCard({
   const colorClasses = {
     green: 'text-green-400 bg-green-500/10 border-green-500/30',
     blue: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
-    purple: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
+    purple: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
   };
 
   return (
@@ -325,7 +325,7 @@ function BreakdownChart({
             </div>
             <div className="h-2 bg-white/5 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-300"
+                className="h-full bg-gradient-to-r from-blue-500 to-amber-500 transition-all duration-300"
                 style={{ width: `${percentage}%` }}
               />
             </div>
@@ -364,7 +364,7 @@ function TimeSeriesChart({
           return (
             <div key={idx} className="flex-1 flex flex-col items-center group relative">
               <div
-                className="w-full bg-gradient-to-t from-blue-500 to-cyan-500 rounded-t transition-all duration-300 hover:opacity-80 cursor-pointer"
+                className="w-full bg-gradient-to-t from-blue-500 to-amber-500 rounded-t transition-all duration-300 hover:opacity-80 cursor-pointer"
                 style={{ height: `${height}%` }}
                 title={`${label}: $${item.total_cost.toFixed(2)}`}
               />

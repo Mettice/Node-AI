@@ -336,10 +336,10 @@ function VersionsView({
     <div className="space-y-4">
       {/* Current Version Summary */}
       {currentVersion && (
-        <div className="glass rounded-lg p-4 border border-purple-500/50 bg-purple-500/10">
+        <div className="glass rounded-lg p-4 border border-amber-500/50 bg-amber-500/10">
           <div className="flex items-center justify-between mb-3">
             <h4 className="font-semibold text-white flex items-center gap-2">
-              <GitBranch className="w-4 h-4 text-purple-400" />
+              <GitBranch className="w-4 h-4 text-amber-400" />
               Current Version: v{currentVersion.version_number}
             </h4>
             <div className={cn('flex items-center gap-2 px-2 py-1 rounded border', getStatusColor(currentVersion.status))}>
@@ -389,7 +389,7 @@ function VersionsView({
                 className={cn(
                   'glass rounded-lg border overflow-hidden',
                   isCurrent
-                    ? 'border-purple-500/50 bg-purple-500/5'
+                    ? 'border-amber-500/50 bg-amber-500/5'
                     : 'border-white/10'
                 )}
               >
@@ -410,7 +410,7 @@ function VersionsView({
                       <span className="capitalize">{version.status}</span>
                     </div>
                     {isCurrent && (
-                      <span className="text-xs text-purple-400 font-medium">(Current)</span>
+                      <span className="text-xs text-amber-400 font-medium">(Current)</span>
                     )}
                   </div>
                   <div className="flex items-center gap-4 text-xs text-slate-400">
@@ -461,7 +461,7 @@ function VersionsView({
                       {/* Embed Config */}
                       <div className="bg-white/5 rounded p-3">
                         <div className="flex items-center gap-2 mb-2">
-                          <Layers className="w-4 h-4 text-purple-400" />
+                          <Layers className="w-4 h-4 text-amber-400" />
                           <span className="text-xs font-semibold text-slate-300">Embedding</span>
                         </div>
                         <div className="space-y-1 text-xs">
@@ -671,7 +671,7 @@ function CompareView({
                 {comparison.differences.embed_config && (
                   <div className="bg-white/5 rounded p-3 border border-white/10">
                     <div className="flex items-center gap-2 mb-2">
-                      <Layers className="w-4 h-4 text-purple-400" />
+                      <Layers className="w-4 h-4 text-amber-400" />
                       <span className="text-sm font-semibold text-white">Embedding Configuration</span>
                     </div>
                     <div className="space-y-2 text-xs">

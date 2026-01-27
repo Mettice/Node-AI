@@ -1,0 +1,22 @@
+{
+  "id": "81cdc2e3-8f31-49b1-a925-295e120ff9eb",
+  "job_id": "ftjob-mL2BOsuYyK9xVeLtTqgXYWej",
+  "model_id": "ft:gpt-3.5-turbo-0125:personal::D0RVe0pF",
+  "name": "gpt-3.5-turbo-0125 Fine-Tuned (20260121)",
+  "description": "Fine-tuned gpt-3.5-turbo-0125 model",
+  "base_model": "gpt-3.5-turbo-0125",
+  "provider": "openai",
+  "status": "ready",
+  "training_examples": 0,
+  "validation_examples": 0,
+  "epochs": 3,
+  "training_file_id": "file-39vvxSwr1WMLEPxW8gJcXT",
+  "validation_file_id": "file-UrfDbxrNeH5FuW2uBjytqT",
+  "estimated_cost": null,
+  "actual_cost": null,
+  "usage_count": 5,
+  "last_used_at": "2026-01-21T16:26:36.011291",
+  "created_at": "2026-01-21T14:19:35.490068",
+  "updated_at": "2026-01-21T16:26:36.011291",
+  "metadata": {}
+}

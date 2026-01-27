@@ -3,14 +3,15 @@
  */
 
 import { useState } from 'react';
-import { User, Key, Bell, Palette, Shield, Save, Activity } from 'lucide-react';
+import { User, Key, Bell, Palette, Shield, Save, Activity, Plug } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
 import { SecretsVault } from './SecretsVault';
 import { ObservabilitySettings } from './ObservabilitySettings';
+import { MCPSettings } from './MCPSettings';
 
-type SettingsTab = 'profile' | 'api-keys' | 'observability' | 'notifications' | 'appearance' | 'security';
+type SettingsTab = 'profile' | 'api-keys' | 'mcp' | 'observability' | 'notifications' | 'appearance' | 'security';
 
 export function SettingsPanel() {
   const { user, updateProfile } = useAuth();
@@ -21,6 +22,7 @@ export function SettingsPanel() {
   const tabs: { id: SettingsTab; label: string; icon: typeof User }[] = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'api-keys', label: 'Secrets Vault', icon: Key },
+    { id: 'mcp', label: 'MCP Tools', icon: Plug },
     { id: 'observability', label: 'Observability', icon: Activity },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'appearance', label: 'Appearance', icon: Palette },
@@ -59,7 +61,7 @@ export function SettingsPanel() {
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
                     placeholder="Enter your name"
                   />
                 </div>
@@ -79,7 +81,7 @@ export function SettingsPanel() {
                   onClick={handleSaveProfile}
                   disabled={isSaving}
                   className={cn(
-                    'flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600',
+                    'flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600',
                     'text-white rounded-lg transition-colors',
                     'disabled:opacity-50 disabled:cursor-not-allowed'
                   )}
@@ -94,6 +96,9 @@ export function SettingsPanel() {
 
       case 'api-keys':
         return <SecretsVault />;
+
+      case 'mcp':
+        return <MCPSettings />;
 
       case 'observability':
         return <ObservabilitySettings />;
@@ -174,7 +179,7 @@ export function SettingsPanel() {
                 'flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors',
                 'border-b-2',
                 isActive
-                  ? 'text-purple-400 border-purple-500'
+                  ? 'text-amber-400 border-amber-500'
                   : 'text-slate-400 border-transparent hover:text-slate-300 hover:border-white/10'
               )}
             >

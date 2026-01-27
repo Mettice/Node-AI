@@ -451,7 +451,7 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
               placeholder="Search workflows..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -460,7 +460,7 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
               className={cn(
                 'px-3 py-1.5 text-sm rounded transition-colors',
                 showTemplates
-                  ? 'bg-purple-500 text-white'
+                  ? 'bg-amber-500 text-white'
                   : 'bg-white/5 text-slate-300 hover:bg-white/10'
               )}
             >
@@ -471,7 +471,7 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
               disabled={uploading}
               className={cn(
                 'px-3 py-1.5 text-sm rounded transition-colors flex items-center gap-2',
-                'bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/50',
+                'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/50',
                 uploading && 'opacity-50 cursor-not-allowed'
               )}
             >
@@ -518,11 +518,11 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
                   className="text-left p-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:border-white/20 transition-all group"
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-medium text-white group-hover:text-purple-400 transition-colors">
+                    <h3 className="font-medium text-white group-hover:text-amber-400 transition-colors">
                       {workflow.name}
                     </h3>
                     {workflow.is_template && (
-                      <Tag className="w-4 h-4 text-purple-400 flex-shrink-0 ml-2" />
+                      <Tag className="w-4 h-4 text-amber-400 flex-shrink-0 ml-2" />
                     )}
                   </div>
                   {workflow.description && (
@@ -542,7 +542,7 @@ export function WorkflowLoader({ isOpen, onClose }: WorkflowLoaderProps) {
                         {workflow.tags.slice(0, 2).map((tag) => (
                           <span
                             key={tag}
-                            className="px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded"
+                            className="px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded"
                           >
                             {tag}
                           </span>

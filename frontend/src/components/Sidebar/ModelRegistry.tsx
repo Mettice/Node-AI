@@ -114,7 +114,7 @@ export function ModelRegistry() {
       {/* Header */}
       <div className="p-4 border-b border-white/10">
         <div className="flex items-center gap-2 mb-3">
-          <GraduationCap className="w-5 h-5 text-purple-400" />
+          <GraduationCap className="w-5 h-5 text-amber-400" />
           <h2 className="text-lg font-semibold text-white">Model Registry</h2>
         </div>
 
@@ -126,7 +126,7 @@ export function ModelRegistry() {
             placeholder="Search models..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-sm"
+            className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all text-sm"
           />
         </div>
 
@@ -139,7 +139,7 @@ export function ModelRegistry() {
               className={cn(
                 'px-3 py-1 rounded-md text-xs font-medium transition-all',
                 statusFilter === status
-                  ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                   : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
               )}
             >
@@ -221,7 +221,7 @@ function DeployButton({ model }: DeployButtonProps) {
     <div className="relative">
       <button
         onClick={() => setShowDeployMenu(!showDeployMenu)}
-        className="px-3 py-1.5 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded hover:bg-purple-500/30 transition-all text-xs font-medium flex items-center gap-1"
+        className="px-3 py-1.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded hover:bg-amber-500/30 transition-all text-xs font-medium flex items-center gap-1"
       >
         <ExternalLink className="w-3 h-3" />
         Deploy to Node
@@ -267,7 +267,7 @@ function ModelCard({ model, onDelete, getStatusIcon, getStatusColor, formatDate 
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="glass-light rounded-lg border border-white/10 p-3 hover:border-purple-500/30 transition-all">
+    <div className="glass-light rounded-lg border border-white/10 p-3 hover:border-amber-500/30 transition-all">
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">

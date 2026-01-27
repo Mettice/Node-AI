@@ -240,7 +240,7 @@ export function DashboardCostForecast({ workflowId }: DashboardCostForecastProps
                         </div>
                         <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-purple-500 rounded-full"
+                            className="h-full bg-amber-500 rounded-full"
                             style={{ width: `${data.percentage}%` }}
                           />
                         </div>

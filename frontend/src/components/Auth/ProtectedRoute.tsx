@@ -21,7 +21,7 @@ export function ProtectedRoute({ children, requireAuth = true }: ProtectedRouteP
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-900">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 text-purple-400 animate-spin mx-auto mb-4" />
+          <Loader2 className="w-8 h-8 text-amber-400 animate-spin mx-auto mb-4" />
           <p className="text-slate-400">Loading...</p>
         </div>
       </div>

@@ -145,7 +145,7 @@ function OverviewView({ selectedWorkflowId }: { selectedWorkflowId: string | nul
         <div className="glass rounded-lg p-6 border border-white/10">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-medium text-white">Version Comparison</h3>
-            <GitCompare className="w-5 h-5 text-purple-400" />
+            <GitCompare className="w-5 h-5 text-amber-400" />
           </div>
           <p className="text-sm text-slate-400 mb-4">
             Compare workflow versions side-by-side

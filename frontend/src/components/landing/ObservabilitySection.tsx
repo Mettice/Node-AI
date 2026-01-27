@@ -18,7 +18,7 @@ export function ObservabilitySection() {
       icon: Activity,
       title: 'Real-Time Monitoring',
       description: 'Monitor workflow performance and health in real-time with live metrics.',
-      color: 'text-purple-400',
+      color: 'text-amber-400',
     },
     {
       icon: BarChart3,

@@ -118,7 +118,7 @@ export function VisualGenAIStack() {
 function FlowNode({ x, y, delay, icon, label, color, description }: any) {
   const colorClasses = {
     blue: "from-blue-500/20 to-blue-500/5 border-blue-500/30",
-    purple: "from-purple-500/20 to-purple-500/5 border-purple-500/30",
+    purple: "from-amber-500/20 to-amber-500/5 border-amber-500/30",
     cyan: "from-cyan-500/20 to-cyan-500/5 border-cyan-500/30",
     green: "from-green-500/20 to-green-500/5 border-green-500/30",
     orange: "from-orange-500/20 to-orange-500/5 border-orange-500/30",
@@ -128,7 +128,7 @@ function FlowNode({ x, y, delay, icon, label, color, description }: any) {
 
   const glowColors = {
     blue: "bg-blue-500/20",
-    purple: "bg-purple-500/20",
+    purple: "bg-amber-500/20",
     cyan: "bg-cyan-500/20",
     green: "bg-green-500/20",
     orange: "bg-orange-500/20",
@@ -171,7 +171,7 @@ function FlowNode({ x, y, delay, icon, label, color, description }: any) {
           {[...Array(5)].map((_, i) => {
             const particleColors = {
               blue: "bg-blue-400",
-              purple: "bg-purple-400",
+              purple: "bg-amber-400",
               cyan: "bg-cyan-400",
               green: "bg-green-400",
               orange: "bg-orange-400",

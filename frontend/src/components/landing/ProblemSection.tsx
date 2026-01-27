@@ -4,19 +4,24 @@ export function ProblemSection() {
 
   const problems = [
     {
-      icon: '📦',
-      title: 'Black Box AI',
-      description: "Can't see inside LLM calls. Token costs surprise you. Debugging is pure guesswork.",
+      icon: '💸',
+      title: 'AI Costs Out of Control',
+      description: "GPT-4 bills spike unexpectedly. No visibility into which workflows cost what. Finance asks questions you can't answer.",
     },
     {
       icon: '🔧',
-      title: 'Code-Heavy Setup',
-      description: 'LangChain, vector DBs, embeddings — stitching these takes weeks and specialized engineers.',
+      title: 'RAG Takes Months to Build',
+      description: 'Vector databases, chunking strategies, embeddings, reranking — stitching these takes weeks and senior engineers.',
     },
     {
       icon: '🤖',
-      title: 'Rigid Agents',
-      description: "Multi-agent orchestration means rigid wiring. You can't see the conversation or debug behavior.",
+      title: 'Multi-Agent Chaos',
+      description: "CrewAI agents fail silently. You can't see why agents made decisions or debug their reasoning chain.",
+    },
+    {
+      icon: '📊',
+      title: 'No Production Observability',
+      description: "LLM calls are black boxes. When something fails at 2am, you're grepping logs instead of fixing issues.",
     },
   ];
 
@@ -29,14 +34,14 @@ export function ProblemSection() {
             The Problem
           </div>
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-black mb-5 max-w-3xl">
-            Building AI Systems Is Still Too Hard
+            Enterprise AI Is Broken
           </h2>
           <p className="text-lg text-slate-400 max-w-2xl leading-relaxed">
-            Most teams struggle with complex code, opaque AI behavior, and fragmented tools.
+            Teams waste months on infrastructure. Costs spiral. Production breaks. There's a better way.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {problems.map((problem, index) => (
             <motion.div
               key={index}
