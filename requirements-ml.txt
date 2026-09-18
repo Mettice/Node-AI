@@ -1,0 +1,12 @@
+# Optional heavy ML dependencies, NOT installed in the Railway deploy.
+# They pull in torch (multi-GB, with CUDA libraries). The code imports them lazily,
+# so without them these features degrade instead of crashing the app:
+#   - Transcribe node (openai-whisper)
+#   - Video frames node (opencv-python)
+#   - local sentence-transformers embeddings, cross-encoder reranking,
+#     and embedding-based scoring in RAG evaluation (falls back to text similarity)
+# Install on top of requirements.txt where needed:
+#   pip install -r requirements.txt -r requirements-ml.txt
+openai-whisper
+opencv-python
+sentence-transformers

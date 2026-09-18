@@ -1,0 +1,116 @@
+# Loose top-level dependencies for the Railway deploy.
+# Edit this file, then regenerate the pinned requirements.txt that Nixpacks installs:
+#   uv pip compile requirements.in -o requirements.txt --python-version 3.11 #     --python-platform x86_64-manylinux_2_28 --no-annotate --no-header
+# Heavy ML packages (torch-based) live in requirements-ml.txt and are not deployed.
+
+# crewai 0.80 imports pkg_resources, which setuptools removed in v81
+setuptools<81
+
+# Core Framework
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+
+# Security & Rate Limiting
+slowapi
+python-jose[cryptography]
+cryptography
+passlib[bcrypt]
+
+# Database
+psycopg2-binary
+supabase
+sqlalchemy
+aiosqlite
+
+# Utilities
+python-dotenv
+httpx
+aiohttp
+pyjwt
+
+# AI/LLM SDKs
+# Pin OpenAI to <2.0.0 for compatibility with crewai-tools and langchain-openai
+openai>=1.12.0,<2.0.0
+anthropic
+# Pin tiktoken for compatibility with langchain-openai
+tiktoken>=0.7.0
+google-genai
+
+# Vector Search & Storage
+faiss-cpu
+pinecone-client
+neo4j
+# Pin chromadb for compatibility with crewai-tools
+chromadb>=0.4.22,<0.5.0
+
+# LangChain
+langchain
+langchain-community
+# Pin langchain-openai for compatibility
+langchain-openai>=0.1.7,<0.2.0
+langchain-anthropic
+
+# CrewAI (for multi-agent coordination) - REQUIRED for CrewAI templates
+crewai[tools]
+
+# Agent Lightning (optional - for agent optimization with RL/APO)
+# NOTE: Agent Lightning has dependency conflicts with some packages.
+# If you want to use it, install separately: pip install agentlightning
+# The wrapper handles missing dependencies gracefully, so it's safe to skip.
+# agentlightning  # Commented out due to dependency conflicts - install separately if needed
+
+# Observability
+langsmith
+langfuse
+sentry-sdk[fastapi]
+
+# Document Processing
+pypdf2
+pdfplumber
+python-docx
+python-multipart
+
+# Image Processing
+Pillow
+pytesseract
+
+# Audio/Video Processing: openai-whisper and opencv-python moved to requirements-ml.txt
+
+# Structured Data Processing
+pandas
+openpyxl
+pyarrow
+plotly 
+kaleido 
+matplotlib 
+seaborn 
+scikit-learn 
+scipy 
+
+# Text Processing
+nltk
+rank-bm25  # BM25 ranking algorithm for keyword-based retrieval
+
+# Additional Features
+cohere
+# sentence-transformers moved to requirements-ml.txt
+duckduckgo-search
+beautifulsoup4
+lxml
+feedparser
+boto3
+
+# Azure Integrations
+azure-search-documents
+azure-storage-blob
+azure-identity
+azure-keyvault-secrets
+azure-ai-textanalytics
+azure-ai-translation-text
+
+# Other
+python-dateutil
+pytz
+
