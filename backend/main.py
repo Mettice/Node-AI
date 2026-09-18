@@ -71,8 +71,6 @@ if settings.sentry_dsn:
 else:
     logger.info("Sentry not configured (SENTRY_DSN not set)")
 
-# Import API routers
-from backend.api import execution, nodes, files, workflows, metrics, knowledge_base, api_keys, tools, oauth, query_tracer, secrets, observability_settings, cost_forecasting, traces
 
 # Note: limiter is imported from backend.core.security to ensure all API files use the same instance
 
@@ -119,8 +117,12 @@ async def lifespan(app: FastAPI):
         else:
             logger.warning("Continuing without database support")
 
-    # Import nodes to trigger registration
-    import backend.nodes  # noqa: F401
+    # Import nodes to trigger registration. A broken node module must not stop the API
+    # from starting: nodes imported before the failure stay registered.
+    try:
+        import backend.nodes  # noqa: F401
+    except Exception as e:
+        logger.error(f"Node registration incomplete, a node module failed to import: {e!r}", exc_info=True)
     from backend.core.node_registry import NodeRegistry
     
     logger.info(f"Registered {NodeRegistry.get_count()} node types")
@@ -252,20 +254,25 @@ async def log_requests(request: Request, call_next):
 # ============================================
 # Register API Routers
 # ============================================
-app.include_router(execution.router)
-app.include_router(nodes.router)
-app.include_router(files.router)
-app.include_router(workflows.router)
-app.include_router(metrics.router)
-app.include_router(knowledge_base.router)
-app.include_router(api_keys.router)
-app.include_router(tools.router)
-app.include_router(oauth.router)
-app.include_router(query_tracer.router)
-app.include_router(secrets.router)
-app.include_router(observability_settings.router)
-app.include_router(cost_forecasting.router)
-app.include_router(traces.router)
+# Core routers are registered individually so one broken import does not take
+# down the whole API. Failures are logged and the rest keep serving.
+import importlib
+
+_CORE_ROUTERS = [
+    "execution", "nodes", "files", "workflows", "metrics", "knowledge_base", "api_keys",
+    "tools", "oauth", "query_tracer", "secrets", "observability_settings", "cost_forecasting", "traces",
+]
+failed_core_routers = []
+for _name in _CORE_ROUTERS:
+    try:
+        _module = importlib.import_module(f"backend.api.{_name}")
+        app.include_router(_module.router)
+    except Exception as e:
+        failed_core_routers.append(_name)
+        logger.error(f"Core API router '{_name}' failed to load: {e!r}", exc_info=True)
+if failed_core_routers:
+    logger.error(f"Serving without core routers: {failed_core_routers}")
+
 
 # Import and register MCP router
 try:
