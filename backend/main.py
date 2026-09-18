@@ -180,13 +180,15 @@ if settings.cors_allow_all_origins and settings.debug:
 else:
     cors_origins = settings.cors_origins
     if not cors_origins and not settings.debug:
+        # Never fall back to ["*"] here: browsers reject "*" combined with allow_credentials=True
+        cors_origins = ["https://nodai.io", "https://www.nodai.io"]
         logger.warning(
-            "CORS: No origins configured for production. "
-            "Set CORS_ORIGINS_STR environment variable or allow localhost in development."
+            "CORS: No origins configured for production (CORS_ORIGINS_STR unset). "
+            f"Falling back to {cors_origins}."
         )
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=cors_origins if cors_origins else ["*"],  # Fallback to all if empty (not recommended)
+        allow_origins=cors_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         allow_headers=["*"],
