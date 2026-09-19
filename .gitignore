@@ -105,3 +105,7 @@ dist/
 build/
 *.whl
 
+
+# Markdown docs are kept local only, except READMEs
+*.md
+!README.md
