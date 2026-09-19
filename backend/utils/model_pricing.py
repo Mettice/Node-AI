@@ -625,17 +625,21 @@ def estimate_tokens_from_texts(texts: List[str]) -> int:
 def get_available_models(
     provider: Optional[str] = None,
     model_type: Optional[ModelType] = None,
+    include_retired: bool = False,
 ) -> List[ModelPricing]:
     """
     Get list of available models, optionally filtered by provider and/or type.
-    
+
     Args:
         provider: Optional provider filter (e.g., "openai", "anthropic", "gemini")
         model_type: Optional model type filter
-    
+        include_retired: Include models the provider has shut down (hidden by default)
+
     Returns:
         List of ModelPricing objects
     """
+    from backend.utils.model_catalog import is_retired
+
     all_models = []
     
     # Normalize provider name
@@ -661,6 +665,8 @@ def get_available_models(
             # Check model type match
             if model_type and model.model_type != model_type:
                 continue
+            if not include_retired and is_retired(prov.value, model.model_id):
+                continue
             all_models.append(model)
     
     return all_models
@@ -677,11 +683,14 @@ def get_model_info(provider: str, model_id: str) -> Optional[Dict[str, Any]]:
     Returns:
         Dictionary with model information or None
     """
+    from backend.utils.model_catalog import get_model_lifecycle
+
     pricing = get_model_pricing(provider, model_id)
     if not pricing:
         return None
-    
+
     return {
+        "lifecycle": get_model_lifecycle(pricing.provider.value, pricing.model_id),
         "model_id": pricing.model_id,
         "provider": pricing.provider.value,
         "model_type": pricing.model_type.value,

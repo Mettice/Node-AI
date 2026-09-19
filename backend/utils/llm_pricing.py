@@ -943,28 +943,6 @@ ANTHROPIC_LLM_MODELS: Dict[str, ModelPricing] = {
     ),
     
     # Claude Haiku 3.5
-    "claude-haiku-3-5-20241022": ModelPricing(
-        model_id="claude-haiku-3-5-20241022",
-        provider=Provider.ANTHROPIC,
-        model_type=ModelType.LLM,
-        price_per_1k_tokens=None,
-        max_tokens=64000,
-        description="Claude Haiku 3.5 model",
-        metadata={
-            "input_price_per_1m_tokens": 0.80,
-            "cached_input_price_per_1m_tokens_5m": 1.00,
-            "cached_input_price_per_1m_tokens_1h": 1.60,
-            "cache_hit_price_per_1m_tokens": 0.08,
-            "output_price_per_1m_tokens": 4.00,
-            "batch_input_price_per_1m_tokens": 0.40,
-            "batch_output_price_per_1m_tokens": 2.00,
-            "input_price_per_1k_tokens": 0.80 / 1000,
-            "cached_input_price_per_1k_tokens": 0.08 / 1000,
-            "output_price_per_1k_tokens": 4.00 / 1000,
-            "context_window": 200000,
-            "category": "standard",
-        },
-    ),
     
     # Claude Opus 4.1
     "claude-opus-4-1-20250805": ModelPricing(
@@ -1094,77 +1072,88 @@ ANTHROPIC_LLM_MODELS: Dict[str, ModelPricing] = {
     ),
     
     # Legacy/Deprecated models
-    "claude-sonnet-3-7-20240229": ModelPricing(
-        model_id="claude-sonnet-3-7-20240229",
-        provider=Provider.ANTHROPIC,
-        model_type=ModelType.LLM,
-        price_per_1k_tokens=None,
-        max_tokens=64000,
-        description="Claude Sonnet 3.7 (deprecated)",
-        metadata={
-            "input_price_per_1m_tokens": 3.00,
-            "cached_input_price_per_1m_tokens_5m": 3.75,
-            "cached_input_price_per_1m_tokens_1h": 6.00,
-            "cache_hit_price_per_1m_tokens": 0.30,
-            "output_price_per_1m_tokens": 15.00,
-            "batch_input_price_per_1m_tokens": 1.50,
-            "batch_output_price_per_1m_tokens": 7.50,
-            "input_price_per_1k_tokens": 3.00 / 1000,
-            "cached_input_price_per_1k_tokens": 0.30 / 1000,
-            "output_price_per_1k_tokens": 15.00 / 1000,
-            "context_window": 200000,
-            "category": "legacy",
-            "deprecated": True,
-        },
-    ),
-    "claude-opus-3-20240229": ModelPricing(
-        model_id="claude-opus-3-20240229",
-        provider=Provider.ANTHROPIC,
-        model_type=ModelType.LLM,
-        price_per_1k_tokens=None,
-        max_tokens=32000,
-        description="Claude Opus 3 (deprecated)",
-        metadata={
-            "input_price_per_1m_tokens": 15.00,
-            "cached_input_price_per_1m_tokens_5m": 18.75,
-            "cached_input_price_per_1m_tokens_1h": 30.00,
-            "cache_hit_price_per_1m_tokens": 1.50,
-            "output_price_per_1m_tokens": 75.00,
-            "batch_input_price_per_1m_tokens": 7.50,
-            "batch_output_price_per_1m_tokens": 37.50,
-            "input_price_per_1k_tokens": 15.00 / 1000,
-            "cached_input_price_per_1k_tokens": 1.50 / 1000,
-            "output_price_per_1k_tokens": 75.00 / 1000,
-            "context_window": 200000,
-            "category": "legacy",
-            "deprecated": True,
-        },
-    ),
-    "claude-haiku-3-20240307": ModelPricing(
-        model_id="claude-haiku-3-20240307",
-        provider=Provider.ANTHROPIC,
-        model_type=ModelType.LLM,
-        price_per_1k_tokens=None,
-        max_tokens=64000,
-        description="Claude Haiku 3 (deprecated)",
-        metadata={
-            "input_price_per_1m_tokens": 0.25,
-            "cached_input_price_per_1m_tokens_5m": 0.30,
-            "cached_input_price_per_1m_tokens_1h": 0.50,
-            "cache_hit_price_per_1m_tokens": 0.03,
-            "output_price_per_1m_tokens": 1.25,
-            "batch_input_price_per_1m_tokens": 0.125,
-            "batch_output_price_per_1m_tokens": 0.625,
-            "input_price_per_1k_tokens": 0.25 / 1000,
-            "cached_input_price_per_1k_tokens": 0.03 / 1000,
-            "output_price_per_1k_tokens": 1.25 / 1000,
-            "context_window": 200000,
-            "category": "legacy",
-            "deprecated": True,
-        },
-    ),
 }
 
 # Combine all Anthropic LLM models
 ANTHROPIC_LLM_MODELS_ALL = ANTHROPIC_LLM_MODELS
 
+
+
+# ============================================================================
+# MODELS ADDED 2026-09
+# ============================================================================
+# Prices per 1M tokens from each provider's own documentation, checked 2026-09-19
+# (Anthropic models overview; OpenAI model pages at developers.openai.com/api/docs/models).
+# Lifecycle, defaults and request compatibility live in model_catalog.py.
+
+def _llm(model_id: str, provider: Provider, input_per_1m: float, output_per_1m: float,
+         context_window: int, max_output_tokens: int, description: str,
+         cached_input_per_1m: Optional[float] = None, batch_discount: Optional[float] = 0.5,
+         **extra: Any) -> ModelPricing:
+    metadata: Dict[str, Any] = {
+        "input_price_per_1m_tokens": input_per_1m,
+        "output_price_per_1m_tokens": output_per_1m,
+        "input_price_per_1k_tokens": input_per_1m / 1000,
+        "output_price_per_1k_tokens": output_per_1m / 1000,
+        "context_window": context_window,
+        **extra,
+    }
+    if cached_input_per_1m is not None:
+        metadata["cached_input_price_per_1m_tokens"] = cached_input_per_1m
+        metadata["cached_input_price_per_1k_tokens"] = cached_input_per_1m / 1000
+    if batch_discount is not None:
+        metadata["batch_input_price_per_1m_tokens"] = input_per_1m * batch_discount
+        metadata["batch_output_price_per_1m_tokens"] = output_per_1m * batch_discount
+    return ModelPricing(
+        model_id=model_id,
+        provider=provider,
+        model_type=ModelType.LLM,
+        max_tokens=max_output_tokens,
+        description=description,
+        metadata=metadata,
+    )
+
+
+ANTHROPIC_LLM_MODELS.update({
+    m.model_id: m for m in [
+        _llm("claude-fable-5-1", Provider.ANTHROPIC, 10.00, 50.00, 1_000_000, 128_000,
+             "Anthropic's most capable widely released model", cached_input_per_1m=0.25, category="flagship"),
+        _llm("claude-fable-5", Provider.ANTHROPIC, 10.00, 50.00, 1_000_000, 128_000,
+             "Previous Fable model", category="flagship"),
+        _llm("claude-opus-5", Provider.ANTHROPIC, 5.00, 25.00, 1_000_000, 128_000,
+             "Frontier intelligence for complex reasoning and agentic work", cached_input_per_1m=0.50, category="flagship"),
+        _llm("claude-opus-4-8", Provider.ANTHROPIC, 5.00, 25.00, 1_000_000, 128_000,
+             "Previous Opus model", cached_input_per_1m=0.50, category="flagship"),
+        _llm("claude-opus-4-7", Provider.ANTHROPIC, 5.00, 25.00, 1_000_000, 128_000,
+             "Previous Opus model", cached_input_per_1m=0.50, category="flagship"),
+        _llm("claude-opus-4-6", Provider.ANTHROPIC, 5.00, 25.00, 1_000_000, 128_000,
+             "Previous Opus model", cached_input_per_1m=0.50, category="flagship"),
+        _llm("claude-sonnet-5", Provider.ANTHROPIC, 2.00, 10.00, 1_000_000, 128_000,
+             "Balanced speed and intelligence for high-volume work", cached_input_per_1m=0.20, category="standard"),
+        _llm("claude-sonnet-4-6", Provider.ANTHROPIC, 3.00, 15.00, 1_000_000, 128_000,
+             "Previous Sonnet model", cached_input_per_1m=0.30, category="standard"),
+    ]
+})
+
+OPENAI_LLM_MODELS.update({
+    m.model_id: m for m in [
+        _llm("gpt-6-astra", Provider.OPENAI, 10.00, 50.00, 1_050_000, 128_000,
+             "OpenAI's flagship model", cached_input_per_1m=1.00, category="flagship"),
+        _llm("gpt-5.6-sol", Provider.OPENAI, 4.00, 20.00, 1_050_000, 128_000,
+             "GPT-5.6 for complex reasoning", cached_input_per_1m=0.40, category="frontier"),
+        _llm("gpt-5.6-terra", Provider.OPENAI, 2.00, 12.00, 1_050_000, 128_000,
+             "GPT-5.6 balanced tier", cached_input_per_1m=0.20, category="frontier"),
+        _llm("gpt-5.6-luna", Provider.OPENAI, 0.20, 1.20, 1_050_000, 128_000,
+             "GPT-5.6 low-cost tier", cached_input_per_1m=0.02, category="efficient"),
+        _llm("gpt-5.5", Provider.OPENAI, 5.00, 30.00, 1_050_000, 128_000,
+             "GPT-5.5", cached_input_per_1m=0.50, category="frontier"),
+        _llm("gpt-5.4", Provider.OPENAI, 2.50, 15.00, 1_050_000, 128_000,
+             "GPT-5.4", cached_input_per_1m=0.25, category="frontier"),
+        _llm("gpt-5.4-mini", Provider.OPENAI, 0.75, 4.50, 400_000, 128_000,
+             "GPT-5.4 mini", cached_input_per_1m=0.075, category="efficient"),
+        _llm("gpt-5.4-nano", Provider.OPENAI, 0.20, 1.25, 400_000, 128_000,
+             "GPT-5.4 nano", cached_input_per_1m=0.02, category="efficient"),
+        _llm("gpt-5.2", Provider.OPENAI, 1.75, 14.00, 400_000, 128_000,
+             "GPT-5.2", cached_input_per_1m=0.175, category="frontier"),
+    ]
+})

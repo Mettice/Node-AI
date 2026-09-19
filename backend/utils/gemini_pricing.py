@@ -516,6 +516,60 @@ GEMINI_LLM_MODELS: Dict[str, ModelPricing] = {
     ),
 }
 
+# ============================================================================
+# GEMINI MODELS ADDED 2026-09
+# ============================================================================
+# Paid-tier prices per 1M tokens from https://ai.google.dev/gemini-api/docs/pricing,
+# checked 2026-09-19. Output prices include thinking tokens.
+# Lifecycle, defaults and request compatibility live in model_catalog.py.
+from datetime import date as _date
+
+# Gemini 3.6-3.8 Flash are on introductory pricing until 2026-12-31
+_FLASH_PROMO_ACTIVE = _date.today() < _date(2027, 1, 1)
+
+
+def _gemini_llm(model_id: str, input_per_1m: float, output_per_1m: float, description: str,
+                context_window: int = 1_048_576, **extra: Any) -> ModelPricing:
+    return ModelPricing(
+        model_id=model_id,
+        provider=Provider.GEMINI,
+        model_type=ModelType.LLM,
+        price_per_1k_tokens=None,
+        max_tokens=context_window,
+        description=description,
+        metadata={
+            "input_price_per_1m_tokens": input_per_1m,
+            "output_price_per_1m_tokens": output_per_1m,
+            "input_price_per_1k_tokens": input_per_1m / 1000,
+            "output_price_per_1k_tokens": output_per_1m / 1000,
+            "batch_input_price_per_1m_tokens": input_per_1m / 2,
+            "batch_output_price_per_1m_tokens": output_per_1m / 2,
+            "context_window": context_window,
+            **extra,
+        },
+    )
+
+
+_flash_in, _flash_out = (0.75, 3.75) if _FLASH_PROMO_ACTIVE else (1.50, 7.50)
+_flash_pricing_note = {"standard_price_from_2027_01_01": {"input_per_1m": 1.50, "output_per_1m": 7.50}}
+
+GEMINI_LLM_MODELS.update({
+    m.model_id: m for m in [
+        _gemini_llm("gemini-3.8-flash", _flash_in, _flash_out,
+                    "Most capable Flash model, for long-horizon coding and agents", **_flash_pricing_note),
+        _gemini_llm("gemini-3.7-flash", _flash_in, _flash_out,
+                    "Fast Flash model for everyday coding and multi-step tool use", **_flash_pricing_note),
+        _gemini_llm("gemini-3.6-flash", _flash_in, _flash_out,
+                    "Previous generation Flash model", **_flash_pricing_note),
+        _gemini_llm("gemini-3.5-flash", 1.50, 9.00, "Earlier Flash model"),
+        _gemini_llm("gemini-3.5-flash-lite", 0.30, 2.50, "Cost-efficient model for high-volume tasks"),
+        _gemini_llm("gemini-3.1-flash-lite", 0.25, 1.50, "Cost-efficient model for high-volume tasks"),
+        _gemini_llm("gemini-3.1-pro-preview", 2.00, 12.00,
+                    "Pro model for multimodal understanding and agentic work (preview; "
+                    "prompts over 200K tokens cost $4.00 in / $18.00 out)"),
+    ]
+})
+
 # Combine all Gemini models
 GEMINI_MODELS = {**GEMINI_EMBEDDING_MODELS, **GEMINI_LLM_MODELS}
 
