@@ -1096,6 +1096,7 @@ def _llm(model_id: str, provider: Provider, input_per_1m: float, output_per_1m: 
         "input_price_per_1k_tokens": input_per_1m / 1000,
         "output_price_per_1k_tokens": output_per_1m / 1000,
         "context_window": context_window,
+        "current_generation": True,  # listed first in model pickers
         **extra,
     }
     if cached_input_per_1m is not None:

@@ -23,10 +23,12 @@ from backend.core.secret_resolver import resolve_api_key
 from backend.nodes.base import BaseNode
 from backend.utils.logger import get_logger
 from backend.core.errors import external_service_error, APIError, ErrorCodes
-from backend.utils.model_pricing import (
-    calculate_llm_cost,
-    get_available_models,
-    ModelType,
+from backend.utils.model_pricing import calculate_llm_cost
+from backend.utils.model_catalog import (
+    get_default_model,
+    list_model_ids,
+    llm_request_options,
+    resolve_model,
 )
 from backend.utils.retry import (
     retry_with_backoff,
@@ -151,18 +153,12 @@ class ChatNode(BaseNode):
             # Track usage
             await self._record_model_usage(finetuned_model_id, "chat", config.get("_execution_id"))
         else:
-            model = config.get("openai_model", "gpt-4o-mini")
+            model = resolve_model("openai", config.get("openai_model"))
         temperature = config.get("temperature", 0.7)
         max_tokens = config.get("max_tokens", 500)
         system_prompt = config.get("system_prompt", "")
         user_prompt_template = config.get("user_prompt_template", "{context}\n\nQuestion: {query}\n\nAnswer:")
-        
-        # Check if model requires max_completion_tokens instead of max_tokens
-        # Models like o1, o1-preview, o1-mini, and newer gpt-4o models require max_completion_tokens
-        is_new_model = ("o1" in model.lower() or 
-                       "gpt-4o" in model.lower() or 
-                       model.lower().startswith("chatgpt-4o"))
-        
+
         # Get node ID for streaming
         node_id = config.get("_node_id", "chat")
         
@@ -219,16 +215,11 @@ class ChatNode(BaseNode):
                     request_params = {
                         "model": model,
                         "messages": messages,
-                        "temperature": temperature,
                         "stream": True,  # Enable streaming
+                        # temperature / token limit parameter depend on the model family
+                        **llm_request_options("openai", model, temperature, max_tokens),
                     }
-                    
-                    # Use max_completion_tokens for newer models, max_tokens for others
-                    if is_new_model:
-                        request_params["max_completion_tokens"] = max_tokens
-                    else:
-                        request_params["max_tokens"] = max_tokens
-                    
+
                     return client.chat.completions.create(**request_params)
                 except Exception as e:
                     # Classify the error and raise appropriate retry exception
@@ -525,7 +516,7 @@ class ChatNode(BaseNode):
         if not api_key:
             raise ValueError("Anthropic API key not found. Please configure it in the node settings or environment variables.")
         
-        model = config.get("anthropic_model", "claude-3-5-sonnet-20241022")
+        model = resolve_model("anthropic", config.get("anthropic_model"))
         temperature = config.get("temperature", 0.7)
         max_tokens = config.get("max_tokens", 500)
         system_prompt = config.get("system_prompt", "")
@@ -561,8 +552,8 @@ class ChatNode(BaseNode):
                 try:
                     return client.messages.stream(
                         model=model,
-                        max_tokens=max_tokens,
-                        temperature=temperature,
+                        # Newer Claude models reject temperature; thinking models need a larger budget
+                        **llm_request_options("anthropic", model, temperature, max_tokens),
                         system=system_prompt if system_prompt else None,
                         messages=[
                             {"role": "user", "content": user_prompt}
@@ -676,7 +667,7 @@ class ChatNode(BaseNode):
         if not api_key:
             raise ValueError("Gemini API key not found. Please configure it in the node settings or environment variables.")
         
-        model = config.get("gemini_model", "gemini-2.5-flash")
+        model = resolve_model("gemini", config.get("gemini_model"))
         temperature = config.get("temperature", 0.7)
         max_tokens = config.get("max_tokens", 500)
         system_prompt = config.get("system_prompt", "")
@@ -825,63 +816,6 @@ class ChatNode(BaseNode):
             logger.error(f"Gemini chat error: {e}")
             raise
 
-    def _get_openai_model_list(self) -> List[str]:
-        """Get list of available OpenAI LLM models from pricing system."""
-        try:
-            models = get_available_models(provider="openai", model_type=ModelType.LLM)
-            # Filter out deprecated models for cleaner UI
-            return [model.model_id for model in models if not (model.metadata or {}).get("deprecated", False)]
-        except Exception as e:
-            logger.warning(f"Failed to get OpenAI models from pricing system: {e}")
-            # Fallback to basic list
-            return [
-                "gpt-5.1",
-                "gpt-5",
-                "gpt-5-mini",
-                "gpt-5-nano",
-                "gpt-4.1",
-                "gpt-4o",
-                "gpt-4o-mini",
-                "gpt-3.5-turbo",
-            ]
-    
-    def _get_anthropic_model_list(self) -> List[str]:
-        """Get list of available Anthropic Claude LLM models from pricing system."""
-        try:
-            models = get_available_models(provider="anthropic", model_type=ModelType.LLM)
-            # Filter out deprecated models and aliases for cleaner UI
-            return [
-                model.model_id for model in models 
-                if not (model.metadata or {}).get("deprecated", False)
-                and not (model.metadata or {}).get("is_alias", False)
-            ]
-        except Exception as e:
-            logger.warning(f"Failed to get Anthropic models from pricing system: {e}")
-            # Fallback to basic list
-            return [
-                "claude-sonnet-4-5-20250929",
-                "claude-haiku-4-5-20251001",
-                "claude-opus-4-5-20251101",
-                "claude-opus-4-1-20250805",
-            ]
-    
-    def _get_gemini_model_list(self) -> List[str]:
-        """Get list of available Gemini LLM models from pricing system."""
-        try:
-            models = get_available_models(provider="gemini", model_type=ModelType.LLM)
-            return [model.model_id for model in models if not (model.metadata or {}).get("deprecated", False)]
-        except Exception as e:
-            logger.warning(f"Failed to get Gemini models from pricing system: {e}")
-            # Fallback to basic list
-            return [
-                "gemini-2.5-pro",
-                "gemini-2.5-flash",
-                "gemini-2.5-flash-lite",
-                "gemini-2.0-flash",
-                "gemini-3-flash-preview",
-                "gemini-3-pro-preview",
-            ]
-    
     async def _get_finetuned_model(self, model_id: str, provider: str) -> Dict[str, Any]:
         """Get fine-tuned model from registry."""
         try:
@@ -1015,24 +949,24 @@ class ChatNode(BaseNode):
                     "type": "string",
                     "title": "OpenAI Model",
                     "description": "OpenAI model to use (ignored if fine-tuned model is selected)",
-                    "enum": self._get_openai_model_list(),
-                    "default": "gpt-4o-mini",
+                    "enum": list_model_ids("openai"),
+                    "default": get_default_model("openai"),
                 },
                 # Anthropic config
                 "anthropic_model": {
                     "type": "string",
                     "title": "Anthropic Model",
                     "description": "Anthropic Claude model to use",
-                    "enum": self._get_anthropic_model_list(),
-                    "default": "claude-sonnet-4-5-20250929",
+                    "enum": list_model_ids("anthropic"),
+                    "default": get_default_model("anthropic"),
                 },
                 # Gemini config
                 "gemini_model": {
                     "type": "string",
                     "title": "Gemini Model",
                     "description": "Google Gemini model to use",
-                    "enum": self._get_gemini_model_list(),
-                    "default": "gemini-2.5-flash",
+                    "enum": list_model_ids("gemini"),
+                    "default": get_default_model("gemini"),
                 },
                 # Gemini File Search config
                 "gemini_use_file_search": {
@@ -1148,13 +1082,13 @@ class ChatNode(BaseNode):
         estimated_tokens = len(total_text) / 4  # Rough: 1 token ≈ 4 chars
         
         if provider == "openai":
-            model = config.get("openai_model", "gpt-4o-mini")
+            model = resolve_model("openai", config.get("openai_model"))
             return calculate_llm_cost("openai", model, int(estimated_tokens), 500)  # Assume 500 output tokens
         elif provider == "anthropic":
-            model = config.get("anthropic_model", "claude-3-5-sonnet-20241022")
+            model = resolve_model("anthropic", config.get("anthropic_model"))
             return calculate_llm_cost("anthropic", model, int(estimated_tokens), 500)
         elif provider == "gemini" or provider == "google":
-            model = config.get("gemini_model", "gemini-2.5-flash")
+            model = resolve_model("gemini", config.get("gemini_model"))
             return calculate_llm_cost("gemini", model, int(estimated_tokens), 500)
         
         return 0.0

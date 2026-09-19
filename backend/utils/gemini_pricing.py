@@ -545,6 +545,7 @@ def _gemini_llm(model_id: str, input_per_1m: float, output_per_1m: float, descri
             "batch_input_price_per_1m_tokens": input_per_1m / 2,
             "batch_output_price_per_1m_tokens": output_per_1m / 2,
             "context_window": context_window,
+            "current_generation": True,  # listed first in model pickers
             **extra,
         },
     )

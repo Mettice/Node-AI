@@ -156,6 +156,12 @@ class TestRequestOptions:
         assert llm_request_options("openai", model, 0.7, 500) == {
             "max_completion_tokens": MIN_OUTPUT_TOKENS_FOR_THINKING_MODELS}
 
+    def test_fine_tuned_openai_model_follows_base_model(self):
+        assert llm_request_options("openai", "ft:gpt-4o-mini-2024-07-18:acme:support:abc123", 0.3, 200) == {
+            "temperature": 0.3, "max_completion_tokens": 200}
+        assert llm_request_options("openai", "ft:gpt-3.5-turbo-0125:acme::xyz", 0.3, 200) == {
+            "temperature": 0.3, "max_tokens": 200}
+
     def test_older_claude_keeps_temperature(self):
         assert llm_request_options("anthropic", "claude-haiku-4-5", 0.7, 500) == {
             "temperature": 0.7, "max_tokens": 500}

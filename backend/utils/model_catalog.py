@@ -19,7 +19,7 @@ Update MODEL_LIFECYCLE when providers announce new deprecations.
 """
 
 from datetime import date
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from backend.utils.logger import get_logger
 
@@ -227,6 +227,25 @@ def resolve_model(provider: str, model_id: Optional[str], model_type: str = "llm
     return current
 
 
+def list_model_ids(provider: str, model_type: str = "llm") -> List[str]:
+    """
+    Model IDs for a picker: retired models and duplicate aliases removed, current generation
+    first, then older active models, deprecated models last.
+    """
+    from backend.utils.model_pricing import ModelType, get_available_models
+
+    models = get_available_models(provider=_provider_key(provider), model_type=ModelType(model_type))
+    models = [m for m in models if not (m.metadata or {}).get("is_alias", False)]
+
+    def order(indexed):
+        index, model = indexed
+        deprecated = get_model_lifecycle(provider, model.model_id)["status"] == "deprecated"
+        current = bool((model.metadata or {}).get("current_generation"))
+        return (deprecated, not current, index)
+
+    return [m.model_id for _, m in sorted(enumerate(models), key=order)]
+
+
 def get_default_model(provider: str, model_type: str = "llm") -> str:
     key = _provider_key(provider)
     try:
@@ -265,6 +284,9 @@ def llm_request_options(provider: str, model: str, temperature: Optional[float],
     options: Dict[str, Any] = {}
 
     if key == "openai":
+        # Fine-tuned models ("ft:gpt-4o-mini:org:name:id") follow their base model's rules
+        if model.lower().startswith("ft:"):
+            model = model.split(":")[1]
         if _is_openai_reasoning_model(model):
             # Reasoning models only accept the default temperature, take
             # max_completion_tokens, and spend part of that budget on reasoning.
