@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { SelectWithIcons } from '@/components/common/SelectWithIcons';
 import { APIKeyInputWithVault } from './APIKeyInputWithVault';
+import { ModelSelect } from './ModelSelect';
 import { testLLMConnection } from '@/services/nodes';
 
 interface AdvancedNLPFormProps {
@@ -52,10 +53,11 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
   // Provider-specific fields
   const [hfModel, setHfModel] = useState(initialData.hf_model || '');
   const [openaiApiKey, setOpenaiApiKey] = useState(initialData.openai_api_key || '');
-  const [openaiModel, setOpenaiModel] = useState(initialData.openai_model || 'gpt-4o-mini');
+  // Empty means "provider default"; ModelSelect fills it in from the backend registry
+  const [openaiModel, setOpenaiModel] = useState(initialData.openai_model || '');
   const [openaiSecretId, setOpenaiSecretId] = useState(initialData.openai_api_key_secret_id || '');
   const [anthropicApiKey, setAnthropicApiKey] = useState(initialData.anthropic_api_key || '');
-  const [anthropicModel, setAnthropicModel] = useState(initialData.anthropic_model || 'claude-sonnet-4-5-20250929');
+  const [anthropicModel, setAnthropicModel] = useState(initialData.anthropic_model || '');
   const [anthropicSecretId, setAnthropicSecretId] = useState(initialData.anthropic_api_key_secret_id || '');
   
   // Custom API and caching
@@ -397,12 +399,11 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
           />
           <div>
             <label className="block text-sm font-medium text-white mb-2">OpenAI Model</label>
-            <input
-              type="text"
+            <ModelSelect
+              provider="openai"
               value={openaiModel}
-              onChange={(e) => setOpenaiModel(e.target.value)}
-              placeholder="gpt-4o-mini"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              onChange={setOpenaiModel}
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
         </div>
@@ -428,12 +429,11 @@ export function AdvancedNLPForm({ initialData, onChange }: AdvancedNLPFormProps)
           />
           <div>
             <label className="block text-sm font-medium text-white mb-2">Anthropic Model</label>
-            <input
-              type="text"
+            <ModelSelect
+              provider="anthropic"
               value={anthropicModel}
-              onChange={(e) => setAnthropicModel(e.target.value)}
-              placeholder="claude-sonnet-4-5-20250929"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              onChange={setAnthropicModel}
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
         </div>

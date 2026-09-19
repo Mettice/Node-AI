@@ -7,6 +7,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { useEffect } from 'react';
 import { APIKeyInputWithVault } from './APIKeyInputWithVault';
 import { ProviderSelector } from './ProviderSelector';
+import { ModelSelect } from './ModelSelect';
 
 interface AIWebSearchNodeFormProps {
   initialData: Record<string, any>;
@@ -31,9 +32,10 @@ export function AIWebSearchNodeForm({
       enhance_with_llm: initialData.enhance_with_llm || false,
       // LLM config (if enhancement enabled) - use llm_provider to avoid conflict
       llm_provider: initialData.llm_provider || initialData.provider || 'openai',
-      openai_model: initialData.openai_model || 'gpt-4o-mini',
-      anthropic_model: initialData.anthropic_model || 'claude-sonnet-4-5-20250929',
-      gemini_model: initialData.gemini_model || 'gemini-2.5-flash',
+      // Empty means "provider default"; ModelSelect fills it in from the backend registry
+      openai_model: initialData.openai_model || '',
+      anthropic_model: initialData.anthropic_model || '',
+      gemini_model: initialData.gemini_model || '',
       temperature: initialData.temperature || 0.1,
     },
   });
@@ -313,34 +315,7 @@ export function AIWebSearchNodeForm({
                       'gemini_model'}
                 control={control}
                 render={({ field }) => (
-                  <select
-                    {...field}
-                    className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
-                  >
-                    {llmProvider === 'openai' && (
-                      <>
-                        <option value="gpt-4o">GPT-4o</option>
-                        <option value="gpt-4o-mini">GPT-4o Mini</option>
-                        <option value="gpt-4">GPT-4</option>
-                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                      </>
-                    )}
-                    {llmProvider === 'anthropic' && (
-                      <>
-                        <option value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5</option>
-                        <option value="claude-opus-4-5-20251101">Claude Opus 4.5</option>
-                        <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
-                      </>
-                    )}
-                    {llmProvider === 'gemini' && (
-                      <>
-                        <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                        <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                        <option value="gemini-3-flash-preview">Gemini 3 Flash Preview</option>
-                        <option value="gemini-3-pro-preview">Gemini 3 Pro Preview</option>
-                      </>
-                    )}
-                  </select>
+                  <ModelSelect provider={llmProvider} value={field.value} onChange={field.onChange} />
                 )}
               />
             </div>

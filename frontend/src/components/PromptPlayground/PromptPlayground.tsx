@@ -35,36 +35,34 @@ export function PromptPlayground() {
   const [systemPrompt, setSystemPrompt] = useState('');
   const [testInput, setTestInput] = useState('');
   const [provider, setProvider] = useState('openai');
-  const [model, setModel] = useState('gpt-4o-mini');
+  const [model, setModel] = useState(''); // filled with the provider's default below
   const [temperature, setTemperature] = useState(0.7);
   
   // Fetch available models for each provider
-  const { data: openaiModels } = useQuery({
+  const { data: openaiCatalog } = useQuery({
     queryKey: ['base-models', 'openai', 'llm'],
     queryFn: () => getBaseModels('openai', 'llm'),
-    select: (data) => data.models,
   });
   
-  const { data: anthropicModels } = useQuery({
+  const { data: anthropicCatalog } = useQuery({
     queryKey: ['base-models', 'anthropic', 'llm'],
     queryFn: () => getBaseModels('anthropic', 'llm'),
-    select: (data) => data.models,
   });
   
-  const { data: geminiModels } = useQuery({
+  const { data: geminiCatalog } = useQuery({
     queryKey: ['base-models', 'gemini', 'llm'],
     queryFn: () => getBaseModels('gemini', 'llm'),
-    select: (data) => data.models,
   });
   
   // Get models for current provider
-  const availableModels = provider === 'openai' 
-    ? (openaiModels || [])
+  const catalog = provider === 'openai'
+    ? openaiCatalog
     : provider === 'anthropic'
-    ? (anthropicModels || [])
+    ? anthropicCatalog
     : provider === 'gemini'
-    ? (geminiModels || [])
-    : [];
+    ? geminiCatalog
+    : undefined;
+  const availableModels = catalog?.models || [];
   
   // Get current model pricing info
   const currentModelInfo = availableModels.find(m => m.model_id === model);
@@ -153,7 +151,10 @@ export function PromptPlayground() {
     if (availableModels.length > 0) {
       const currentModelExists = availableModels.find(m => m.model_id === model);
       if (!currentModelExists) {
-        setModel(availableModels[0].model_id);
+        // The list starts with the newest (and priciest) models; prefer the provider default
+        const defaultModel = catalog?.default;
+        const hasDefault = defaultModel && availableModels.some(m => m.model_id === defaultModel);
+        setModel(hasDefault ? defaultModel : availableModels[0].model_id);
       }
     }
   }, [provider, availableModels]);

@@ -8,6 +8,7 @@ import { type Node } from 'reactflow';
 import { useWorkflowStore } from '@/store/workflowStore';
 import { cn } from '@/utils/cn';
 import { Button } from '@/components/common/Button';
+import { ModelSelect } from '@/components/Properties/ModelSelect';
 
 interface MobileNodeEditorProps {
   node: Node;
@@ -62,6 +63,8 @@ export function MobileNodeEditor({ node, isOpen, onClose, onSave, onDelete }: Mo
       }
     }));
   };
+
+  const chatProvider: string = nodeData.config?.provider || 'openai';
 
   const sections = [
     { id: 'basic', label: 'Basic', icon: Settings },
@@ -175,16 +178,17 @@ export function MobileNodeEditor({ node, isOpen, onClose, onSave, onDelete }: Mo
                     <label className="block text-sm font-medium text-slate-300 mb-2">
                       Model
                     </label>
-                    <select
-                      value={nodeData.config?.model || 'gpt-3.5-turbo'}
-                      onChange={(e) => handleFieldChange('model', e.target.value)}
-                      className="w-full px-3 py-3 bg-slate-800 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-base"
-                    >
-                      <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                      <option value="gpt-4">GPT-4</option>
-                      <option value="claude-3-sonnet">Claude 3 Sonnet</option>
-                      <option value="claude-3-opus">Claude 3 Opus</option>
-                    </select>
+                    {/* The chat node reads the model from the selected provider's field */}
+                    {['openai', 'anthropic', 'gemini'].includes(chatProvider) ? (
+                      <ModelSelect
+                        provider={chatProvider}
+                        value={nodeData.config?.[`${chatProvider}_model`]}
+                        onChange={(model) => handleFieldChange(`${chatProvider}_model`, model)}
+                        className="w-full px-3 py-3 bg-slate-800 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-base"
+                      />
+                    ) : (
+                      <p className="text-sm text-slate-400">Set the model for this provider in the desktop editor.</p>
+                    )}
                   </div>
                   
                   <div>

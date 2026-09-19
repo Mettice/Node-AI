@@ -13,6 +13,7 @@ import { ProviderSelector } from './ProviderSelector';
 import { APIKeyInputWithVault } from './APIKeyInputWithVault';
 import { ToolSelector } from './ToolSelector';
 import { testLLMConnection } from '@/services/nodes';
+import { useModelCatalog } from '@/hooks/useModelCatalog';
 import { ROOM_TEMPLATES, applyTemplate, type RoomTemplate } from '@/components/Canvas/AgentRoomTemplates';
 
 interface Agent {
@@ -87,16 +88,21 @@ export function CrewAIAgentForm({ initialData, onChange, schema }: CrewAIAgentFo
 
   const [provider, setProvider] = useState(initialData.provider || 'openai');
   
-  // Get model lists from schema if available, otherwise use defaults
+  // Model lists and defaults come from the node schema; the model catalog is the fallback.
+  // Both are served from the backend model registry.
   const properties = schema?.properties || {};
-  const openaiModels = properties.openai_model?.enum || [];
-  const anthropicModels = properties.anthropic_model?.enum || [];
-  const geminiModels = properties.gemini_model?.enum || [];
+  const openaiCatalog = useModelCatalog('openai');
+  const anthropicCatalog = useModelCatalog('anthropic');
+  const geminiCatalog = useModelCatalog('gemini');
+  const catalogIds = (catalog: ReturnType<typeof useModelCatalog>) => catalog.options.map((o) => o.value);
+  const openaiModels: string[] = properties.openai_model?.enum || catalogIds(openaiCatalog);
+  const anthropicModels: string[] = properties.anthropic_model?.enum || catalogIds(anthropicCatalog);
+  const geminiModels: string[] = properties.gemini_model?.enum || catalogIds(geminiCatalog);
   
-  // Get default models from schema or use fallbacks
-  const defaultOpenaiModel = properties.openai_model?.default || 'gpt-4o-mini';
-  const defaultAnthropicModel = properties.anthropic_model?.default || 'claude-sonnet-4-5-20250929';
-  const defaultGeminiModel = properties.gemini_model?.default || 'gemini-2.5-flash';
+  // Empty means "provider default"; the backend resolves it
+  const defaultOpenaiModel = properties.openai_model?.default || '';
+  const defaultAnthropicModel = properties.anthropic_model?.default || '';
+  const defaultGeminiModel = properties.gemini_model?.default || '';
   
   const [openaiModel, setOpenaiModel] = useState(initialData.openai_model || defaultOpenaiModel);
   const [anthropicModel, setAnthropicModel] = useState(initialData.anthropic_model || defaultAnthropicModel);
@@ -369,8 +375,7 @@ export function CrewAIAgentForm({ initialData, onChange, schema }: CrewAIAgentFo
             }}
             options={
               provider === 'openai'
-                ? (openaiModels.length > 0
-                    ? openaiModels.map((model: string) => ({
+                ? openaiModels.map((model: string) => ({
                         value: model,
                         label: model
                           .replace(/^gpt-/, 'GPT-')
@@ -379,14 +384,8 @@ export function CrewAIAgentForm({ initialData, onChange, schema }: CrewAIAgentFo
                           .replace(/\b\w/g, (l) => l.toUpperCase()),
                         icon: 'openai',
                       }))
-                    : [
-                        { value: 'gpt-4', label: 'GPT-4', icon: 'openai' },
-                        { value: 'gpt-4-turbo-preview', label: 'GPT-4 Turbo', icon: 'openai' },
-                        { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo', icon: 'openai' },
-                      ])
                 : provider === 'anthropic'
-                ? (anthropicModels.length > 0
-                    ? anthropicModels.map((model: string) => ({
+                ? anthropicModels.map((model: string) => ({
                         value: model,
                         label: model
                           .replace(/^claude-/, 'Claude ')
@@ -394,13 +393,7 @@ export function CrewAIAgentForm({ initialData, onChange, schema }: CrewAIAgentFo
                           .replace(/\b\w/g, (l) => l.toUpperCase()),
                         icon: 'anthropic',
                       }))
-                    : [
-                        { value: 'claude-3-opus-20240229', label: 'Claude 3 Opus', icon: 'anthropic' },
-                        { value: 'claude-3-sonnet-20240229', label: 'Claude 3 Sonnet', icon: 'anthropic' },
-                        { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku', icon: 'anthropic' },
-                      ])
-                : (geminiModels.length > 0
-                    ? geminiModels.map((model: string) => ({
+                : geminiModels.map((model: string) => ({
                         value: model,
                         label: model
                           .replace(/^gemini-/, 'Gemini ')
@@ -408,10 +401,6 @@ export function CrewAIAgentForm({ initialData, onChange, schema }: CrewAIAgentFo
                           .replace(/\b\w/g, (l) => l.toUpperCase()),
                         icon: 'gemini',
                       }))
-                    : [
-                        { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', icon: 'gemini' },
-                        { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', icon: 'gemini' },
-                      ])
             }
           />
         )}

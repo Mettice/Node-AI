@@ -149,10 +149,17 @@ export interface BaseModel {
   };
 }
 
+export interface ModelLifecycle {
+  status: 'active' | 'deprecated' | 'retired';
+  shutdown_date: string | null;
+  replacement: string | null;
+}
+
 export interface BaseModelsResponse {
   provider: string;
   model_type: string;
-  models: BaseModel[];
+  default: string | null;
+  models: (BaseModel & { context_window?: number | null; lifecycle?: ModelLifecycle })[];
 }
 
 export async function getBaseModels(
