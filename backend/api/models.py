@@ -574,32 +574,34 @@ async def get_base_models(
         Dictionary with model list and pricing information
     """
     try:
-        from backend.utils.model_pricing import get_available_models, ModelType
-        
+        from backend.utils.model_pricing import get_model_pricing, ModelType
+        from backend.utils.model_catalog import get_default_model, get_model_lifecycle, list_model_ids
+
         # Map model_type string to enum
         type_map = {
             "llm": ModelType.LLM,
             "embedding": ModelType.EMBEDDING,
             "reranking": ModelType.RERANKING,
         }
-        
+
         model_type_enum = type_map.get(model_type.lower(), ModelType.LLM)
-        
-        # Get models from pricing system
-        models = get_available_models(provider=provider, model_type=model_type_enum)
-        
+
+        # Retired models and duplicate aliases are excluded; current generation first,
+        # deprecated models last
+        model_ids = list_model_ids(provider, model_type_enum.value)
+
         # Format response
         model_list = []
-        for model in models:
-            # Skip deprecated models and aliases for cleaner UI
+        for model_id in model_ids:
+            model = get_model_pricing(provider, model_id)
             metadata = model.metadata or {}
-            if metadata.get("deprecated", False) or metadata.get("is_alias", False):
-                continue
-            
+
             model_info = {
                 "model_id": model.model_id,
                 "description": model.description,
                 "max_tokens": model.max_tokens,
+                "context_window": metadata.get("context_window"),
+                "lifecycle": get_model_lifecycle(provider, model.model_id),
                 "pricing": {},
             }
             
@@ -622,9 +624,15 @@ async def get_base_models(
             
             model_list.append(model_info)
         
+        try:
+            default_model = get_default_model(provider, model_type_enum.value)
+        except ValueError:
+            default_model = None
+
         return {
             "provider": provider,
             "model_type": model_type,
+            "default": default_model,
             "models": model_list,
         }
     except Exception as e:

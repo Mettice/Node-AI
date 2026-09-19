@@ -16,6 +16,7 @@ from backend.core.node_registry import NodeRegistry
 from backend.core.secret_resolver import resolve_api_key
 from backend.nodes.base import BaseNode
 from backend.utils.logger import get_logger
+from backend.utils.model_catalog import FINETUNE_BASE_MODELS
 
 logger = get_logger(__name__)
 
@@ -49,7 +50,7 @@ class FineTuneNode(BaseNode):
         
         # Get configuration
         provider = config.get("provider", "openai")
-        base_model = config.get("base_model", "gpt-3.5-turbo")
+        base_model = config.get("base_model") or FINETUNE_BASE_MODELS["openai"][0]
         validation_split = config.get("validation_split", 0.2)
         epochs = config.get("epochs", 3)
         batch_size = config.get("batch_size", None)  # Auto if None
@@ -392,12 +393,8 @@ class FineTuneNode(BaseNode):
                     "type": "string",
                     "title": "Base Model",
                     "description": "Base model to fine-tune",
-                    "enum": [
-                        "gpt-3.5-turbo",
-                        "gpt-4",
-                        "gpt-4-turbo-preview",
-                    ],
-                    "default": "gpt-3.5-turbo",
+                    "enum": FINETUNE_BASE_MODELS["openai"],
+                    "default": FINETUNE_BASE_MODELS["openai"][0],
                 },
                 "training_file_id": {
                     "type": "string",

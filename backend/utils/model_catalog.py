@@ -150,8 +150,19 @@ DEFAULT_MODELS: Dict[str, Dict[str, str]] = {
     "openai": {"llm": "gpt-4o-mini", "embedding": "text-embedding-3-small"},
     "anthropic": {"llm": "claude-sonnet-5"},
     "gemini": {"llm": "gemini-2.5-flash", "embedding": "gemini-embedding-001"},
-    "cohere": {"embedding": "embed-english-v3.0", "reranking": "rerank-v3.5"},
+    "cohere": {"embedding": "embed-english-v3.0", "reranking": "rerank-english-v3.0"},
     "voyage_ai": {"embedding": "voyage-3.5", "reranking": "rerank-2.5"},
+}
+
+# Image-capable models offered by the Vision node (OpenAI Chat Completions with image input)
+VISION_MODELS: Dict[str, List[str]] = {
+    "openai": ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"],
+}
+
+# Base models the Fine-Tune node offers: the snapshots OpenAI's fine-tuning guide documents,
+# excluding gpt-4.1-nano (shutdown 2026-10-23). The GPT-5 family does not support fine-tuning.
+FINETUNE_BASE_MODELS: Dict[str, List[str]] = {
+    "openai": ["gpt-4.1-mini-2025-04-14", "gpt-4.1-2025-04-14", "gpt-4o-2024-08-06"],
 }
 
 _PROVIDER_ALIASES = {"google": "gemini", "voyage": "voyage_ai", "voyageai": "voyage_ai", "claude": "anthropic"}

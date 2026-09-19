@@ -28,11 +28,18 @@ from backend.nodes.base import BaseNode
 from backend.utils.logger import get_logger
 from backend.core.cache import get_cache
 from backend.core.secret_resolver import resolve_api_key
+from backend.utils.model_catalog import get_default_model, list_model_ids, llm_request_options, resolve_model
+from backend.utils.model_pricing import calculate_llm_cost
 
 logger = get_logger(__name__)
 
 # Cache for NLP results
 _nlp_cache = get_cache()
+
+
+def _anthropic_text(message) -> str:
+    """Text of a Claude response. Models that think first put thinking blocks before the text."""
+    return "".join(block.text for block in message.content if block.type == "text")
 
 
 class AdvancedNLPNode(BaseNode):
@@ -155,22 +162,8 @@ class AdvancedNLPNode(BaseNode):
         return f"nlp:{hashlib.md5(key_str.encode()).hexdigest()}"
 
     def _calculate_openai_cost(self, model: str, input_tokens: int, output_tokens: int) -> float:
-        """Calculate cost for OpenAI API calls based on model pricing."""
-        # Pricing per 1M tokens (as of 2025)
-        pricing = {
-            "gpt-4o": {"input": 2.50, "output": 10.00},
-            "gpt-4o-mini": {"input": 0.15, "output": 0.60},
-            "gpt-4-turbo": {"input": 10.00, "output": 30.00},
-            "gpt-4": {"input": 30.00, "output": 60.00},
-            "gpt-3.5-turbo": {"input": 0.50, "output": 1.50},
-            "o1": {"input": 15.00, "output": 60.00},
-            "o1-mini": {"input": 3.00, "output": 12.00},
-        }
-        # Default to gpt-4o-mini pricing if model not found
-        model_pricing = pricing.get(model, pricing["gpt-4o-mini"])
-        input_cost = (input_tokens / 1_000_000) * model_pricing["input"]
-        output_cost = (output_tokens / 1_000_000) * model_pricing["output"]
-        return round(input_cost + output_cost, 6)
+        """Calculate cost for OpenAI API calls from the central model registry."""
+        return round(calculate_llm_cost("openai", model, input_tokens, output_tokens), 6)
 
     async def _process_batch(
         self,
@@ -661,7 +654,7 @@ class AdvancedNLPNode(BaseNode):
 
         user_id = config.get("_user_id")
         api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or settings.openai_api_key
-        model = config.get("openai_model", "gpt-4o-mini")
+        model = resolve_model("openai", config.get("openai_model"))
 
         client = OpenAI(api_key=api_key)
 
@@ -672,7 +665,7 @@ class AdvancedNLPNode(BaseNode):
         response = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
+            **llm_request_options("openai", model, 0.3, None),
         )
 
         summary = response.choices[0].message.content
@@ -707,7 +700,7 @@ class AdvancedNLPNode(BaseNode):
 
         user_id = config.get("_user_id")
         api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or settings.openai_api_key
-        model = config.get("openai_model", "gpt-4o-mini")
+        model = resolve_model("openai", config.get("openai_model"))
 
         client = OpenAI(api_key=api_key)
 
@@ -726,7 +719,7 @@ Return only valid JSON."""
         response = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.1,
+            **llm_request_options("openai", model, 0.1, None),
             response_format={"type": "json_object"},
         )
 
@@ -773,7 +766,7 @@ Return only valid JSON."""
         
         user_id = config.get("_user_id")
         api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or settings.openai_api_key
-        model = config.get("openai_model", "gpt-4o-mini")
+        model = resolve_model("openai", config.get("openai_model"))
         
         client = OpenAI(api_key=api_key)
         
@@ -792,7 +785,7 @@ Return a JSON object with:
         response = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
+            **llm_request_options("openai", model, 0.3, None),
             response_format={"type": "json_object"},
         )
         
@@ -831,7 +824,7 @@ Return a JSON object with:
         
         user_id = config.get("_user_id")
         api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or settings.openai_api_key
-        model = config.get("openai_model", "gpt-4o-mini")
+        model = resolve_model("openai", config.get("openai_model"))
         
         client = OpenAI(api_key=api_key)
         
@@ -850,7 +843,7 @@ Return a JSON object matching the schema."""
         response = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.1,
+            **llm_request_options("openai", model, 0.1, None),
             response_format={"type": "json_object"},
         )
         
@@ -885,7 +878,7 @@ Return a JSON object matching the schema."""
         
         user_id = config.get("_user_id")
         api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or settings.openai_api_key
-        model = config.get("openai_model", "gpt-4o-mini")
+        model = resolve_model("openai", config.get("openai_model"))
         
         client = OpenAI(api_key=api_key)
         
@@ -901,7 +894,7 @@ Text: {text}"""
         response = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
+            **llm_request_options("openai", model, 0.3, None),
             response_format={"type": "json_object"},
         )
         
@@ -939,7 +932,7 @@ Text: {text}"""
         
         user_id = config.get("_user_id")
         api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or settings.openai_api_key
-        model = config.get("openai_model", "gpt-4o-mini")
+        model = resolve_model("openai", config.get("openai_model"))
         
         client = OpenAI(api_key=api_key)
         
@@ -956,7 +949,7 @@ Answer:"""
         response = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
+            **llm_request_options("openai", model, 0.3, None),
         )
         
         answer = response.choices[0].message.content
@@ -992,7 +985,7 @@ Answer:"""
 
         user_id = config.get("_user_id")
         api_key = resolve_api_key(config, "openai_api_key", user_id=user_id) or settings.openai_api_key
-        model = config.get("openai_model", "gpt-4o-mini")
+        model = resolve_model("openai", config.get("openai_model"))
 
         client = OpenAI(api_key=api_key)
 
@@ -1018,7 +1011,7 @@ Answer:"""
         response = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
+            **llm_request_options("openai", model, 0.3, None),
         )
 
         translated = response.choices[0].message.content
@@ -1059,7 +1052,7 @@ Answer:"""
         from backend.config import settings
         
         api_key = resolve_api_key(config, "anthropic_api_key", user_id=user_id) or settings.anthropic_api_key
-        model = config.get("anthropic_model", "claude-sonnet-4-5-20250929")
+        model = resolve_model("anthropic", config.get("anthropic_model"))
         
         client = anthropic.Anthropic(api_key=api_key)
         
@@ -1069,11 +1062,11 @@ Answer:"""
         
         message = client.messages.create(
             model=model,
-            max_tokens=1024,
+            **llm_request_options("anthropic", model, None, 1024),
             messages=[{"role": "user", "content": prompt}],
         )
         
-        summary = message.content[0].text
+        summary = _anthropic_text(message)
         
         await self.stream_progress(node_id, 1.0, "Summary complete!")
         
@@ -1097,7 +1090,7 @@ Answer:"""
         from backend.config import settings
         
         api_key = resolve_api_key(config, "anthropic_api_key", user_id=user_id) or settings.anthropic_api_key
-        model = config.get("anthropic_model", "claude-sonnet-4-5-20250929")
+        model = resolve_model("anthropic", config.get("anthropic_model"))
         
         client = anthropic.Anthropic(api_key=api_key)
         
@@ -1115,11 +1108,11 @@ Return only valid JSON."""
         
         message = client.messages.create(
             model=model,
-            max_tokens=1024,
+            **llm_request_options("anthropic", model, None, 1024),
             messages=[{"role": "user", "content": prompt}],
         )
         
-        result = json.loads(message.content[0].text)
+        result = json.loads(_anthropic_text(message))
         entities = result.get("entities", [])
         
         # Group by type
@@ -1154,7 +1147,7 @@ Return only valid JSON."""
         from backend.config import settings
         
         api_key = resolve_api_key(config, "anthropic_api_key", user_id=user_id) or settings.anthropic_api_key
-        model = config.get("anthropic_model", "claude-sonnet-4-5-20250929")
+        model = resolve_model("anthropic", config.get("anthropic_model"))
         
         client = anthropic.Anthropic(api_key=api_key)
         
@@ -1172,11 +1165,11 @@ Return a JSON object with:
         
         message = client.messages.create(
             model=model,
-            max_tokens=1024,
+            **llm_request_options("anthropic", model, None, 1024),
             messages=[{"role": "user", "content": prompt}],
         )
         
-        result = json.loads(message.content[0].text)
+        result = json.loads(_anthropic_text(message))
         
         await self.stream_progress(node_id, 1.0, f"Classified as: {result['label']}")
         
@@ -1203,7 +1196,7 @@ Return a JSON object with:
         from backend.config import settings
         
         api_key = resolve_api_key(config, "anthropic_api_key", user_id=user_id) or settings.anthropic_api_key
-        model = config.get("anthropic_model", "claude-sonnet-4-5-20250929")
+        model = resolve_model("anthropic", config.get("anthropic_model"))
         
         client = anthropic.Anthropic(api_key=api_key)
         
@@ -1221,11 +1214,11 @@ Return a JSON object matching the schema."""
         
         message = client.messages.create(
             model=model,
-            max_tokens=2048,
+            **llm_request_options("anthropic", model, None, 2048),
             messages=[{"role": "user", "content": prompt}],
         )
         
-        extracted = json.loads(message.content[0].text)
+        extracted = json.loads(_anthropic_text(message))
         
         await self.stream_progress(node_id, 1.0, "Extraction complete!")
         
@@ -1250,7 +1243,7 @@ Return a JSON object matching the schema."""
         from backend.config import settings
         
         api_key = resolve_api_key(config, "anthropic_api_key", user_id=user_id) or settings.anthropic_api_key
-        model = config.get("anthropic_model", "claude-sonnet-4-5-20250929")
+        model = resolve_model("anthropic", config.get("anthropic_model"))
         
         client = anthropic.Anthropic(api_key=api_key)
         
@@ -1266,11 +1259,11 @@ Answer:"""
         
         message = client.messages.create(
             model=model,
-            max_tokens=1024,
+            **llm_request_options("anthropic", model, None, 1024),
             messages=[{"role": "user", "content": prompt}],
         )
         
-        answer = message.content[0].text
+        answer = _anthropic_text(message)
         
         await self.stream_progress(node_id, 1.0, "Answer generated!")
         
@@ -1705,7 +1698,8 @@ Return a JSON object with:
                     "type": "string",
                     "title": "OpenAI Model",
                     "description": "OpenAI model to use",
-                    "default": "gpt-4o-mini",
+                    "enum": list_model_ids("openai"),
+                    "default": get_default_model("openai"),
                 },
                 # Anthropic config
                 "anthropic_api_key": {
@@ -1718,7 +1712,8 @@ Return a JSON object with:
                     "type": "string",
                     "title": "Anthropic Model",
                     "description": "Anthropic model to use",
-                    "default": "claude-sonnet-4-5-20250929",
+                    "enum": list_model_ids("anthropic"),
+                    "default": get_default_model("anthropic"),
                 },
                 # Summarization config
                 "max_length": {

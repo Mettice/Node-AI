@@ -21,11 +21,8 @@ from backend.utils.logger import get_logger
 from backend.config import settings
 from backend.core.secret_resolver import resolve_api_key
 from backend.core.agent_lightning import get_agent_lightning_wrapper, calculate_simple_reward
-from backend.utils.model_pricing import (
-    calculate_llm_cost,
-    get_available_models,
-    ModelType,
-)
+from backend.utils.model_pricing import calculate_llm_cost
+from backend.utils.model_catalog import get_default_model, list_model_ids, llm_request_options, resolve_model
 from backend.nodes.agent.crewai_event_listener import CrewAIStreamingEventListener
 
 logger = get_logger(__name__)
@@ -67,13 +64,13 @@ class CrewAINode(BaseNode):
         provider = config.get("provider", "openai")
         # Handle provider-specific model selection
         if provider == "openai":
-            model = config.get("openai_model") or config.get("model", "gpt-4")
+            model = resolve_model("openai", config.get("openai_model") or config.get("model"))
         elif provider == "anthropic":
-            model = config.get("anthropic_model") or config.get("model", "claude-3-sonnet-20240229")
+            model = resolve_model("anthropic", config.get("anthropic_model") or config.get("model"))
         elif provider == "gemini" or provider == "google":
-            model = config.get("gemini_model") or config.get("model", "gemini-2.5-flash")
+            model = resolve_model("gemini", config.get("gemini_model") or config.get("model"))
         else:
-            model = config.get("model", "gpt-4")
+            model = resolve_model("openai", config.get("model"))
         
         temperature = config.get("temperature", 0.7)
         max_iterations = config.get("max_iterations", 3)
@@ -799,9 +796,10 @@ class CrewAINode(BaseNode):
                 raise ValueError(
                     "langchain-openai not installed. Install with: pip install langchain-openai"
                 )
+            # ChatOpenAI always sends a temperature; reasoning models only accept the default of 1
             return ChatOpenAI(
                 model=model,
-                temperature=temperature,
+                temperature=llm_request_options("openai", model, temperature, None).get("temperature", 1),
                 api_key=api_key,
             )
         elif provider == "anthropic":
@@ -824,10 +822,11 @@ class CrewAINode(BaseNode):
                 raise ValueError(
                     "langchain-anthropic not installed. Install with: pip install langchain-anthropic"
                 )
+            # Newer Claude models reject temperature, so it is only passed where supported
             return ChatAnthropic(
                 model=model,
-                temperature=temperature,
                 api_key=api_key,
+                **llm_request_options("anthropic", model, temperature, None),
             )
         elif provider == "gemini" or provider == "google":
             # Use API key from config if provided, otherwise fall back to environment variable
@@ -1141,50 +1140,13 @@ Look for the actual content in your task - it will contain the data you need to 
         return None
 
     def _get_openai_model_list(self) -> List[str]:
-        """Get list of available OpenAI LLM models from pricing system."""
-        try:
-            models = get_available_models(provider="openai", model_type=ModelType.LLM)
-            model_list = [model.model_id for model in models if not (model.metadata or {}).get("deprecated", False)]
-            if not model_list:
-                logger.warning("No OpenAI LLM models found in pricing system, using fallback list")
-                return ["gpt-5.1", "gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo"]
-            logger.debug(f"Found {len(model_list)} OpenAI LLM models: {model_list[:5]}...")
-            return model_list
-        except Exception as e:
-            logger.warning(f"Failed to get OpenAI models from pricing system: {e}", exc_info=True)
-            return ["gpt-5.1", "gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo"]
+        return list_model_ids("openai")
     
     def _get_anthropic_model_list(self) -> List[str]:
-        """Get list of available Anthropic Claude LLM models from pricing system."""
-        try:
-            models = get_available_models(provider="anthropic", model_type=ModelType.LLM)
-            model_list = [
-                model.model_id for model in models 
-                if not (model.metadata or {}).get("deprecated", False)
-                and not (model.metadata or {}).get("is_alias", False)
-            ]
-            if not model_list:
-                logger.warning("No Anthropic LLM models found in pricing system, using fallback list")
-                return ["claude-sonnet-4-5-20250929", "claude-haiku-4-5-20251001", "claude-opus-4-5-20251101"]
-            logger.debug(f"Found {len(model_list)} Anthropic LLM models: {model_list[:5]}...")
-            return model_list
-        except Exception as e:
-            logger.warning(f"Failed to get Anthropic models from pricing system: {e}", exc_info=True)
-            return ["claude-sonnet-4-5-20250929", "claude-haiku-4-5-20251001", "claude-opus-4-5-20251101"]
+        return list_model_ids("anthropic")
     
     def _get_gemini_model_list(self) -> List[str]:
-        """Get list of available Gemini LLM models from pricing system."""
-        try:
-            models = get_available_models(provider="gemini", model_type=ModelType.LLM)
-            model_list = [model.model_id for model in models if not (model.metadata or {}).get("deprecated", False)]
-            if not model_list:
-                logger.warning("No Gemini LLM models found in pricing system, using fallback list")
-                return ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"]
-            logger.debug(f"Found {len(model_list)} Gemini LLM models: {model_list[:5]}...")
-            return model_list
-        except Exception as e:
-            logger.warning(f"Failed to get Gemini models from pricing system: {e}", exc_info=True)
-            return ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"]
+        return list_model_ids("gemini")
 
     def _calculate_cost_from_tokens(self, provider: str, model: str, input_tokens: int, output_tokens: int) -> float:
         """Calculate cost from actual token usage using centralized pricing."""
@@ -1387,28 +1349,28 @@ Look for the actual content in your task - it will contain the data you need to 
                 },
                 "model": {
                     "type": "string",
-                    "default": "gpt-4",
+                    "default": get_default_model("openai"),
                     "title": "Model",
                     "description": "Model to use (fallback if provider-specific model not set)",
                 },
                 "openai_model": {
                     "type": "string",
                     "enum": self._get_openai_model_list(),
-                    "default": "gpt-4o-mini",
+                    "default": get_default_model("openai"),
                     "title": "OpenAI Model",
                     "description": "OpenAI model to use",
                 },
                 "anthropic_model": {
                     "type": "string",
                     "enum": self._get_anthropic_model_list(),
-                    "default": "claude-sonnet-4-5-20250929",
+                    "default": get_default_model("anthropic"),
                     "title": "Anthropic Model",
                     "description": "Anthropic model to use",
                 },
                 "gemini_model": {
                     "type": "string",
                     "enum": self._get_gemini_model_list(),
-                    "default": "gemini-2.5-flash",
+                    "default": get_default_model("gemini"),
                     "title": "Gemini Model",
                     "description": "Google Gemini model to use",
                 },

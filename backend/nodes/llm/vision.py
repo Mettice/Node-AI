@@ -13,6 +13,8 @@ from backend.core.node_registry import NodeRegistry
 from backend.core.secret_resolver import resolve_api_key
 from backend.nodes.base import BaseNode
 from backend.utils.logger import get_logger
+from backend.utils.model_catalog import VISION_MODELS, llm_request_options, resolve_model
+from backend.utils.model_pricing import calculate_llm_cost
 
 logger = get_logger(__name__)
 
@@ -53,7 +55,7 @@ class VisionNode(BaseNode):
         prompt = config.get("prompt", "What's in this image? Describe it in detail.")
         
         # Get model
-        model = config.get("model", "gpt-4-vision-preview")
+        model = resolve_model("openai", config.get("model") or VISION_MODELS["openai"][0])
         
         # Get max tokens
         max_tokens = config.get("max_tokens", 300)
@@ -129,16 +131,15 @@ class VisionNode(BaseNode):
                         ],
                     }
                 ],
-                max_tokens=max_tokens,
+                **llm_request_options("openai", model, None, max_tokens),
             )
-            
+
             description = response.choices[0].message.content or ""
-            
-            # Calculate cost
-            # GPT-4 Vision pricing: $0.01 per image + $0.03 per 1K tokens
+
+            # Images are billed as input tokens, so prompt_tokens already includes them
             input_tokens = response.usage.prompt_tokens if response.usage else 0
             output_tokens = response.usage.completion_tokens if response.usage else 0
-            cost = (0.01 + (input_tokens / 1000) * 0.03 + (output_tokens / 1000) * 0.06)
+            cost = calculate_llm_cost("openai", model, input_tokens, output_tokens)
             
             await self.stream_progress(node_id, 0.9, "Analysis complete")
             
@@ -175,8 +176,8 @@ class VisionNode(BaseNode):
                     "type": "string",
                     "title": "Model",
                     "description": "Vision model to use",
-                    "enum": ["gpt-4-vision-preview", "gpt-4o", "gpt-4o-mini"],
-                    "default": "gpt-4-vision-preview",
+                    "enum": VISION_MODELS["openai"],
+                    "default": VISION_MODELS["openai"][0],
                 },
                 "prompt": {
                     "type": "string",

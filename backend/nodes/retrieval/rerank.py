@@ -12,9 +12,11 @@ from backend.core.secret_resolver import resolve_api_key
 from backend.nodes.base import BaseNode
 from backend.utils.logger import get_logger
 from backend.utils.model_pricing import (
+    calculate_llm_cost,
     calculate_reranking_cost_from_query_and_docs,
     get_model_pricing,
 )
+from backend.utils.model_catalog import get_default_model, list_model_ids, llm_request_options, resolve_model
 
 logger = get_logger(__name__)
 
@@ -69,7 +71,7 @@ class RerankNode(BaseNode):
         method = config.get("method", "cohere")
         top_n = config.get("top_n", 3)
         min_score = config.get("min_score", 0.0)
-        model = config.get("model", "rerank-english-v3.0")
+        model = config.get("model") or get_default_model("cohere", "reranking")
         
         # Normalize search results format
         # Vector Search outputs: [{"text": "...", "score": 0.9, "metadata": {...}}, ...]
@@ -118,7 +120,7 @@ class RerankNode(BaseNode):
         if method == "cohere":
             reranked = await self._rerank_cohere(normalized_results, query, model, node_id)
         elif method == "voyage_ai" or method == "voyageai":
-            voyage_model = config.get("voyage_model", "rerank-2.5")
+            voyage_model = config.get("voyage_model") or get_default_model("voyage_ai", "reranking")
             reranked = await self._rerank_voyage_ai(normalized_results, query, voyage_model, node_id)
         elif method == "cross_encoder":
             reranked = await self._rerank_cross_encoder(normalized_results, query, node_id)
@@ -292,7 +294,7 @@ class RerankNode(BaseNode):
             raise ValueError("OpenAI API key not found. Please configure it in the node settings or set OPENAI_API_KEY environment variable")
         
         client = OpenAI(api_key=api_key)
-        model = config.get("llm_model", "gpt-4o-mini")
+        model = resolve_model("openai", config.get("llm_model"))
         
         await self.stream_progress(node_id, 0.5, "Scoring results with LLM...")
         
@@ -319,8 +321,7 @@ Return ONLY a JSON array of scores, one per result, in order. Example: [0.9, 0.3
                     {"role": "system", "content": "You are a relevance scorer. Return only JSON arrays of scores."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.0,
-                max_tokens=500,
+                **llm_request_options("openai", model, 0.0, 500),
             )
             
             # Parse scores
@@ -424,7 +425,7 @@ Return ONLY a JSON array of scores, one per result, in order. Example: [0.9, 0.3
         """Estimate cost for reranking operation using centralized pricing."""
         if method == "voyage_ai" or method == "voyageai":
             # Use centralized pricing system
-            voyage_model = config.get("voyage_model", "rerank-2.5")
+            voyage_model = config.get("voyage_model") or get_default_model("voyage_ai", "reranking")
             # For reranking: 1 unit = 1 query + 1 document
             # We estimate query as 1 unit, so total = 1 + num_results
             return calculate_reranking_cost_from_query_and_docs(
@@ -432,7 +433,7 @@ Return ONLY a JSON array of scores, one per result, in order. Example: [0.9, 0.3
             )
         elif method == "cohere":
             # Use centralized pricing for Cohere
-            cohere_model = config.get("model", "rerank-english-v3.0")
+            cohere_model = config.get("model") or get_default_model("cohere", "reranking")
             # For reranking: 1 unit = 1 query + 1 document
             return calculate_reranking_cost_from_query_and_docs(
                 "cohere", cohere_model, "", num_results
@@ -443,18 +444,9 @@ Return ONLY a JSON array of scores, one per result, in order. Example: [0.9, 0.3
         elif method == "llm":
             # Estimate based on tokens
             # Rough estimate: ~50 tokens per result for scoring
-            model = config.get("llm_model", "gpt-4o-mini")
+            model = resolve_model("openai", config.get("llm_model"))
             tokens = 100 + (num_results * 50)  # Base prompt + per result
-            
-            # Pricing (approximate)
-            if "gpt-4o-mini" in model.lower():
-                cost = (tokens / 1000000) * 0.15  # $0.15 per 1M input tokens
-            elif "gpt-4" in model.lower():
-                cost = (tokens / 1000000) * 30.0  # $30 per 1M input tokens
-            else:
-                cost = (tokens / 1000000) * 0.15  # Default to mini pricing
-            
-            return round(cost, 6)
+            return round(calculate_llm_cost("openai", model, tokens, 0), 6)
         return 0.0
     
     def get_schema(self) -> Dict[str, Any]:
@@ -489,33 +481,23 @@ Return ONLY a JSON array of scores, one per result, in order. Example: [0.9, 0.3
                     "type": "string",
                     "title": "Cohere Model (Cohere only)",
                     "description": "Cohere rerank model to use",
-                    "enum": [
-                        "rerank-v3.5",
-                        "rerank-english-v3.0",
-                        "rerank-multilingual-v3.0",
-                    ],
-                    "default": "rerank-english-v3.0",
+                    "enum": list_model_ids("cohere", "reranking"),
+                    "default": get_default_model("cohere", "reranking"),
                 },
                 "llm_model": {
                     "type": "string",
                     "title": "LLM Model (LLM method only)",
                     "description": "OpenAI model to use for LLM-based reranking",
-                    "default": "gpt-4o-mini",
+                    "enum": list_model_ids("openai"),
+                    "default": get_default_model("openai"),
                 },
                 # Voyage AI config
                 "voyage_model": {
                     "type": "string",
                     "title": "Voyage AI Model (Voyage AI method only)",
                     "description": "Voyage AI rerank model to use",
-                    "enum": [
-                        "rerank-2.5-lite",
-                        "rerank-2-lite",
-                        "rerank-lite-1",
-                        "rerank-2.5",
-                        "rerank-2",
-                        "rerank-1",
-                    ],
-                    "default": "rerank-2.5",
+                    "enum": list_model_ids("voyage_ai", "reranking"),
+                    "default": get_default_model("voyage_ai", "reranking"),
                 },
             },
             "required": ["method"],

@@ -6,7 +6,8 @@ This mixin provides consistent LLM configuration patterns across all AI-native n
 
 from typing import Dict, Any, List
 from backend.core.secret_resolver import resolve_api_key
-from backend.utils.model_pricing import get_available_models, ModelType, calculate_llm_cost
+from backend.utils.model_pricing import calculate_llm_cost
+from backend.utils.model_catalog import get_default_model, list_model_ids, llm_request_options, resolve_model
 from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -16,43 +17,13 @@ class LLMConfigMixin:
     """Mixin for consistent LLM configuration across AI-native nodes."""
 
     def _get_openai_model_list(self) -> List[str]:
-        """Get list of available OpenAI LLM models from pricing system."""
-        try:
-            models = get_available_models(provider="openai", model_type=ModelType.LLM)
-            model_list = [model.model_id for model in models if not (model.metadata or {}).get("deprecated", False)]
-            if not model_list:
-                logger.warning("No OpenAI LLM models found in pricing system, using fallback list")
-                return ["gpt-4o", "gpt-4o-mini", "gpt-4", "gpt-3.5-turbo"]
-            return model_list
-        except Exception as e:
-            logger.warning(f"Failed to get OpenAI models: {e}")
-            return ["gpt-4o", "gpt-4o-mini", "gpt-4", "gpt-3.5-turbo"]
+        return list_model_ids("openai")
 
     def _get_anthropic_model_list(self) -> List[str]:
-        """Get list of available Anthropic LLM models from pricing system."""
-        try:
-            models = get_available_models(provider="anthropic", model_type=ModelType.LLM)
-            model_list = [model.model_id for model in models if not (model.metadata or {}).get("deprecated", False)]
-            if not model_list:
-                logger.warning("No Anthropic LLM models found in pricing system, using fallback list")
-                return ["claude-sonnet-4-5-20250929", "claude-haiku-4-5-20251001", "claude-opus-4-5-20251101"]
-            return model_list
-        except Exception as e:
-            logger.warning(f"Failed to get Anthropic models: {e}")
-            return ["claude-sonnet-4-5-20250929", "claude-haiku-4-5-20251001", "claude-opus-4-5-20251101"]
+        return list_model_ids("anthropic")
 
     def _get_gemini_model_list(self) -> List[str]:
-        """Get list of available Gemini LLM models from pricing system."""
-        try:
-            models = get_available_models(provider="gemini", model_type=ModelType.LLM)
-            model_list = [model.model_id for model in models if not (model.metadata or {}).get("deprecated", False)]
-            if not model_list:
-                logger.warning("No Gemini LLM models found in pricing system, using fallback list")
-                return ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash", "gemini-3-flash-preview", "gemini-3-pro-preview"]
-            return model_list
-        except Exception as e:
-            logger.warning(f"Failed to get Gemini models: {e}")
-            return ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash", "gemini-3-flash-preview", "gemini-3-pro-preview"]
+        return list_model_ids("gemini")
 
     def _get_llm_schema_section(self) -> Dict[str, Any]:
         """Get the standard LLM configuration schema section.
@@ -72,7 +43,7 @@ class LLMConfigMixin:
             # Fallback model field (matches CrewAI pattern)
             "model": {
                 "type": "string",
-                "default": "gpt-4o-mini",
+                "default": get_default_model("openai"),
                 "title": "Model",
                 "description": "Model to use (fallback if provider-specific model not set)",
             },
@@ -80,7 +51,7 @@ class LLMConfigMixin:
             "openai_model": {
                 "type": "string",
                 "enum": self._get_openai_model_list(),
-                "default": "gpt-4o-mini",
+                "default": get_default_model("openai"),
                 "title": "OpenAI Model",
                 "description": "OpenAI model to use",
             },
@@ -93,7 +64,7 @@ class LLMConfigMixin:
             "anthropic_model": {
                 "type": "string",
                 "enum": self._get_anthropic_model_list(),
-                "default": "claude-sonnet-4-5-20250929",
+                "default": get_default_model("anthropic"),
                 "title": "Anthropic Model", 
                 "description": "Anthropic model to use",
             },
@@ -106,7 +77,7 @@ class LLMConfigMixin:
             "gemini_model": {
                 "type": "string",
                 "enum": self._get_gemini_model_list(),
-                "default": "gemini-2.5-flash",
+                "default": get_default_model("gemini"),
                 "title": "Gemini Model",
                 "description": "Google Gemini model to use",
             },
@@ -133,17 +104,17 @@ class LLMConfigMixin:
         
         # Handle provider-specific model selection
         if provider == "openai":
-            model = config.get("openai_model") or config.get("model", "gpt-4o-mini")
+            model = resolve_model("openai", config.get("openai_model") or config.get("model"))
             api_key = resolve_api_key(config, "openai_api_key", user_id=user_id)
             if not api_key:
                 raise ValueError("OpenAI API key not found. Please configure it in the node settings or environment variables.")
         elif provider == "anthropic":
-            model = config.get("anthropic_model") or config.get("model", "claude-3-5-sonnet-20241022")
+            model = resolve_model("anthropic", config.get("anthropic_model") or config.get("model"))
             api_key = resolve_api_key(config, "anthropic_api_key", user_id=user_id)
             if not api_key:
                 raise ValueError("Anthropic API key not found. Please configure it in the node settings or environment variables.")
         elif provider == "gemini":
-            model = config.get("gemini_model") or config.get("model", "gemini-2.5-flash")
+            model = resolve_model("gemini", config.get("gemini_model") or config.get("model"))
             api_key = resolve_api_key(config, "gemini_api_key", user_id=user_id)
             if not api_key:
                 raise ValueError("Gemini API key not found. Please configure it in the node settings or environment variables.")
@@ -173,8 +144,7 @@ class LLMConfigMixin:
             response = await client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=temperature,
-                max_tokens=max_tokens
+                **llm_request_options("openai", model, temperature, max_tokens),
             )
             
             return response.choices[0].message.content
@@ -185,12 +155,12 @@ class LLMConfigMixin:
             
             response = await client.messages.create(
                 model=model,
-                max_tokens=max_tokens,
-                temperature=temperature,
+                **llm_request_options("anthropic", model, temperature, max_tokens),
                 messages=[{"role": "user", "content": prompt}]
             )
             
-            return response.content[0].text
+            # Models that think first return thinking blocks before the text
+            return "".join(block.text for block in response.content if block.type == "text")
             
         elif provider == "gemini":
             try:

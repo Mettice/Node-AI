@@ -418,13 +418,9 @@ async def _test_llm_connection(provider: Optional[str], api_key: str) -> TestCon
             try:
                 from anthropic import Anthropic
                 client = Anthropic(api_key=api_key)
-                # Make a simple test call (count messages is lightweight)
-                # Use a minimal test to avoid initialization errors
-                client.messages.create(
-                    model="claude-3-haiku-20240307",
-                    max_tokens=1,
-                    messages=[{"role": "user", "content": "test"}]
-                )
+                # Listing models validates the key without spending tokens or depending on a
+                # model that may be retired (this used claude-3-haiku, shut down 2026-04-19)
+                client.models.list(limit=1)
                 return TestConnectionResponse(
                     connected=True,
                     message="Anthropic connection successful"

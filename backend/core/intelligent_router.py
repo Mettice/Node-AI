@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional
 from backend.utils.logger import get_logger
 from backend.core.secret_resolver import resolve_api_key
 from backend.config import settings
+from backend.utils.model_catalog import llm_request_options
 
 logger = get_logger(__name__)
 
@@ -274,8 +275,8 @@ Return JSON mapping only:"""
                 {"role": "system", "content": "You are a data routing assistant. Return only valid JSON."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.1,  # Low temperature for consistent routing
-            max_tokens=500,  # Routing decisions are small
+            # Low temperature for consistent routing; routing decisions are small
+            **llm_request_options("openai", model, 0.1, 500),
         )
         
         result_text = response.choices[0].message.content.strip()
@@ -301,15 +302,15 @@ Return JSON mapping only:"""
         
         response = client.messages.create(
             model=model,
-            max_tokens=500,
-            temperature=0.1,
+            **llm_request_options("anthropic", model, 0.1, 500),
             system="You are a data routing assistant. Return only valid JSON.",
             messages=[
                 {"role": "user", "content": prompt}
             ],
         )
         
-        result_text = response.content[0].text.strip()
+        # Models that think first put thinking blocks before the text
+        result_text = "".join(block.text for block in response.content if block.type == "text").strip()
         return self._parse_json_response(result_text)
     
     async def _call_gemini(self, prompt: str, model: str) -> Dict[str, Any]:

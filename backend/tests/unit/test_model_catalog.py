@@ -143,6 +143,22 @@ class TestRegistryConsistency:
 
 
 @pytest.mark.unit
+def test_base_models_endpoint_serves_the_catalog():
+    from fastapi.testclient import TestClient
+    from backend.main import app
+
+    body = TestClient(app).get("/api/v1/models/base/anthropic").json()
+    ids = [m["model_id"] for m in body["models"]]
+    assert body["default"] == get_default_model("anthropic") and body["default"] in ids
+    assert ids[0] == "claude-fable-5-1"
+    assert "claude-3-5-sonnet-20241022" not in ids
+    first = body["models"][0]
+    assert first["lifecycle"]["status"] == "active"
+    assert first["context_window"] == 1_000_000
+    assert first["pricing"]["input_per_1k"] == pytest.approx(0.01)
+
+
+@pytest.mark.unit
 class TestRequestOptions:
     def test_classic_openai_model_keeps_temperature(self):
         assert llm_request_options("openai", "gpt-4o-mini", 0.7, 500) == {

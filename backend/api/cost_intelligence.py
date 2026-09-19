@@ -19,6 +19,8 @@ from pydantic import BaseModel
 
 from backend.core.security import limiter
 from backend.utils.logger import get_logger
+from backend.utils.model_catalog import get_default_model
+from backend.utils.model_pricing import get_model_pricing
 
 logger = get_logger(__name__)
 
@@ -976,13 +978,15 @@ def _generate_cost_suggestions(breakdown: List[CostBreakdown]) -> List[Dict[str,
     if "chat" in by_type:
         chat_costs = by_type["chat"]
         for cost in chat_costs:
-            if cost.model and "gpt-4" in cost.model.lower() and "turbo" not in cost.model.lower():
+            alternative = _cheaper_openai_model(cost.model)
+            if alternative:
+                cheaper_model, savings = alternative
                 suggestions.append({
                     "type": "chat_model",
                     "node_id": cost.node_id,
-                    "message": f"Using {cost.model}. Consider gpt-3.5-turbo for ~90% cost savings on non-critical tasks.",
+                    "message": f"Using {cost.model}. Consider {cheaper_model} for ~{savings:.0%} cost savings on non-critical tasks.",
                     "current_cost": cost.cost,
-                    "estimated_savings": cost.cost * 0.9,
+                    "estimated_savings": cost.cost * savings,
                     "impact": "medium",
                 })
     
@@ -1018,6 +1022,27 @@ def _suggest_embedding_optimization(
     return None
 
 
+def _cheaper_openai_model(model: Optional[str]) -> Optional[tuple]:
+    """
+    The default OpenAI model and the fraction saved by switching to it, when it is cheaper
+    than `model` by registry prices (input + output price per 1M tokens). None otherwise.
+    """
+    if not model:
+        return None
+    alternative = get_default_model("openai")
+    current, cheaper = get_model_pricing("openai", model), get_model_pricing("openai", alternative)
+    if model == alternative or not current or not cheaper:
+        return None
+
+    def price(pricing) -> float:
+        meta = pricing.metadata or {}
+        return meta.get("input_price_per_1m_tokens", 0.0) + meta.get("output_price_per_1m_tokens", 0.0)
+
+    if not price(current) or price(cheaper) >= price(current):
+        return None
+    return alternative, 1 - price(cheaper) / price(current)
+
+
 def _suggest_chat_optimization(
     node_id: str,
     node_type: str,
@@ -1029,18 +1054,20 @@ def _suggest_chat_optimization(
     if not model:
         return None
     
-    # Check if using expensive model
-    if "gpt-4" in model.lower() and "turbo" not in model.lower():
+    # Check if a cheaper model is available
+    alternative = _cheaper_openai_model(model)
+    if alternative:
+        cheaper_model, savings = alternative
         return OptimizationSuggestion(
             node_id=node_id,
             node_type=node_type,
             current_config=config,
-            suggested_config={**config, "openai_model": "gpt-3.5-turbo"},
+            suggested_config={**config, "openai_model": cheaper_model},
             current_cost=current_cost,
-            estimated_new_cost=current_cost * 0.1,  # ~90% savings
-            savings_percentage=90.0,
+            estimated_new_cost=current_cost * (1 - savings),
+            savings_percentage=round(savings * 100, 1),
             quality_impact="medium",
-            reasoning="gpt-3.5-turbo is suitable for most tasks and costs ~90% less than GPT-4",
+            reasoning=f"{cheaper_model} is suitable for many tasks and costs ~{savings:.0%} less than {model}",
             priority="high" if current_cost > 0.1 else "medium",
         )
     

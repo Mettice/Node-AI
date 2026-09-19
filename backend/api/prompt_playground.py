@@ -13,10 +13,11 @@ from datetime import datetime
 import uuid
 
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from backend.core.security import limiter
 from backend.utils.logger import get_logger
+from backend.utils.model_catalog import llm_request_options, resolve_model
 
 logger = get_logger(__name__)
 
@@ -27,11 +28,20 @@ _prompt_tests: Dict[str, Dict] = {}
 _prompt_versions: Dict[str, List[Dict]] = {}
 
 
-class PromptTestRequest(BaseModel):
+class _ResolvesModel(BaseModel):
+    """Fills in the provider's default model and upgrades retired models."""
+
+    @model_validator(mode="after")
+    def _resolve_model(self):
+        self.model = resolve_model(self.provider, self.model)
+        return self
+
+
+class PromptTestRequest(_ResolvesModel):
     """Request to test a prompt."""
     prompt: str
     provider: str = "openai"  # openai, anthropic, etc.
-    model: str = "gpt-3.5-turbo"
+    model: Optional[str] = None  # provider default when omitted
     system_prompt: Optional[str] = None
     temperature: float = 0.7
     max_tokens: Optional[int] = None
@@ -68,12 +78,12 @@ class PromptVersion(BaseModel):
     notes: Optional[str] = None
 
 
-class ABTestRequest(BaseModel):
+class ABTestRequest(_ResolvesModel):
     """Request to run A/B test between two prompts."""
     prompt_a: str
     prompt_b: str
     provider: str = "openai"
-    model: str = "gpt-3.5-turbo"
+    model: Optional[str] = None  # provider default when omitted
     system_prompt: Optional[str] = None
     temperature: float = 0.7
     max_tokens: Optional[int] = None
@@ -276,7 +286,7 @@ async def ab_test_prompts(request_body: ABTestRequest, request: Request) -> ABTe
     return result
 
 
-class PromptVersionRequest(BaseModel):
+class PromptVersionRequest(_ResolvesModel):
     """Request to create a prompt version."""
     prompt: str
     provider: str
@@ -367,8 +377,7 @@ async def _test_openai_prompt(
     response = client.chat.completions.create(
         model=model,
         messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
+        **llm_request_options("openai", model, temperature, max_tokens),
     )
     
     output = response.choices[0].message.content or ""
@@ -408,15 +417,15 @@ async def _test_anthropic_prompt(
     
     message = client.messages.create(
         model=model,
-        max_tokens=max_tokens or 1024,
-        temperature=temperature,
+        **llm_request_options("anthropic", model, temperature, max_tokens or 1024),
         system=system_prompt or "",
         messages=[
             {"role": "user", "content": formatted_prompt}
         ],
     )
     
-    output = message.content[0].text if message.content else ""
+    # Models that think first put thinking blocks before the text
+    output = "".join(block.text for block in message.content if block.type == "text")
     tokens = {
         "input": message.usage.input_tokens,
         "output": message.usage.output_tokens,
