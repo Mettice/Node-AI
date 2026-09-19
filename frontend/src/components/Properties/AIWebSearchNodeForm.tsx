@@ -299,6 +299,7 @@ export function AIWebSearchNodeForm({
           <div className="space-y-4 ml-6 pl-4 border-l-2 border-slate-700">
             <ProviderSelector
               nodeType="ai_web_search"
+              allowedProviders={['openai', 'anthropic', 'gemini']}
               currentProvider={llmProvider || 'openai'}
               onChange={(provider) => setValue('llm_provider', provider)}
             />

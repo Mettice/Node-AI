@@ -162,8 +162,9 @@ export function SchemaForm({
       gemini: ['gemini_'],
       faiss: ['faiss_'],
       pinecone: ['pinecone_'],
+      local: ['local_'],
     };
-    
+
     // Clear fields that belong to other providers
     Object.keys(formValues).forEach((key) => {
       const belongsToOtherProvider = Object.entries(providerPrefixes).some(([prov, prefixes]) => {
@@ -321,6 +322,7 @@ export function SchemaForm({
           nodeType={nodeType}
           currentProvider={formValues.provider || ''}
           onChange={handleProviderChange}
+          allowedProviders={properties['provider']?.enum}
         />
       )}
 

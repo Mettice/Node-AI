@@ -89,6 +89,10 @@ MODEL_LIFECYCLE: Dict[str, Dict[str, Lifecycle]] = {
         "gpt-audio-mini": ("2027-01-20", "gpt-audio-1.5", None),
         "gpt-realtime": ("2027-01-20", "gpt-realtime-2.1", None),
         "gpt-realtime-mini": ("2027-01-20", "gpt-realtime-2.1-mini", None),
+        "whisper-1": ("2027-02-26", "gpt-transcribe", None),
+        "gpt-4o-transcribe": ("2027-02-26", "gpt-transcribe", None),
+        "gpt-4o-mini-transcribe": ("2027-02-26", "gpt-transcribe", None),
+        "gpt-4o-transcribe-diarize": ("2027-02-26", "gpt-transcribe", None),
     },
     "anthropic": {
         # Retired
@@ -163,6 +167,15 @@ VISION_MODELS: Dict[str, List[str]] = {
 # excluding gpt-4.1-nano (shutdown 2026-10-23). The GPT-5 family does not support fine-tuning.
 FINETUNE_BASE_MODELS: Dict[str, List[str]] = {
     "openai": ["gpt-4.1-mini-2025-04-14", "gpt-4.1-2025-04-14", "gpt-4o-2024-08-06"],
+}
+
+# Transcription models offered by the Transcribe node, per provider (first = default).
+# OpenAI shuts down whisper-1 and the gpt-4o transcribe models on 2027-02-26 (see MODEL_LIFECYCLE);
+# srt, vtt and verbose_json output are only available with whisper-1.
+TRANSCRIPTION_MODELS: Dict[str, List[str]] = {
+    "openai": ["whisper-1", "gpt-transcribe", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"],
+    # Local openai-whisper model sizes (requires requirements-ml.txt)
+    "local": ["base", "tiny", "small", "medium", "large", "turbo"],
 }
 
 _PROVIDER_ALIASES = {"google": "gemini", "voyage": "voyage_ai", "voyageai": "voyage_ai", "claude": "anthropic"}

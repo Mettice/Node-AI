@@ -13,6 +13,7 @@ from backend.core.node_registry import NodeRegistry
 from backend.core.secret_resolver import resolve_api_key
 from backend.nodes.base import BaseNode
 from backend.utils.logger import get_logger
+from backend.utils.model_catalog import TRANSCRIPTION_MODELS
 
 logger = get_logger(__name__)
 
@@ -61,7 +62,12 @@ class TranscribeNode(BaseNode):
         
         # Get transcription settings
         provider = config.get("provider", "openai")  # openai or local
-        model = config.get("model", "whisper-1")  # For OpenAI: whisper-1, For local: tiny/base/small/medium/large
+        # Provider-specific field; "model" is the field older workflows saved
+        model = (
+            config.get(f"{provider}_model")
+            or config.get("model")
+            or TRANSCRIPTION_MODELS.get(provider, [None])[0]
+        )
         language = config.get("language", None)  # Optional: auto-detect if None
         response_format = config.get("response_format", "text")  # text, json, verbose_json, srt, vtt
         
@@ -215,11 +221,21 @@ class TranscribeNode(BaseNode):
                     "enum": ["openai", "local"],
                     "default": "openai",
                 },
-                "model": {
+                # One model field per provider; the form shows the selected provider's
+                "openai_model": {
                     "type": "string",
-                    "title": "Model",
-                    "description": "Model to use (OpenAI: 'whisper-1', Local: 'tiny'/'base'/'small'/'medium'/'large')",
-                    "default": "whisper-1",
+                    "title": "OpenAI Model",
+                    "description": "srt, vtt and verbose_json output need whisper-1 "
+                                   "(OpenAI shuts down whisper-1 and gpt-4o transcribe models on 2027-02-26)",
+                    "enum": TRANSCRIPTION_MODELS["openai"],
+                    "default": TRANSCRIPTION_MODELS["openai"][0],
+                },
+                "local_model": {
+                    "type": "string",
+                    "title": "Local Whisper Model",
+                    "description": "Model size: larger is more accurate but slower (requires openai-whisper installed)",
+                    "enum": TRANSCRIPTION_MODELS["local"],
+                    "default": TRANSCRIPTION_MODELS["local"][0],
                 },
                 "language": {
                     "type": "string",

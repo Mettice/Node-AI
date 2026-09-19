@@ -386,7 +386,8 @@ class FineTuneNode(BaseNode):
                     "type": "string",
                     "title": "Provider",
                     "description": "Fine-tuning provider",
-                    "enum": ["openai", "anthropic", "custom"],
+                    # Only OpenAI is implemented; anthropic and custom raise "not yet supported"
+                    "enum": list(FINETUNE_BASE_MODELS),
                     "default": "openai",
                 },
                 "base_model": {

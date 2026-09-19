@@ -336,6 +336,7 @@ export function CrewAIAgentForm({ initialData, onChange, schema }: CrewAIAgentFo
           currentProvider={provider}
           onChange={(value) => setProvider(value)}
           nodeType="crewai_agent"
+          allowedProviders={properties.provider?.enum}
         />
       </div>
 

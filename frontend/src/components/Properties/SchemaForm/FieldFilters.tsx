@@ -156,6 +156,7 @@ export function shouldShowField(
       faiss: ['faiss_'],
       pinecone: ['pinecone_'],
       gemini_file_search: ['gemini_'],
+      local: ['local_'],
     };
     
     const normalizedProvider = currentProviderValue === 'google' ? 'gemini' : currentProviderValue;
