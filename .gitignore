@@ -109,3 +109,6 @@ build/
 # Markdown docs are kept local only, except READMEs
 *.md
 !README.md
+
+# Screenshots in the repo root are kept local only
+/*.png
