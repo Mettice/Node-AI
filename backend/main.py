@@ -124,8 +124,29 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Node registration incomplete, a node module failed to import: {e!r}", exc_info=True)
     from backend.core.node_registry import NodeRegistry
-    
+
     logger.info(f"Registered {NodeRegistry.get_count()} node types")
+
+    # Auto-connect enabled MCP servers
+    try:
+        from backend.core.mcp.server_manager import get_server_manager
+        manager = get_server_manager()
+        connections = manager.get_connections()
+        enabled_servers = [c for c in connections if c.enabled]
+
+        if enabled_servers:
+            logger.info(f"Auto-connecting {len(enabled_servers)} enabled MCP server(s)...")
+            results = await manager.connect_all_enabled()
+            connected = sum(1 for v in results.values() if v)
+            failed = len(results) - connected
+            if connected > 0:
+                logger.info(f"✓ Auto-connected {connected} MCP server(s)")
+            if failed > 0:
+                logger.warning(f"⚠ Failed to auto-connect {failed} MCP server(s)")
+        else:
+            logger.info("No enabled MCP servers to auto-connect")
+    except Exception as e:
+        logger.warning(f"MCP auto-connect failed: {e}")
 
     # Log configuration (without sensitive data)
     logger.info(f"Configuration loaded: {settings}")

@@ -413,6 +413,7 @@ class MCPClient:
             }
 
         # Call the tool
+        logger.debug(f"Calling MCP tool {tool_def.name} on server {tool_def.server_name} with args: {arguments}")
         result = await self._send_request(
             tool_def.server_name,
             "tools/call",
@@ -422,12 +423,25 @@ class MCPClient:
             }
         )
 
+        if result is None:
+            logger.error(f"MCP tool {tool_def.name} call returned None - server may be disconnected")
+            return {"error": f"Tool call failed: Server {tool_def.server_name} may be disconnected"}
+
+        logger.debug(f"MCP tool {tool_def.name} raw response: {result}")
+
         if result and "result" in result:
             return result["result"]
         elif result and "error" in result:
-            return {"error": result["error"]}
+            error_info = result["error"]
+            if isinstance(error_info, dict):
+                error_msg = error_info.get("message", str(error_info))
+            else:
+                error_msg = str(error_info)
+            logger.error(f"MCP tool {tool_def.name} error: {error_msg}")
+            return {"error": error_msg}
         else:
-            return {"error": "Unknown error calling tool"}
+            logger.warning(f"MCP tool {tool_def.name} returned unexpected response format: {result}")
+            return {"error": f"Unknown error calling tool. Response: {result}"}
 
     def get_available_tools(self) -> List[MCPToolDefinition]:
         """Get list of all available tools."""

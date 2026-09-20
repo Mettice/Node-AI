@@ -125,21 +125,40 @@ def create_crewai_tool_class(mcp_tool: MCPTool) -> Type:
         def _run(self, **kwargs) -> str:
             """Synchronous execution wrapper."""
             try:
-                # Run async code in event loop
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # If already in async context, create a new task
-                    import concurrent.futures
-                    with concurrent.futures.ThreadPoolExecutor() as executor:
-                        future = executor.submit(
-                            asyncio.run,
-                            self._async_run(**kwargs)
-                        )
-                        return future.result(timeout=60)
-                else:
-                    return loop.run_until_complete(self._async_run(**kwargs))
+                # Try to get existing event loop
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # If loop is running, we're in an async context
+                        # Create a new event loop in a new thread
+                        import concurrent.futures
+                        import threading
+                        
+                        def run_in_new_loop():
+                            new_loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(new_loop)
+                            try:
+                                return new_loop.run_until_complete(self._async_run(**kwargs))
+                            finally:
+                                new_loop.close()
+                        
+                        with concurrent.futures.ThreadPoolExecutor() as executor:
+                            future = executor.submit(run_in_new_loop)
+                            return future.result(timeout=60)
+                    else:
+                        # Loop exists but not running, use it
+                        return loop.run_until_complete(self._async_run(**kwargs))
+                except RuntimeError:
+                    # No event loop exists (e.g., called from thread pool)
+                    # Create a new event loop and run in it
+                    new_loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(new_loop)
+                    try:
+                        return new_loop.run_until_complete(self._async_run(**kwargs))
+                    finally:
+                        new_loop.close()
             except Exception as e:
-                logger.error(f"Error executing tool {self.name}: {e}")
+                logger.error(f"Error executing tool {self.name}: {e}", exc_info=True)
                 return f"Error: {str(e)}"
 
         async def _async_run(self, **kwargs) -> str:
@@ -148,28 +167,75 @@ def create_crewai_tool_class(mcp_tool: MCPTool) -> Type:
 
             if mcp_tool.source == ToolSource.MCP:
                 # Call MCP server
-                client = get_mcp_client()
-                result = await client.call_tool(
-                    f"{mcp_tool.server_name}.{mcp_tool.name}",
-                    kwargs,
-                )
+                try:
+                    client = get_mcp_client()
+                    
+                    # Check if server is actually connected in the MCP client (source of truth)
+                    # The client maintains the actual connection state
+                    if mcp_tool.server_name not in client._processes:
+                        # Server not connected in client - check manager for API key info
+                        from backend.core.mcp.server_manager import get_server_manager
+                        manager = get_server_manager()
+                        connection = manager.get_connection(mcp_tool.server_name)
+                        
+                        if connection and connection.env.get("AIRTABLE_API_KEY", "").strip() == "":
+                            return f"Error: Airtable API key is not configured. Please set AIRTABLE_API_KEY in the MCP server settings."
+                        
+                        return f"Error: MCP server '{mcp_tool.server_name}' is not connected. Please connect it via /api/v1/mcp/servers/{mcp_tool.server_name}/connect"
+                    
+                    # Check if process is still alive
+                    process = client._processes.get(mcp_tool.server_name)
+                    if process and process.poll() is not None:
+                        return f"Error: MCP server '{mcp_tool.server_name}' process has exited. Please reconnect it."
+                    
+                    # Check for missing API keys (common issue) - get from manager
+                    from backend.core.mcp.server_manager import get_server_manager
+                    manager = get_server_manager()
+                    connection = manager.get_connection(mcp_tool.server_name)
+                    if connection and mcp_tool.server_name == "airtable" and connection.env.get("AIRTABLE_API_KEY", "").strip() == "":
+                        return f"Error: Airtable API key is not configured. Please set AIRTABLE_API_KEY in the MCP server settings."
+                    
+                    result = await client.call_tool(
+                        f"{mcp_tool.server_name}.{mcp_tool.name}",
+                        kwargs,
+                    )
 
-                # Format result
-                if isinstance(result, dict):
-                    if "error" in result:
-                        return f"Error: {result['error']}"
-                    if "content" in result:
-                        # MCP returns content as array of content blocks
-                        content = result["content"]
-                        if isinstance(content, list):
-                            texts = [
-                                c.get("text", str(c))
-                                for c in content
-                                if isinstance(c, dict)
-                            ]
-                            return "\n".join(texts) if texts else str(result)
-                    return str(result)
-                return str(result)
+                    # Log the raw result for debugging
+                    logger.debug(f"MCP tool {mcp_tool.name} raw result: {result}")
+
+                    # Format result
+                    if isinstance(result, dict):
+                        if "error" in result:
+                            error_msg = result.get("error", "Unknown error")
+                            logger.error(f"MCP tool {mcp_tool.name} returned error: {error_msg}")
+                            return f"Error calling {mcp_tool.name}: {error_msg}"
+                        if "content" in result:
+                            # MCP returns content as array of content blocks
+                            content = result["content"]
+                            if isinstance(content, list):
+                                texts = [
+                                    c.get("text", str(c))
+                                    for c in content
+                                    if isinstance(c, dict)
+                                ]
+                                formatted_result = "\n".join(texts) if texts else str(result)
+                                logger.debug(f"MCP tool {mcp_tool.name} formatted result: {formatted_result[:200]}")
+                                return formatted_result
+                        # If result is empty or unexpected format, log it
+                        if not result or result == {}:
+                            logger.warning(f"MCP tool {mcp_tool.name} returned empty result")
+                            return f"Error: {mcp_tool.name} returned empty result. Check MCP server logs."
+                        formatted_result = str(result)
+                        logger.debug(f"MCP tool {mcp_tool.name} result: {formatted_result[:200]}")
+                        return formatted_result
+                    
+                    # Non-dict result
+                    formatted_result = str(result)
+                    logger.debug(f"MCP tool {mcp_tool.name} non-dict result: {formatted_result[:200]}")
+                    return formatted_result
+                except Exception as e:
+                    logger.error(f"Error executing MCP tool {mcp_tool.name}: {e}", exc_info=True)
+                    return f"Error: Failed to execute {mcp_tool.name}. {str(e)}"
 
             elif mcp_tool.source == ToolSource.INTERNAL:
                 # Call internal NodeAI node
@@ -272,7 +338,88 @@ def get_crewai_tools(
     filtered = all_tools
 
     if tool_names:
-        filtered = [t for t in filtered if t.name in tool_names]
+        # Match by both short name and full name (server.tool_name)
+        filtered = []
+        for t in all_tools:
+            short_name = t.name
+            full_name = f"{t.server_name}.{t.name}" if t.server_name else t.name
+            if short_name in tool_names or full_name in tool_names:
+                filtered.append(t)
+        
+        if len(filtered) < len(tool_names):
+            # Try to auto-connect MCP servers that might have these tools
+            found_names = {t.name for t in filtered}
+            missing = set(tool_names) - found_names
+            
+            # Try to connect MCP servers that might provide these tools
+            try:
+                from backend.core.mcp.server_manager import get_server_manager
+                manager = get_server_manager()
+                
+                # Check if any configured but disconnected servers might have these tools
+                for server_name, conn in manager.get_connections().items():
+                    if conn.enabled and not conn.connected:
+                        # Try connecting to see if it provides the missing tools
+                        try:
+                            import asyncio
+                            loop = asyncio.get_event_loop()
+                            if loop.is_running():
+                                # If loop is running, create a task
+                                asyncio.create_task(manager.connect_server(server_name))
+                            else:
+                                # If loop not running, run it
+                                asyncio.run(manager.connect_server(server_name))
+                            
+                            # Refresh tools after connection
+                            registry = get_tool_registry()
+                            all_tools = registry.get_all_tools()
+                            
+                            # Re-filter with newly connected tools
+                            for t in all_tools:
+                                if t not in filtered:
+                                    short_name = t.name
+                                    full_name = f"{t.server_name}.{t.name}" if t.server_name else t.name
+                                    if short_name in missing or full_name in missing:
+                                        filtered.append(t)
+                                        found_names.add(t.name)
+                            
+                            missing = set(tool_names) - found_names
+                            if not missing:
+                                logger.info(f"Auto-connected MCP server '{server_name}' and found requested tools")
+                                break
+                        except Exception as e:
+                            logger.debug(f"Failed to auto-connect {server_name}: {e}")
+                            continue
+            except Exception as e:
+                logger.debug(f"Failed to auto-connect MCP servers: {e}")
+            
+            if missing:
+                available_tools = [f"{t.server_name}.{t.name}" if t.server_name else t.name for t in all_tools]
+                
+                # Check if MCP servers are disconnected
+                try:
+                    from backend.core.mcp.server_manager import get_server_manager
+                    manager = get_server_manager()
+                    disconnected = [
+                        name for name, conn in manager.get_connections().items()
+                        if conn.enabled and not conn.connected
+                    ]
+                    if disconnected:
+                        logger.warning(
+                            f"Requested tools not found: {missing}. "
+                            f"MCP servers are disconnected: {disconnected}. "
+                            f"Connect them via /api/v1/mcp/servers/{{server_name}}/connect or use /api/v1/mcp/connect-all"
+                        )
+                    else:
+                        logger.warning(
+                            f"Some requested tools not found: {missing}. "
+                            f"Available tools: {available_tools[:10]}..."  # Show first 10
+                        )
+                except Exception:
+                    logger.warning(
+                        f"Some requested tools not found: {missing}. "
+                        f"Available tools: {available_tools[:10]}..."  # Show first 10
+                    )
 
     if categories:
         filtered = [t for t in filtered if t.category in categories]
@@ -289,7 +436,11 @@ def get_crewai_tools(
         except Exception as e:
             logger.error(f"Failed to create CrewAI tool for {mcp_tool.name}: {e}")
 
-    logger.info(f"Created {len(crewai_tools)} CrewAI tools")
+    logger.info(f"Created {len(crewai_tools)} CrewAI tools from {len(filtered)} filtered tools")
+    if tool_names and len(crewai_tools) == 0:
+        available = [f"{t.server_name}.{t.name}" if t.server_name else t.name for t in all_tools]
+        logger.error(f"No tools found matching {tool_names}. Available: {available}")
+    
     return crewai_tools
 
 

@@ -21,6 +21,8 @@ import {
   Sparkles,
   Server,
   AlertCircle,
+  Pencil,
+  Key,
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
@@ -39,6 +41,7 @@ import {
   connectServer,
   disconnectServer,
   removeServer,
+  updateServer,
   connectAllServers,
   getCategoryIcon,
 } from '@/services/mcp';
@@ -236,6 +239,9 @@ function ServersTab({
 }) {
   const [connecting, setConnecting] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editEnvValues, setEditEnvValues] = useState<Record<string, string>>({});
+  const [updating, setUpdating] = useState(false);
 
   const handleConnect = async (serverName: string) => {
     setConnecting(serverName);
@@ -247,6 +253,50 @@ function ServersTab({
       toast.error(error.response?.data?.detail || `Failed to connect to ${serverName}`);
     } finally {
       setConnecting(null);
+    }
+  };
+
+  const handleEdit = (serverName: string, preset: string | null) => {
+    if (editing === serverName) {
+      setEditing(null);
+      setEditEnvValues({});
+    } else {
+      setEditing(serverName);
+      // Get env vars from preset
+      const presetData = presets.find((p) => p.name === preset);
+      const envVars = presetData?.env_vars || [];
+      // Initialize with empty values (for security, we don't show existing values)
+      const initialValues: Record<string, string> = {};
+      envVars.forEach((v) => (initialValues[v] = ''));
+      setEditEnvValues(initialValues);
+    }
+  };
+
+  const handleUpdateEnv = async (serverName: string) => {
+    // Only include non-empty values
+    const envToUpdate: Record<string, string> = {};
+    Object.entries(editEnvValues).forEach(([key, value]) => {
+      if (value.trim()) {
+        envToUpdate[key] = value.trim();
+      }
+    });
+
+    if (Object.keys(envToUpdate).length === 0) {
+      toast.error('Please enter at least one value to update');
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      await updateServer(serverName, { env: envToUpdate });
+      toast.success(`API key updated for ${serverName}. Please reconnect.`);
+      setEditing(null);
+      setEditEnvValues({});
+      onRefresh();
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || 'Failed to update server');
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -424,6 +474,19 @@ function ServersTab({
                   )}
 
                   <button
+                    onClick={() => handleEdit(server.name, server.preset)}
+                    className={cn(
+                      'p-1.5 rounded transition-colors',
+                      editing === server.name
+                        ? 'text-amber-400 bg-amber-500/20'
+                        : 'text-slate-400 hover:text-amber-400 hover:bg-amber-500/10'
+                    )}
+                    title="Edit API Key"
+                  >
+                    <Key className="w-4 h-4" />
+                  </button>
+
+                  <button
                     onClick={() => handleRemove(server.name)}
                     disabled={removing === server.name}
                     className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
@@ -437,6 +500,64 @@ function ServersTab({
                   </button>
                 </div>
               </div>
+
+              {/* Edit API Key Form */}
+              {editing === server.name && (
+                <div className="mt-4 pt-4 border-t border-white/10 space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-amber-300">
+                    <Key className="w-4 h-4" />
+                    <span>Update API Key</span>
+                  </div>
+
+                  {Object.keys(editEnvValues).length > 0 ? (
+                    <>
+                      {Object.keys(editEnvValues).map((envVar) => (
+                        <div key={envVar}>
+                          <label className="block text-xs text-slate-400 mb-1">{envVar}</label>
+                          <input
+                            type="password"
+                            value={editEnvValues[envVar] || ''}
+                            onChange={(e) =>
+                              setEditEnvValues({ ...editEnvValues, [envVar]: e.target.value })
+                            }
+                            placeholder={`Enter new ${envVar}`}
+                            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          />
+                        </div>
+                      ))}
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleUpdateEnv(server.name)}
+                          disabled={updating}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 transition-colors disabled:opacity-50"
+                        >
+                          {updating ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Check className="w-3.5 h-3.5" />
+                          )}
+                          Update
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditing(null);
+                            setEditEnvValues({});
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 text-slate-300 rounded-lg text-sm hover:bg-white/20 transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-sm text-slate-400">
+                      No configurable API keys for this server type.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>

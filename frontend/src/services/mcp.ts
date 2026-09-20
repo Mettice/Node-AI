@@ -132,6 +132,20 @@ export async function removeServer(
 }
 
 /**
+ * Update an MCP server configuration (API keys, enabled status)
+ */
+export async function updateServer(
+  serverName: string,
+  config: {
+    env?: Record<string, string>;
+    enabled?: boolean;
+  }
+): Promise<{ success: boolean; server: MCPServer; message: string }> {
+  const response = await apiClient.patch(`/mcp/servers/${serverName}`, config);
+  return response.data;
+}
+
+/**
  * Enable an MCP server
  */
 export async function enableServer(serverName: string): Promise<{ success: boolean }> {
