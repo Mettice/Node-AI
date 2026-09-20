@@ -357,6 +357,50 @@ async def disconnect_server(
     }
 
 
+class UpdateServerRequest(BaseModel):
+    """Request to update server configuration."""
+    env: Optional[Dict[str, str]] = None
+    enabled: Optional[bool] = None
+
+
+@router.patch("/servers/{server_name}")
+async def update_server(
+    server_name: str,
+    request: UpdateServerRequest,
+    user_id: Optional[str] = Depends(get_optional_user_id),
+) -> Dict[str, Any]:
+    """
+    Update an MCP server configuration.
+
+    Can update environment variables (API keys) and enabled status.
+    If connected, will disconnect and require reconnection.
+    """
+    manager = get_server_manager(user_id)
+
+    connection = manager.get_connection(server_name)
+    if not connection:
+        raise HTTPException(status_code=404, detail=f"Server {server_name} not found")
+
+    # If updating env vars and server is connected, disconnect first
+    if request.env and connection.connected:
+        await manager.disconnect_server(server_name)
+
+    if not manager.update_server(server_name, env=request.env, enabled=request.enabled):
+        raise HTTPException(status_code=500, detail=f"Failed to update server {server_name}")
+
+    connection = manager.get_connection(server_name)
+
+    return {
+        "success": True,
+        "server": {
+            "name": connection.name,
+            "enabled": connection.enabled,
+            "connected": connection.connected,
+        },
+        "message": f"Server {server_name} updated. Reconnect to apply changes." if request.env else f"Server {server_name} updated.",
+    }
+
+
 @router.delete("/servers/{server_name}")
 async def remove_server(
     server_name: str,

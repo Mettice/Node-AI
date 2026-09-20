@@ -268,6 +268,15 @@ class MCPServerManager:
         else:
             logger.info("MCPServerManager using JSON file storage (local mode)")
             self._load_config()
+        
+        # Log connection status
+        enabled_count = sum(1 for c in self._connections.values() if c.enabled)
+        connected_count = sum(1 for c in self._connections.values() if c.connected)
+        if enabled_count > 0 and connected_count == 0:
+            logger.info(
+                f"Found {enabled_count} enabled MCP server(s) but none are connected. "
+                f"Connect them via /api/v1/mcp/servers/{{name}}/connect or /api/v1/mcp/connect-all"
+            )
 
     def _default_config_path(self) -> str:
         """Get the default config file path."""
@@ -283,6 +292,9 @@ class MCPServerManager:
                 with open(self._config_path, "r") as f:
                     data = json.load(f)
                     for server_data in data.get("servers", []):
+                        # Reset connected state - actual connection doesn't persist across restarts
+                        server_data["connected"] = False
+                        server_data["tools_count"] = 0
                         conn = MCPServerConnection(**server_data)
                         self._connections[conn.name] = conn
                 logger.info(f"Loaded {len(self._connections)} MCP server configurations from file")
@@ -479,6 +491,49 @@ class MCPServerManager:
             logger.info(f"Removed MCP server: {name}")
             return True
         return False
+
+    def update_server(self, name: str, env: Optional[Dict[str, str]] = None, enabled: Optional[bool] = None) -> bool:
+        """
+        Update server configuration (environment variables, enabled status).
+
+        Args:
+            name: Server name
+            env: New environment variables to merge with existing
+            enabled: New enabled status
+
+        Returns:
+            True if updated, False if server not found
+        """
+        if name not in self._connections:
+            logger.error(f"Unknown server: {name}")
+            return False
+
+        conn = self._connections[name]
+
+        if env is not None:
+            # Merge environment variables
+            conn.env.update(env)
+            logger.info(f"Updated environment variables for {name}")
+
+        if enabled is not None:
+            conn.enabled = enabled
+            logger.info(f"Updated enabled status for {name}: {enabled}")
+
+        # Update in database if in database mode
+        if self._use_database and self._user_id:
+            try:
+                db_update_mcp_server(
+                    user_id=self._user_id,
+                    name=name,
+                    env_vars=conn.env,
+                    enabled=conn.enabled,
+                )
+            except Exception as e:
+                logger.error(f"Failed to update MCP server in database: {e}")
+
+        self._save_config()
+        logger.info(f"Updated MCP server: {name}")
+        return True
 
     async def connect_server(self, name: str) -> bool:
         """Connect to a configured server."""
