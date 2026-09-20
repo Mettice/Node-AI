@@ -39,6 +39,18 @@ LABS_NODE_TYPES: FrozenSet[str] = frozenset({
     "proposal_generator",
     # second agent framework; CrewAI covers this
     "langchain_agent",
+    # app connectors: an MCP server covers these without a bespoke node each
+    "airtable",
+    "azure_blob",
+    "database",
+    "email",
+    "google_drive",
+    "google_sheets",
+    "reddit",
+    "s3",
+    "slack",
+    # needs bandit/safety, which are not installed in the deployed image
+    "security_scanner",
 })
 
 

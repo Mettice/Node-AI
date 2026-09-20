@@ -10,7 +10,8 @@ from backend.core.node_registry import NodeRegistry
 from backend.main import app
 
 CORE_NODES = ["chat", "embed", "vector_search", "rerank", "chunk", "file_loader",
-              "crewai_agent", "advanced_nlp", "ai_web_search"]
+              "crewai_agent", "advanced_nlp", "ai_web_search", "vector_store",
+              "knowledge_graph", "hybrid_retrieval", "memory", "tool"]
 
 
 @pytest.fixture
