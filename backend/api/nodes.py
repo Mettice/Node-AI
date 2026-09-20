@@ -7,11 +7,12 @@ and their schemas.
 
 from typing import Dict, List
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
 from backend.core.exceptions import NodeNotFoundError
 from backend.core.models import NodeMetadata
+from backend.core.node_labs import is_labs_node, show_labs_nodes
 from backend.core.node_registry import NodeRegistry
 from backend.core.cache import get_cache
 from backend.core.security import limiter
@@ -27,20 +28,30 @@ _cache = get_cache()
 
 @router.get("/nodes")
 @limiter.limit("5/minute")
-async def list_nodes(request: Request) -> JSONResponse:
+async def list_nodes(
+    request: Request,
+    include_labs: bool = Query(False, description="Include Labs nodes (hidden from the palette by default)"),
+) -> JSONResponse:
     """
-    List all available nodes.
-    
+    List available nodes.
+
+    Labs nodes (see core/node_labs.py) are left out unless include_labs is set or
+    SHOW_LABS_NODES is enabled. They stay runnable either way.
+
     Returns:
         List of node metadata with schemas and descriptions
     """
+    with_labs = include_labs or show_labs_nodes()
+
     # Cache node list (nodes don't change at runtime)
-    cache_key = "nodes:list"
+    cache_key = f"nodes:list:{'all' if with_labs else 'core'}"
     cached = _cache.get(cache_key)
     if cached is not None:
         return JSONResponse(content=cached)
-    
+
     metadata = NodeRegistry.list_all_metadata()
+    if not with_labs:
+        metadata = [item for item in metadata if not is_labs_node(getattr(item, "type", ""))]
     # Convert NodeMetadata objects to dict for JSON serialization
     metadata_dicts = [item.model_dump() if hasattr(item, 'model_dump') else item for item in metadata]
     _cache.set(cache_key, metadata_dicts, ttl_seconds=3600)  # 1 hour
@@ -49,23 +60,31 @@ async def list_nodes(request: Request) -> JSONResponse:
 
 @router.get("/nodes/categories")
 @limiter.limit("5/minute")
-async def get_node_categories(request: Request) -> JSONResponse:
+async def get_node_categories(
+    request: Request,
+    include_labs: bool = Query(False, description="Include Labs nodes (hidden from the palette by default)"),
+) -> JSONResponse:
     """
     Get all node categories.
-    
+
     Returns:
         Dictionary with categories and their node counts
     """
+    with_labs = include_labs or show_labs_nodes()
     categories = NodeRegistry.get_categories()
-    
+
     result = {}
     for category in categories:
         nodes = NodeRegistry.get_by_category(category)
+        if not with_labs:
+            nodes = [node for node in nodes if not is_labs_node(node)]
+        if not nodes:
+            continue  # category is Labs-only
         result[category] = {
             "count": len(nodes),
             "nodes": nodes,
         }
-    
+
     return JSONResponse(content=result)
 
 

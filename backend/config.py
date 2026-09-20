@@ -198,6 +198,14 @@ class Settings(BaseSettings):
         description="Allow all origins (only for development, not recommended for production)",
     )
 
+    # ============================================
+    # Node Palette
+    # ============================================
+    show_labs_nodes: bool = Field(
+        default=False,
+        description="List Labs nodes (see core/node_labs.py) in the node palette. They always run.",
+    )
+
     @property
     def cors_origins(self) -> List[str]:
         """
