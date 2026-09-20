@@ -30,6 +30,7 @@ from backend.core.webhooks import (
 from backend.core.engine import engine
 from backend.core.models import Workflow
 from backend.api.workflows import _load_workflow
+from backend.core.workflow_store import get_workflow_store
 from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -88,8 +89,9 @@ async def create_webhook(
     
     Returns the webhook URL that can be used to trigger the workflow.
     """
-    # Verify workflow exists
-    workflow = _load_workflow(request_body.workflow_id)
+    # Verify workflow exists (any owner: the caller may be creating a webhook for a
+    # workflow stored under their account in the database)
+    workflow = get_workflow_store().load_any(request_body.workflow_id)
     if not workflow:
         raise HTTPException(status_code=404, detail=f"Workflow {request_body.workflow_id} not found")
     
@@ -331,8 +333,8 @@ async def trigger_webhook(
     webhook.last_called_at = datetime.now()
     
     try:
-        # Load workflow
-        workflow = _load_workflow(webhook.workflow_id)
+        # Load workflow: webhooks are triggered by outside systems, not the owner
+        workflow = get_workflow_store().load_any(webhook.workflow_id)
         if not workflow:
             raise HTTPException(status_code=404, detail=f"Workflow {webhook.workflow_id} not found")
         

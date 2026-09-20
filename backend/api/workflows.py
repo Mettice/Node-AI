@@ -20,6 +20,7 @@ from backend.core.exceptions import WorkflowValidationError, WorkflowExecutionEr
 from backend.core.deployment import DeploymentManager
 from backend.core.security import validate_workflow_id, validate_node_id, limiter
 from backend.core.cache import get_cache
+from backend.core.workflow_store import get_workflow_store
 from backend.core.workflow_permissions import (
     require_user_id,
     check_workflow_ownership,
@@ -89,116 +90,42 @@ class WorkflowListResponse(BaseModel):
 
 
 def _get_workflow_path(workflow_id: str) -> Path:
-    """Get the file path for a workflow."""
+    """Get the file path for a workflow (file storage only)."""
     return WORKFLOWS_DIR / f"{workflow_id}.json"
 
 
-def _load_workflow(workflow_id: str) -> Optional[Workflow]:
-    """Load a workflow from disk (with caching)."""
-    # Check cache first
-    cache_key = f"workflow:{workflow_id}"
+def _load_workflow(workflow_id: str, user_id: Optional[str] = None) -> Optional[Workflow]:
+    """Load a workflow from the user's storage (database in production, files locally)."""
+    cache_key = f"workflow:{user_id or 'local'}:{workflow_id}"
     cached = _cache.get(cache_key)
     if cached is not None:
         return cached
-    
-    workflow_path = _get_workflow_path(workflow_id)
-    if not workflow_path.exists():
-        return None
-    
-    try:
-        with open(workflow_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        
-        # Parse datetime strings if present
-        if "created_at" in data and isinstance(data["created_at"], str):
-            data["created_at"] = datetime.fromisoformat(data["created_at"].replace("Z", "+00:00"))
-        if "updated_at" in data and isinstance(data["updated_at"], str):
-            data["updated_at"] = datetime.fromisoformat(data["updated_at"].replace("Z", "+00:00"))
-        if "deployed_at" in data and isinstance(data["deployed_at"], str):
-            data["deployed_at"] = datetime.fromisoformat(data["deployed_at"].replace("Z", "+00:00"))
-        
-        # Ensure nodes and edges are properly formatted
-        # Position should be a dict with x and y, not a Position object
-        if "nodes" in data:
-            for node in data["nodes"]:
-                if "position" in node and isinstance(node["position"], dict):
-                    # Position is already a dict, which is correct
-                    pass
-                elif hasattr(node.get("position"), "x"):
-                    # Convert Position object to dict
-                    pos = node["position"]
-                    node["position"] = {"x": pos.x, "y": pos.y}
-        
-        workflow = Workflow(**data)
-        # Cache the workflow (TTL: 5 minutes)
+
+    workflow = get_workflow_store(user_id).load(workflow_id)
+    if workflow is not None:
         _cache.set(cache_key, workflow, ttl_seconds=300)
-        return workflow
-    except Exception as e:
-        logger.error(f"Error loading workflow {workflow_id}: {e}")
-        return None
+    return workflow
 
 
-def _save_workflow(workflow: Workflow) -> None:
-    """Save a workflow to disk and invalidate cache."""
+def _save_workflow(workflow: Workflow, user_id: Optional[str] = None) -> None:
+    """Save a workflow to the user's storage and drop it from the cache."""
     if not workflow.id:
         workflow.id = str(uuid.uuid4())
-    
-    workflow_path = _get_workflow_path(workflow.id)
-    
-    # Convert to dict and handle datetime serialization
-    workflow_dict = workflow.model_dump()
-    if workflow.created_at:
-        workflow_dict["created_at"] = workflow.created_at.isoformat()
-    if workflow.updated_at:
-        workflow_dict["updated_at"] = workflow.updated_at.isoformat()
-    if workflow.deployed_at:
-        workflow_dict["deployed_at"] = workflow.deployed_at.isoformat()
-    
-    with open(workflow_path, "w", encoding="utf-8") as f:
-        json.dump(workflow_dict, f, indent=2, ensure_ascii=False)
-    
-    # Invalidate cache
-    cache_key = f"workflow:{workflow.id}"
-    _cache.delete(cache_key)
-    
-    logger.info(f"Saved workflow {workflow.id} to {workflow_path}")
+
+    get_workflow_store(user_id).save(workflow)
+    _cache.delete(f"workflow:{user_id or 'local'}:{workflow.id}")
 
 
-def _list_workflows() -> List[Workflow]:
-    """List all workflows from disk."""
-    workflows = []
-    
-    # Log the directory being searched
-    logger.debug(f"Searching for workflows in: {WORKFLOWS_DIR.absolute()}")
-    
-    # Check if directory exists
-    if not WORKFLOWS_DIR.exists():
-        logger.warning(f"Workflows directory does not exist: {WORKFLOWS_DIR.absolute()}")
-        return workflows
-    
-    workflow_files = list(WORKFLOWS_DIR.glob("*.json"))
-    logger.debug(f"Found {len(workflow_files)} JSON files in workflows directory")
-    
-    for workflow_file in workflow_files:
-        try:
-            with open(workflow_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            
-            # Parse datetime strings if present
-            if "created_at" in data and isinstance(data["created_at"], str):
-                data["created_at"] = datetime.fromisoformat(data["created_at"].replace("Z", "+00:00"))
-            if "updated_at" in data and isinstance(data["updated_at"], str):
-                data["updated_at"] = datetime.fromisoformat(data["updated_at"].replace("Z", "+00:00"))
-            if "deployed_at" in data and isinstance(data["deployed_at"], str):
-                data["deployed_at"] = datetime.fromisoformat(data["deployed_at"].replace("Z", "+00:00"))
-            
-            workflows.append(Workflow(**data))
-            logger.debug(f"Loaded workflow: {workflow_file.name}")
-        except Exception as e:
-            logger.error(f"Error loading workflow from {workflow_file}: {e}", exc_info=True)
-    
-    logger.info(f"Loaded {len(workflows)} workflows from {WORKFLOWS_DIR.absolute()}")
-    return workflows
+def _delete_workflow(workflow_id: str, user_id: Optional[str] = None) -> bool:
+    """Delete a workflow from the user's storage."""
+    deleted = get_workflow_store(user_id).delete(workflow_id)
+    _cache.delete(f"workflow:{user_id or 'local'}:{workflow_id}")
+    return deleted
+
+
+def _list_workflows(user_id: Optional[str] = None) -> List[Workflow]:
+    """List the user's workflows plus the bundled templates."""
+    return get_workflow_store(user_id).list()
 
 
 def _check_template_compatibility(workflow: Workflow) -> tuple[bool, List[str]]:
@@ -264,7 +191,7 @@ async def create_workflow(request: Request, workflow_request: WorkflowCreateRequ
         WorkflowValidator.validate_workflow(workflow)
         
         # Save workflow
-        _save_workflow(workflow)
+        _save_workflow(workflow, user_id)
         
         logger.info(f"Created workflow {workflow.id}: {workflow.name} for user {user_id or 'public'}")
         return workflow
@@ -330,7 +257,7 @@ async def list_workflows(
         # Get current user ID (optional - unauthenticated users can still see templates)
         user_id = get_user_id_from_request(request)
         
-        all_workflows = _list_workflows()
+        all_workflows = _list_workflows(user_id)
         
         # Filter by user permissions - only show:
         # 1. Public templates
@@ -444,7 +371,8 @@ async def get_workflow(workflow_id: str, request: Request) -> Workflow:
     Raises:
         HTTPException: If workflow not found or access denied
     """
-    workflow = _load_workflow(workflow_id)
+    user_id = get_user_id_from_request(request)
+    workflow = _load_workflow(workflow_id, user_id)
     if not workflow:
         raise not_found_error(
             resource_type="workflow",
@@ -501,7 +429,7 @@ async def update_workflow(
     # Require authentication
     user_id = require_user_id(request)
     
-    workflow = _load_workflow(workflow_id)
+    workflow = _load_workflow(workflow_id, user_id)
     if not workflow:
         raise not_found_error(
             resource_type="workflow",
@@ -537,7 +465,7 @@ async def update_workflow(
         WorkflowValidator.validate_workflow(workflow)
         
         # Save workflow
-        _save_workflow(workflow)
+        _save_workflow(workflow, user_id)
         
         logger.info(f"Updated workflow {workflow_id}")
         return workflow
@@ -573,7 +501,7 @@ async def delete_workflow(workflow_id: str, request: Request) -> Dict[str, str]:
     user_id = require_user_id(request)
     
     # Load workflow to check ownership
-    workflow = _load_workflow(workflow_id)
+    workflow = _load_workflow(workflow_id, user_id)
     if not workflow:
         raise not_found_error(
             resource_type="workflow",
@@ -589,13 +517,8 @@ async def delete_workflow(workflow_id: str, request: Request) -> Dict[str, str]:
     can_modify_workflow(workflow.owner_id, user_id, workflow_id)
     
     try:
-        workflow_path = _get_workflow_path(workflow_id)
-        workflow_path.unlink()
-        
-        # Clear cache
-        cache_key = f"workflow:{workflow_id}"
-        _cache.delete(cache_key)
-        
+        _delete_workflow(workflow_id, user_id)
+
         logger.info(f"Deleted workflow {workflow_id} by user {user_id}")
         return {"message": f"Workflow {workflow_id} deleted successfully"}
     except Exception as e:
@@ -624,7 +547,8 @@ async def deploy_workflow(workflow_id: str, request: Request) -> Workflow:
     Raises:
         HTTPException: If workflow not found or validation fails
     """
-    workflow = _load_workflow(workflow_id)
+    user_id = get_user_id_from_request(request)
+    workflow = _load_workflow(workflow_id, user_id)
     if not workflow:
         raise not_found_error(
             resource_type="workflow",
@@ -667,7 +591,7 @@ async def deploy_workflow(workflow_id: str, request: Request) -> Workflow:
         workflow.updated_at = datetime.now()
         
         # Save workflow with updated configs
-        _save_workflow(workflow)
+        _save_workflow(workflow, user_id)
         
         # Create deployment version
         workflow_dict = workflow.model_dump()
@@ -716,7 +640,8 @@ async def undeploy_workflow(workflow_id: str, request: Request) -> Workflow:
     Raises:
         HTTPException: If workflow not found
     """
-    workflow = _load_workflow(workflow_id)
+    user_id = get_user_id_from_request(request)
+    workflow = _load_workflow(workflow_id, user_id)
     if not workflow:
         raise not_found_error(
             resource_type="workflow",
@@ -740,7 +665,7 @@ async def undeploy_workflow(workflow_id: str, request: Request) -> Workflow:
             active.status = DeploymentStatus.INACTIVE
         
         # Save workflow
-        _save_workflow(workflow)
+        _save_workflow(workflow, user_id)
         
         logger.info(f"Undeployed workflow {workflow_id}")
         return workflow
@@ -821,7 +746,7 @@ async def rollback_deployment(workflow_id: str, version_number: int, request: Re
     workflow = Workflow(**version.workflow_snapshot)
     workflow.is_deployed = True
     workflow.updated_at = datetime.now()
-    _save_workflow(workflow)
+    _save_workflow(workflow, get_user_id_from_request(request))
     
     logger.info(f"Rolled back workflow {workflow_id} to version {version_number}")
     return {
@@ -1077,7 +1002,8 @@ async def query_workflow(
         HTTPException: If workflow not found, not deployed, or execution fails
     """
     # Load workflow
-    workflow = _load_workflow(workflow_id)
+    # Deployed workflows are queried by people who do not own them
+    workflow = get_workflow_store().load_any(workflow_id)
     if not workflow:
         raise not_found_error(
             resource_type="workflow",
