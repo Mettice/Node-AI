@@ -60,6 +60,18 @@ class AddCustomServerRequest(BaseModel):
     env: Dict[str, str]
 
 
+class AddRemoteServerRequest(BaseModel):
+    """Request to add a remote MCP server by URL."""
+    name: str
+    display_name: str
+    url: str
+    description: str = ""
+    token: Optional[str] = None  # sent as "<auth_header>: <auth_prefix><token>"
+    auth_header: str = "Authorization"
+    auth_prefix: str = "Bearer "
+    headers: Dict[str, str] = {}  # extra headers, merged after the token header
+
+
 class ServerResponse(BaseModel):
     """Response containing server info."""
     name: str
@@ -112,6 +124,10 @@ async def list_presets() -> Dict[str, Any]:
             "setup_url": preset.get("setup_url"),
             "setup_instructions": preset.get("setup_instructions"),
             "icon": preset.get("icon"),
+            "url": preset.get("url"),
+            # npx and executable servers need Node.js or a binary on the host, so they
+            # cannot run on the deployed backend; remote servers can
+            "requires_local_install": preset.get("server_type", "npx") != "http",
         })
 
     return {
@@ -206,6 +222,47 @@ async def add_custom_server(
         "server": {
             "name": connection.name,
             "display_name": connection.display_name,
+            "enabled": connection.enabled,
+        },
+    }
+
+
+@router.post("/servers/remote")
+async def add_remote_server(
+    request: AddRemoteServerRequest,
+    user_id: Optional[str] = Depends(get_optional_user_id),
+) -> Dict[str, Any]:
+    """
+    Add a remote MCP server by URL.
+
+    Works with any Streamable HTTP MCP server and needs nothing installed on the host,
+    unlike npx and executable servers.
+    """
+    manager = get_server_manager(user_id)
+
+    headers: Dict[str, str] = {}
+    if request.token:
+        headers[request.auth_header] = f"{request.auth_prefix}{request.token}"
+    headers.update(request.headers)
+
+    try:
+        connection = manager.add_remote_server(
+            name=request.name,
+            display_name=request.display_name,
+            url=request.url,
+            headers=headers,
+            description=request.description,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return {
+        "success": True,
+        "server": {
+            "name": connection.name,
+            "display_name": connection.display_name,
+            "url": connection.url,
+            "server_type": connection.server_type,
             "enabled": connection.enabled,
         },
     }

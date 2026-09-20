@@ -60,7 +60,65 @@ except ImportError:
 #
 MCP_SERVER_PRESETS = {
     # ============================================
-    # NPX-BASED SERVERS (ready to use)
+    # REMOTE SERVERS (work from a deployed container)
+    # ============================================
+    # These need nothing installed: NodeAI connects to the URL over Streamable HTTP and
+    # sends the token as an Authorization header. npx and executable servers below only
+    # work where Node.js is installed, which rules them out on the deployed backend.
+    # Servers that require an OAuth sign-in (Notion, Linear, ...) are not listed yet;
+    # add them as custom servers once OAuth support lands.
+
+    "github-remote": {
+        "name": "github-remote",
+        "display_name": "GitHub (remote)",
+        "description": "Repositories, issues and pull requests via GitHub's hosted MCP server",
+        "command": "",
+        "args": [],
+        "url": "https://api.githubcopilot.com/mcp/",
+        "env_vars": ["GITHUB_TOKEN"],
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "category": "developer",
+        "server_type": "http",
+        "auth_type": "api_key",
+        "setup_url": "https://github.com/settings/tokens",
+        "icon": "github",
+    },
+    "stripe-remote": {
+        "name": "stripe-remote",
+        "display_name": "Stripe (remote)",
+        "description": "Payments, customers and subscriptions via Stripe's hosted MCP server",
+        "command": "",
+        "args": [],
+        "url": "https://mcp.stripe.com",
+        "env_vars": ["STRIPE_API_KEY"],
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "category": "business",
+        "server_type": "http",
+        "auth_type": "api_key",
+        "setup_url": "https://dashboard.stripe.com/apikeys",
+        "icon": "stripe",
+    },
+    "supabase-remote": {
+        "name": "supabase-remote",
+        "display_name": "Supabase (remote)",
+        "description": "Query and manage a Supabase project via Supabase's hosted MCP server",
+        "command": "",
+        "args": [],
+        "url": "https://mcp.supabase.com/mcp",
+        "env_vars": ["SUPABASE_ACCESS_TOKEN"],
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "category": "storage",
+        "server_type": "http",
+        "auth_type": "api_key",
+        "setup_url": "https://supabase.com/dashboard/account/tokens",
+        "icon": "supabase",
+    },
+
+    # ============================================
+    # NPX-BASED SERVERS (local development only)
     # ============================================
 
     # Communication
@@ -234,10 +292,17 @@ class MCPServerConnection:
     description: str
     command: str
     args: List[str]
-    env: Dict[str, str]
+    env: Dict[str, str]  # Environment variables (stdio) or request headers (http)
     enabled: bool = True
     connected: bool = False
     tools_count: int = 0
+    server_type: str = "npx"  # npx | executable | http
+    url: Optional[str] = None  # Endpoint for http servers
+
+    @property
+    def is_remote(self) -> bool:
+        """Remote servers run on someone else's host, so they work from a deployed container."""
+        return self.server_type == "http"
 
 
 class MCPServerManager:
@@ -309,6 +374,7 @@ class MCPServerManager:
         try:
             servers = db_list_mcp_servers(self._user_id, include_credentials=True)
             for server in servers:
+                server_type = server.get("server_type", "npx")
                 conn = MCPServerConnection(
                     name=server["name"],
                     preset=server.get("preset"),
@@ -320,6 +386,9 @@ class MCPServerManager:
                     enabled=server.get("enabled", True),
                     connected=False,  # Always start disconnected
                     tools_count=0,
+                    server_type=server_type,
+                    # Remote servers store their endpoint in the command column
+                    url=server["command"] if server_type == "http" else None,
                 )
                 self._connections[conn.name] = conn
             logger.info(f"Loaded {len(self._connections)} MCP server configurations from database")
@@ -382,6 +451,22 @@ class MCPServerManager:
         command = preset["command"]
         args = preset["args"]
 
+        # Remote presets: the token becomes an auth header, nothing runs locally
+        if preset.get("server_type") == "http":
+            token = next((env_values[var] for var in preset["env_vars"] if env_values.get(var)), None)
+            if not token:
+                logger.error(f"Preset {preset_name} needs one of {preset['env_vars']}")
+                return None
+            headers = {preset.get("auth_header", "Authorization"): f"{preset.get('auth_prefix', 'Bearer ')}{token}"}
+            return self.add_remote_server(
+                name=name,
+                display_name=preset["display_name"],
+                url=preset["url"],
+                headers=headers,
+                description=preset["description"],
+                preset=preset_name,
+            )
+
         # For executable type, use provided command if preset command is empty
         if preset.get("server_type") == "executable" and not command:
             if "_EXECUTABLE_PATH" in env_values:
@@ -424,6 +509,61 @@ class MCPServerManager:
         self._save_config()
 
         logger.info(f"Added MCP server from preset: {name}")
+        return connection
+
+    def add_remote_server(
+        self,
+        name: str,
+        display_name: str,
+        url: str,
+        headers: Optional[Dict[str, str]] = None,
+        description: str = "",
+        preset: Optional[str] = None,
+    ) -> MCPServerConnection:
+        """
+        Add a remote MCP server by URL.
+
+        Remote servers need nothing installed on this host, so unlike npx and executable
+        servers they work from a deployed container. `headers` carries authentication
+        (for example {"Authorization": "Bearer ..."}) and is stored encrypted per user.
+        """
+        if not url.lower().startswith(("http://", "https://")):
+            raise ValueError("MCP server url must start with http:// or https://")
+
+        connection = MCPServerConnection(
+            name=name,
+            preset=preset,
+            display_name=display_name,
+            description=description,
+            command="",
+            args=[],
+            env=headers or {},
+            enabled=True,
+            server_type="http",
+            url=url,
+        )
+
+        if self._use_database and self._user_id:
+            try:
+                db_create_mcp_server(
+                    user_id=self._user_id,
+                    name=name,
+                    display_name=display_name,
+                    command=url,  # remote servers keep their endpoint here
+                    args=[],
+                    env_vars=headers or {},
+                    description=description,
+                    preset=preset,
+                    server_type="http",
+                    category="remote",
+                )
+            except Exception as e:
+                logger.error(f"Failed to save remote MCP server to database: {e}")
+
+        self._connections[name] = connection
+        self._save_config()
+
+        logger.info(f"Added remote MCP server: {name} ({url})")
         return connection
 
     def add_custom_server(
@@ -546,13 +686,23 @@ class MCPServerManager:
             logger.warning(f"Server {name} is disabled")
             return False
 
-        config = MCPServerConfig(
-            name=conn.name,
-            command=conn.command,
-            args=conn.args,
-            env=conn.env,
-            transport=MCPTransportType.STDIO,
-        )
+        if conn.is_remote:
+            # env holds the auth headers for remote servers
+            config = MCPServerConfig(
+                name=conn.name,
+                command="",
+                transport=MCPTransportType.HTTP,
+                url=conn.url,
+                headers=conn.env,
+            )
+        else:
+            config = MCPServerConfig(
+                name=conn.name,
+                command=conn.command,
+                args=conn.args,
+                env=conn.env,
+                transport=MCPTransportType.STDIO,
+            )
 
         try:
             success = await self._client.add_server(config)
@@ -670,6 +820,10 @@ class MCPServerManager:
                     "auth_type": preset.get("auth_type", "api_key"),
                     "setup_url": preset.get("setup_url"),
                     "setup_instructions": preset.get("setup_instructions"),
+                    "url": preset.get("url"),
+                    # npx and executable servers only work where Node.js / the binary is
+                    # installed, so they are unavailable on the deployed backend
+                    "requires_local_install": preset.get("server_type", "npx") != "http",
                 }
                 for name, preset in MCP_SERVER_PRESETS.items()
             ],
