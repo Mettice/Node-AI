@@ -34,6 +34,13 @@ class MCPServerConfig:
     env: Dict[str, str] = field(default_factory=dict)
     transport: MCPTransportType = MCPTransportType.STDIO
     url: Optional[str] = None  # For HTTP transport
+    headers: Dict[str, str] = field(default_factory=dict)  # Auth headers for HTTP transport
+
+
+# Protocol version requested for HTTP servers. The version the server replies with is
+# sent back on later requests, as the Streamable HTTP transport requires.
+HTTP_PROTOCOL_VERSION = "2025-06-18"
+HTTP_TIMEOUT_SECONDS = 60.0
 
 
 @dataclass
@@ -59,6 +66,10 @@ class MCPClient:
         self._tools: Dict[str, MCPToolDefinition] = {}
         self._request_id = 0
         self._initialized: Dict[str, bool] = {}
+        # HTTP transport state, keyed by server name
+        self._http_clients: Dict[str, Any] = {}
+        self._http_sessions: Dict[str, str] = {}  # Mcp-Session-Id returned by the server
+        self._http_protocol: Dict[str, str] = {}  # protocol version the server agreed to
 
     async def add_server(self, config: MCPServerConfig) -> bool:
         """
@@ -240,11 +251,151 @@ class MCPClient:
             raise RuntimeError(error_msg) from e
 
     async def _connect_http(self, config: MCPServerConfig) -> bool:
-        """Connect to an MCP server via HTTP."""
-        # HTTP transport implementation
-        # TODO: Implement HTTP/SSE transport
-        logger.warning(f"HTTP transport not yet implemented for {config.name}")
-        return False
+        """
+        Connect to a remote MCP server over Streamable HTTP.
+
+        Requests are POSTed as JSON-RPC to the server URL; the reply is either JSON or an
+        SSE stream. Unlike stdio servers, this needs nothing installed on the host, which
+        is what makes MCP usable from a deployed container.
+        """
+        import httpx
+
+        if not config.url:
+            raise ValueError(f"MCP server '{config.name}' is HTTP transport but has no url")
+
+        client = httpx.AsyncClient(timeout=HTTP_TIMEOUT_SECONDS, follow_redirects=True)
+        self._http_clients[config.name] = client
+
+        try:
+            init_result = await self._send_request(
+                config.name,
+                "initialize",
+                {
+                    "protocolVersion": HTTP_PROTOCOL_VERSION,
+                    "capabilities": {"roots": {"listChanged": True}},
+                    "clientInfo": {"name": "NodeAI", "version": "1.0.0"},
+                },
+            )
+
+            if not init_result or "result" not in init_result:
+                detail = "No response from server"
+                if isinstance(init_result, dict) and "error" in init_result:
+                    error = init_result["error"]
+                    detail = error.get("message", str(error)) if isinstance(error, dict) else str(error)
+                await self._close_http(config.name)
+                raise RuntimeError(f"Initialization failed: {detail}")
+
+            self._http_protocol[config.name] = init_result["result"].get(
+                "protocolVersion", HTTP_PROTOCOL_VERSION
+            )
+            self._initialized[config.name] = True
+
+            await self._send_notification(config.name, "notifications/initialized", {})
+            await self._refresh_tools(config.name)
+
+            logger.info(
+                f"MCP server {config.name} connected over HTTP "
+                f"({len([t for t in self._tools.values() if t.server_name == config.name])} tools)"
+            )
+            return True
+        except RuntimeError:
+            raise
+        except Exception as e:
+            await self._close_http(config.name)
+            logger.error(f"MCP server {config.name} HTTP connection failed: {e}", exc_info=True)
+            raise RuntimeError(f"Could not connect to {config.url}: {e}") from e
+
+    def _http_headers(self, server_name: str) -> Dict[str, str]:
+        """Headers for an HTTP request: content negotiation, auth, session and protocol."""
+        config = self._servers[server_name]
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream",
+        }
+        headers.update(config.headers or {})
+        session_id = self._http_sessions.get(server_name)
+        if session_id:
+            headers["Mcp-Session-Id"] = session_id
+        protocol = self._http_protocol.get(server_name)
+        if protocol:
+            headers["MCP-Protocol-Version"] = protocol
+        return headers
+
+    @staticmethod
+    def _parse_sse(body: str) -> Optional[Dict[str, Any]]:
+        """First JSON-RPC message from an SSE body ('data:' lines, blank-line separated)."""
+        data_lines: List[str] = []
+        for line in body.splitlines():
+            if line.startswith("data:"):
+                data_lines.append(line[5:].strip())
+            elif not line.strip() and data_lines:
+                break
+        if not data_lines:
+            return None
+        try:
+            return json.loads("\n".join(data_lines))
+        except json.JSONDecodeError as e:
+            logger.error(f"Could not parse SSE payload: {e}")
+            return None
+
+    async def _http_request(
+        self,
+        server_name: str,
+        method: str,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Send one JSON-RPC request over HTTP and return the parsed response."""
+        client = self._http_clients.get(server_name)
+        config = self._servers.get(server_name)
+        if client is None or config is None:
+            logger.error(f"Server {server_name} not connected")
+            return None
+
+        self._request_id += 1
+        request: Dict[str, Any] = {"jsonrpc": "2.0", "id": self._request_id, "method": method}
+        if params:
+            request["params"] = params
+
+        try:
+            response = await client.post(config.url, json=request, headers=self._http_headers(server_name))
+        except Exception as e:
+            logger.error(f"HTTP request to {server_name} failed: {e}")
+            return None
+
+        # The server assigns a session on initialize; it must be echoed on later requests
+        session_id = response.headers.get("mcp-session-id")
+        if session_id:
+            self._http_sessions[server_name] = session_id
+
+        if response.status_code >= 400:
+            logger.error(
+                f"MCP server {server_name} returned {response.status_code} for {method}: "
+                f"{response.text[:300]}"
+            )
+            return None
+
+        if response.status_code == 202 or not response.content:
+            return None  # accepted, nothing to parse (notifications)
+
+        content_type = response.headers.get("content-type", "")
+        if "text/event-stream" in content_type:
+            return self._parse_sse(response.text)
+        try:
+            return response.json()
+        except ValueError as e:
+            logger.error(f"Invalid JSON from {server_name} for {method}: {e}; body: {response.text[:300]}")
+            return None
+
+    async def _close_http(self, server_name: str) -> None:
+        """Close the HTTP client and forget the session for a server."""
+        client = self._http_clients.pop(server_name, None)
+        if client is not None:
+            try:
+                await client.aclose()
+            except Exception as e:
+                logger.debug(f"Error closing HTTP client for {server_name}: {e}")
+        self._http_sessions.pop(server_name, None)
+        self._http_protocol.pop(server_name, None)
 
     async def _send_request(
         self,
@@ -253,6 +404,9 @@ class MCPClient:
         params: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, Any]]:
         """Send a JSON-RPC request to an MCP server."""
+        if server_name in self._http_clients:
+            return await self._http_request(server_name, method, params)
+
         if server_name not in self._processes:
             logger.error(f"Server {server_name} not connected")
             return None
@@ -340,6 +494,18 @@ class MCPClient:
         params: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Send a JSON-RPC notification (no response expected)."""
+        if server_name in self._http_clients:
+            client = self._http_clients[server_name]
+            config = self._servers[server_name]
+            notification: Dict[str, Any] = {"jsonrpc": "2.0", "method": method}
+            if params:
+                notification["params"] = params
+            try:
+                await client.post(config.url, json=notification, headers=self._http_headers(server_name))
+            except Exception as e:
+                logger.error(f"Error sending notification to {server_name}: {e}")
+            return
+
         if server_name not in self._processes:
             return
 
@@ -455,6 +621,9 @@ class MCPClient:
 
     async def disconnect_server(self, server_name: str) -> None:
         """Disconnect from an MCP server."""
+        if server_name in self._http_clients:
+            await self._close_http(server_name)
+
         if server_name in self._processes:
             process = self._processes[server_name]
             process.terminate()
