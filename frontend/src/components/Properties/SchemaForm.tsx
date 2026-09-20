@@ -18,6 +18,7 @@ import { AdvancedNLPForm } from './AdvancedNLPForm';
 import { GoogleSheetsNodeForm } from './GoogleSheetsNodeForm';
 import { AirtableNodeForm } from './AirtableNodeForm';
 import { AIWebSearchNodeForm } from './AIWebSearchNodeForm';
+import { MCPToolNodeForm } from './MCPToolNodeForm';
 import { ProviderIcon } from '@/components/common/ProviderIcon';
 import { shouldShowField } from './SchemaForm/FieldFilters';
 import { renderField } from './SchemaForm/FieldRenderers';
@@ -63,6 +64,7 @@ export function SchemaForm({
   const isGoogleSheetsNode = nodeType === 'google_sheets';
   const isAirtableNode = nodeType === 'airtable';
   const isAIWebSearchNode = nodeType === 'ai_web_search';
+  const isMCPToolNode = nodeType === 'mcp_tool';
   
   // Merge schema defaults with initial data (schema defaults take precedence if initialData is empty)
   const getDefaultValues = () => {
@@ -250,6 +252,11 @@ export function SchemaForm({
 
   if (isAIWebSearchNode) {
     return <AIWebSearchNodeForm initialData={initialData} onChange={onChange} />;
+  }
+
+  // Use custom form for MCP tool node: servers and tools come from the MCP API
+  if (isMCPToolNode) {
+    return <MCPToolNodeForm initialData={initialData} onChange={onChange} />;
   }
 
   // Use custom form for CrewAI agent

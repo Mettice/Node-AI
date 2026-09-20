@@ -296,6 +296,12 @@ except Exception as e:
 # Tool nodes
 from backend.nodes.tools.tool_node import ToolNode  # noqa: F401
 
+try:
+    from backend.nodes.tools.mcp_tool_node import MCPToolNode  # noqa: F401
+except Exception as e:
+    from backend.utils.logger import get_logger
+    get_logger(__name__).error(f"Error importing MCP tool node: {e}", exc_info=True)
+
 # Training nodes
 try:
     from backend.nodes.training.finetune import FineTuneNode  # noqa: F401

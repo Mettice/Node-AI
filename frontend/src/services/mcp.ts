@@ -17,6 +17,9 @@ export interface MCPPreset {
   setup_url?: string;
   setup_instructions?: string;
   icon?: string; // Service name for ProviderIcon (e.g., 'slack', 'airtable', 'github')
+  url?: string | null; // Endpoint for remote (http) servers
+  /** npx and executable servers need Node.js or a binary on the host, so they only work locally */
+  requires_local_install?: boolean;
 }
 
 export interface MCPServer {
@@ -27,6 +30,8 @@ export interface MCPServer {
   enabled: boolean;
   connected: boolean;
   tools_count: number;
+  server_type?: 'npx' | 'executable' | 'http';
+  url?: string | null;
 }
 
 export interface MCPTool {
@@ -104,6 +109,23 @@ export async function addCustomServer(config: {
 /**
  * Connect to an MCP server
  */
+/**
+ * Add a remote MCP server by URL (any Streamable HTTP MCP server).
+ * Needs nothing installed on the host, unlike npx/executable servers.
+ */
+export async function addRemoteServer(config: {
+  name: string;
+  display_name: string;
+  url: string;
+  description?: string;
+  token?: string;
+  auth_header?: string;
+  auth_prefix?: string;
+}): Promise<{ success: boolean; server: MCPServer }> {
+  const response = await apiClient.post('/mcp/servers/remote', config);
+  return response.data;
+}
+
 export async function connectServer(
   serverName: string
 ): Promise<{ success: boolean; server: MCPServer }> {

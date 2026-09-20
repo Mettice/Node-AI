@@ -38,6 +38,7 @@ import {
   getMCPTools,
   getMCPStatus,
   addServerFromPreset,
+  addRemoteServer,
   connectServer,
   disconnectServer,
   removeServer,
@@ -581,6 +582,9 @@ function AddServerForm({
   const [customName, setCustomName] = useState('');
   const [adding, setAdding] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  // Any Streamable HTTP MCP server can be added by URL, without a preset
+  const [mode, setMode] = useState<'preset' | 'remote'>('preset');
+  const [remote, setRemote] = useState({ name: '', display_name: '', url: '', token: '' });
 
   // Group presets by category
   const presetsByCategory = presets.reduce(
@@ -596,7 +600,33 @@ function AddServerForm({
 
   const selectedPresetData = presets.find((p) => p.name === selectedPreset);
 
+  const handleAddRemote = async () => {
+    if (!remote.url || !remote.name) {
+      toast.error('Please provide a name and URL');
+      return;
+    }
+    setAdding(true);
+    try {
+      await addRemoteServer({
+        name: remote.name,
+        display_name: remote.display_name || remote.name,
+        url: remote.url,
+        token: remote.token || undefined,
+      });
+      toast.success('Server added successfully');
+      onSuccess();
+    } catch (error: unknown) {
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail || 'Failed to add server');
+    } finally {
+      setAdding(false);
+    }
+  };
+
   const handleAdd = async () => {
+    if (mode === 'remote') {
+      return handleAddRemote();
+    }
     if (!selectedPreset) {
       toast.error('Please select a server type');
       return;
@@ -632,8 +662,75 @@ function AddServerForm({
         Add MCP Server
       </h4>
 
+      {/* Preset or custom remote server */}
+      <div className="flex items-center gap-2">
+        {(['preset', 'remote'] as const).map((option) => (
+          <button
+            key={option}
+            onClick={() => setMode(option)}
+            className={cn(
+              'px-3 py-1.5 text-sm rounded-lg border transition-colors',
+              mode === option
+                ? 'bg-amber-500/20 border-amber-500/30 text-amber-200'
+                : 'border-white/10 text-slate-400 hover:bg-white/5'
+            )}
+          >
+            {option === 'preset' ? 'From a service' : 'Remote server (URL)'}
+          </button>
+        ))}
+      </div>
+
+      {mode === 'remote' && (
+        <div className="space-y-3">
+          <p className="text-xs text-slate-400">
+            Connect to any MCP server that speaks Streamable HTTP. Nothing is installed, so
+            these work on the hosted backend.
+          </p>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Name</label>
+            <input
+              type="text"
+              value={remote.name}
+              onChange={(e) => setRemote({ ...remote, name: e.target.value })}
+              placeholder="my-server"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Display Name (optional)</label>
+            <input
+              type="text"
+              value={remote.display_name}
+              onChange={(e) => setRemote({ ...remote, display_name: e.target.value })}
+              placeholder="My Server"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Server URL</label>
+            <input
+              type="text"
+              value={remote.url}
+              onChange={(e) => setRemote({ ...remote, url: e.target.value })}
+              placeholder="https://mcp.example.com/mcp"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Token (optional)</label>
+            <input
+              type="password"
+              value={remote.token}
+              onChange={(e) => setRemote({ ...remote, token: e.target.value })}
+              placeholder="Sent as Authorization: Bearer ..."
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Preset Selection */}
-      <div className="space-y-2">
+      <div className={cn('space-y-2', mode === 'remote' && 'hidden')}>
         <label className="text-sm text-slate-300">Select Server Type</label>
         <div className="space-y-2 max-h-64 overflow-y-auto">
           {Object.entries(presetsByCategory).map(([category, categoryPresets]) => (
@@ -673,7 +770,17 @@ function AddServerForm({
                       )}
                     >
                       <div className="flex-1">
-                        <div className="text-sm font-medium text-white">{preset.display_name}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-white">{preset.display_name}</span>
+                          {preset.requires_local_install && (
+                            <span
+                              className="px-1.5 py-0.5 text-[10px] uppercase tracking-wide rounded bg-slate-700 text-slate-300"
+                              title="Runs a program on the machine, so it only works when NodeAI runs locally"
+                            >
+                              local only
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs text-slate-400">{preset.description}</div>
                       </div>
                       {selectedPreset === preset.name && (
@@ -689,7 +796,7 @@ function AddServerForm({
       </div>
 
       {/* Configuration */}
-      {selectedPresetData && (
+      {mode === 'preset' && selectedPresetData && (
         <div className="space-y-3 pt-3 border-t border-white/10">
           <div className="flex items-center gap-2 text-sm text-slate-300">
             <AlertCircle className="w-4 h-4 text-amber-400" />
@@ -734,7 +841,7 @@ function AddServerForm({
         </button>
         <button
           onClick={handleAdd}
-          disabled={adding || !selectedPreset}
+          disabled={adding || (mode === 'preset' ? !selectedPreset : !remote.url || !remote.name)}
           className="flex items-center gap-2 px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {adding ? (
