@@ -291,7 +291,23 @@ class DataCollector:
                     available_data["body"] = outputs["body"]
                 if "message" in outputs:
                     available_data["message"] = outputs["message"]
-                    
+
+            elif node_type in ["chat", "mcp_tool"]:
+                # Nodes whose answer is their main output: chat returns "response",
+                # the MCP tool node returns "text". Without this the answer only survives
+                # under a prefixed key and never reaches the next node.
+                answer = outputs.get("response") if node_type == "chat" else outputs.get("text")
+                if isinstance(answer, str) and answer:
+                    if isinstance(available_data.get("text"), str):
+                        available_data["text"] = (
+                            f"{available_data['text']}\n\n--- Output from {source_id} ---\n{answer}"
+                        )
+                    else:
+                        available_data["text"] = answer
+                    available_data["content"] = available_data["text"]
+                    available_data[source_id] = answer
+                    logger.info(f"   ✅ Direct source {source_id} ({node_type}) set text field")
+
             # Common field extraction for all node types (direct sources)
             if "output" in outputs:
                 output_value = outputs["output"]
@@ -439,7 +455,16 @@ class DataCollector:
                     available_data["body"] = outputs["body"]
                 if "message" in outputs and "message" not in available_data:  # ✅ Conditional
                     available_data["message"] = outputs["message"]
-                    
+
+            elif node_type in ["chat", "mcp_tool"]:
+                # See the direct-source branch; conditional so a direct source wins
+                answer = outputs.get("response") if node_type == "chat" else outputs.get("text")
+                if isinstance(answer, str) and answer:
+                    if "text" not in available_data:  # ✅ Conditional
+                        available_data["text"] = answer
+                        available_data["content"] = answer
+                    available_data[source_id] = answer
+
             # Common field extraction for indirect sources (with conditionals)
             if "output" in outputs:
                 output_value = outputs["output"]

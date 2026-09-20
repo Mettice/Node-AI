@@ -104,8 +104,9 @@ class MCPToolNode(BaseNode):
 
         values = dict(inputs)
         if "input" not in values:
-            for key in ("text", "query", "data"):
-                if key in inputs:
+            # "response" covers a chat node upstream, "content" the engine's merged text
+            for key in ("text", "content", "response", "query", "data"):
+                if inputs.get(key) is not None:
                     values["input"] = inputs[key]
                     break
 
