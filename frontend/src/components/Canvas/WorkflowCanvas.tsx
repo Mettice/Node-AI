@@ -120,6 +120,8 @@ const NODE_TYPES: NodeTypes = {
   advanced_nlp: CustomNode,
   // Training nodes
   finetune: CustomNode,
+  // Tool nodes
+  mcp_tool: CustomNode,
 };
 
 const EDGE_TYPES: EdgeTypes = {
@@ -165,11 +167,8 @@ export function WorkflowCanvas() {
     } : {}
   );
   
-  // Use constants directly - they're defined outside component so they're stable
-  // React Flow will only warn if these are recreated on each render
-  const nodeTypes = NODE_TYPES;
   const edgeTypes = EDGE_TYPES;
-  
+
   const {
     nodes: storeNodes,
     edges: storeEdges,
@@ -188,6 +187,18 @@ export function WorkflowCanvas() {
   // Initialize React Flow state from store
   const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges);
+
+  // Every node renders as CustomNode. Node types added to the backend later are picked up
+  // here automatically: with no entry React Flow falls back to its "default" node, which
+  // loses the node's type, so its settings panel comes up empty.
+  const nodeTypeKeys = Array.from(new Set(nodes.map((node) => node.type).filter(Boolean))).sort().join(',');
+  const nodeTypes = useMemo(() => {
+    const types: NodeTypes = { ...NODE_TYPES };
+    for (const type of nodeTypeKeys.split(',')) {
+      if (type && !types[type]) types[type] = CustomNode;
+    }
+    return types;
+  }, [nodeTypeKeys]);
 
   // Enhanced Canvas Interactions
   const canvasInteractions = useCanvasInteractions({

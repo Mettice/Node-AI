@@ -7,6 +7,13 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderWithProviders, screen, userEvent } from '@/test/utils';
 import { SchemaForm } from '@/components/Properties/SchemaForm';
 
+// The MCP form reads servers and tools from the API; no network in tests
+vi.mock('@/services/mcp', () => ({
+  getMCPServers: vi.fn().mockResolvedValue({ servers: [] }),
+  getMCPTools: vi.fn().mockResolvedValue({ tools: [] }),
+  connectServer: vi.fn(),
+}));
+
 // Mirrors the schema LLMConfigMixin nodes (blog_generator, lead_scorer, ...) serve
 const llmNodeSchema = {
   type: 'object',
@@ -40,6 +47,15 @@ async function chooseProvider(currentLabel: string, nextLabel: string) {
   await user.click(screen.getByText(currentLabel, { selector: 'span' }).closest('button')!);
   await user.click(screen.getByText(nextLabel, { selector: 'span' }).closest('button')!);
 }
+
+describe('SchemaForm node-specific forms', () => {
+  it('shows the MCP tool form even when the node has no schema', () => {
+    renderForm(undefined as unknown as Record<string, unknown>, 'mcp_tool');
+    expect(screen.getByText('MCP Server')).toBeInTheDocument();
+    expect(screen.getByText(/Arguments/)).toBeInTheDocument();
+    expect(screen.queryByText('No configuration schema available')).not.toBeInTheDocument();
+  });
+});
 
 describe('SchemaForm provider and model fields', () => {
   it("shows the default provider's model dropdown and hides the others", () => {
